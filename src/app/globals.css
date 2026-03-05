@@ -1,0 +1,259 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Override Tailwind v4's default media-based dark variant to use .dark class */
+@variant dark (&:where(.dark, .dark *));
+
+/* ── Tailwind v4 + shadcn semantic token bridge ─────────────────────────────
+   Maps shadcn CSS vars to Tailwind color/radius utility names so that
+   bg-primary, border-border, text-muted-foreground etc. all resolve correctly.
+   The underlying vars are set at runtime by ThemeContext.
+   ─────────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  /* Colors */
+  --color-background:              var(--background);
+  --color-foreground:              var(--foreground);
+  --color-card:                    var(--card);
+  --color-card-foreground:         var(--card-foreground);
+  --color-popover:                 var(--popover);
+  --color-popover-foreground:      var(--popover-foreground);
+  --color-primary:                 var(--primary);
+  --color-primary-foreground:      var(--primary-foreground);
+  --color-secondary:               var(--secondary);
+  --color-secondary-foreground:    var(--secondary-foreground);
+  --color-muted:                   var(--muted);
+  --color-muted-foreground:        var(--muted-foreground);
+  --color-accent:                  var(--accent);
+  --color-accent-foreground:       var(--accent-foreground);
+  --color-destructive:             var(--destructive);
+  --color-destructive-foreground:  var(--destructive-foreground);
+  --color-border:                  var(--border);
+  --color-input:                   var(--input);
+  --color-ring:                    var(--ring);
+  /* Brand */
+  --color-brand-blue:              #4982e8;
+  /* Chart palette */
+  --color-chart-1:                 var(--chart-1);
+  --color-chart-2:                 var(--chart-2);
+  --color-chart-3:                 var(--chart-3);
+  --color-chart-4:                 var(--chart-4);
+  --color-chart-5:                 var(--chart-5);
+  /* Sidebar */
+  --color-sidebar:                         var(--sidebar);
+  --color-sidebar-foreground:              var(--sidebar-foreground);
+  --color-sidebar-primary:                 var(--sidebar-primary);
+  --color-sidebar-primary-foreground:      var(--sidebar-primary-foreground);
+  --color-sidebar-accent:                  var(--sidebar-accent);
+  --color-sidebar-accent-foreground:       var(--sidebar-accent-foreground);
+  --color-sidebar-border:                  var(--sidebar-border);
+  --color-sidebar-ring:                    var(--sidebar-ring);
+  /* Radius scale — all rounded-* utilities now track the theme slider */
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  calc(var(--radius) - 2px);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  /* Fonts — makes font-sans and font-mono utilities use our chosen fonts */
+  --font-sans: 'SohneVar', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+@font-face {
+  font-family: 'SohneVar';
+  src: url('/fonts/sohne-var.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+
+:root {
+  --color-text: #1a1f2e;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-surface: #ffffff;
+  --color-background: #f6f8fc;
+  --color-background-alt: #f0f3f9;
+
+  --backline-color-primary: #4982e8;
+  --backline-color-primary-dark: #1d345d;
+  --backline-color-primary-light: #fcfdff;
+  --backline-color-primary-opaque: #edf3fd;
+  --backline-color-crimson: #FF4F40;
+
+  /* Semantic token aliases (light mode baseline) */
+  --primary: var(--backline-color-primary);
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --accent: var(--backline-color-primary-opaque);
+  --accent-foreground: #0f172a;
+  --background: var(--color-background);
+  --foreground: var(--color-text);
+  --card: #ffffff;
+  --card-foreground: var(--color-text);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-text);
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --destructive: var(--backline-color-crimson);
+  --destructive-foreground: #ffffff;
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --ring: var(--backline-color-primary);
+  --radius: 12px;
+  --table-radius: 8px;
+
+  /* Matches the tab pill (bg-muted/50 on page bg) as a solid computed colour */
+  --table-header-bg: color-mix(in oklch, var(--muted) 50%, var(--background) 50%);
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--color-text);
+  --sidebar-primary: var(--backline-color-primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--backline-color-primary-opaque);
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: var(--color-border);
+  --sidebar-ring: var(--backline-color-primary);
+
+  /* Chart colors — Foundation semantic colours */
+  --chart-1: #4982e8; /* Primary */
+  --chart-2: #15BE53; /* Emerald */
+  --chart-3: #FFAD00; /* Amber */
+  --chart-4: #FF4F40; /* Crimson */
+  --chart-5: #635BFF; /* Violet */
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #000000;
+  font-family: 'SohneVar', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 350;
+  background: #000000;
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global baseline resets — inside @layer base so Tailwind utilities (border-transparent etc.)
+   can still override them. Without this layer, border-color beats border-transparent on buttons.
+   - border-color: prevents `border` falling back to currentColor (dark text colour)
+   - outline-color: makes focus rings use the theme's ring colour at 50% opacity */
+@layer base {
+  *, ::before, ::after {
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklab, var(--color-ring) 50%, transparent);
+    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, fill 200ms ease;
+  }
+
+  /* Dark mode base — ThemeContext writes token values dynamically,
+     but Tailwind needs .dark class present for dark: utilities */
+  .dark {
+    color-scheme: dark;
+    --background: #09090b;
+    --foreground: #fafafa;
+    --card: #18181b;
+    --card-foreground: #fafafa;
+    --card-bg: #18181b;
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa;
+    --border: #27272a;
+    --input: #27272a;
+    --color-text: #fafafa;
+    --color-background: #09090b;
+  }
+}
+
+/* Container — matches Tailwind v3 centered+padded behaviour that source blocks expect.
+   --container-padding is exposed so theme(container.padding) resolves in calc() expressions. */
+:root { --container-padding: 1.5rem; }
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: var(--container-padding);
+  width: 100%;
+  @media (width >= 640px)  { max-width: 640px; }
+  @media (width >= 768px)  { max-width: 768px; }
+  @media (width >= 1024px) { max-width: 1024px; }
+  @media (width >= 1280px) { max-width: 1280px; }
+  @media (width >= 1536px) { max-width: 1400px; }
+}
+
+/* Code syntax highlighting */
+pre, code {
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ── UI Size system ──────────────────────────────────────────────────────────
+   ThemeContext sets data-ui-size="sm|lg" on <html>. Default needs no overrides (it's the baseline).
+   [data-slot] selectors have specificity (0,2,0) — beats Tailwind utilities (0,1,0).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Tab pill CSS variables (used in header tab switchers) ── */
+:root {
+  --tab-pill-h:     2.25rem; /* 36px = h-9 */
+  --tab-pill-btn-h: 1.75rem; /* 28px = h-7 */
+}
+
+/* ── Tab pill button height — follows CSS var set by UI size ── */
+[data-tab-pill] button { height: var(--tab-pill-btn-h); }
+
+/* ── Small UI: compact buttons + inputs ── */
+[data-ui-size="sm"] { --tab-pill-h: 1.75rem; --tab-pill-btn-h: 1.25rem; }
+[data-ui-size="sm"] [data-slot="button"] { font-size: 0.75rem; }
+[data-ui-size="sm"] [data-slot="button"][data-size="default"] { height: 1.75rem; padding-inline: 0.625rem; }
+[data-ui-size="sm"] [data-slot="button"][data-size="lg"]      { height: 2rem;    padding-inline: 0.75rem; }
+[data-ui-size="sm"] [data-slot="button"][data-size="icon"]    { width: 1.75rem;  height: 1.75rem; }
+[data-ui-size="sm"] [data-slot="button"][data-size="icon-sm"] { width: 1.5rem;   height: 1.5rem; }
+[data-ui-size="sm"] [data-slot="button"][data-size="icon-lg"] { width: 2rem;     height: 2rem; }
+[data-ui-size="sm"] [data-slot="input"],
+[data-ui-size="sm"] [data-slot="select-trigger"] { height: 1.75rem; font-size: 0.75rem; }
+[data-ui-size="sm"] [data-ui-exempt] [data-slot="input"],
+[data-ui-size="sm"] [data-ui-exempt] [data-slot="select-trigger"] { height: revert; font-size: revert; }
+
+/* ── Large UI: spacious buttons + inputs ── */
+[data-ui-size="lg"] { --tab-pill-h: 2.5rem; --tab-pill-btn-h: 2rem; }
+[data-ui-size="lg"] [data-slot="button"][data-size="default"] { height: 2.25rem; padding-inline: 1rem; }
+[data-ui-size="lg"] [data-slot="button"][data-size="lg"]      { height: 2.5rem;  padding-inline: 1.5rem; }
+[data-ui-size="lg"] [data-slot="button"][data-size="icon"]    { width: 2.25rem;  height: 2.25rem; }
+[data-ui-size="lg"] [data-slot="button"][data-size="icon-sm"] { width: 2rem;     height: 2rem; }
+[data-ui-size="lg"] [data-slot="button"][data-size="icon-lg"] { width: 2.5rem;   height: 2.5rem; }
+[data-ui-size="lg"] [data-slot="input"],
+[data-ui-size="lg"] [data-slot="select-trigger"] { height: 2.25rem; }
+[data-ui-size="lg"] [data-ui-exempt] [data-slot="input"],
+[data-ui-size="lg"] [data-ui-exempt] [data-slot="select-trigger"] { height: revert; }
+
+/* ── Full-bleed table cards ─────────────────────────────────────────────── */
+[data-table-style="full-bleed"] [data-table-card] {
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  margin-top: -1.5rem;
+  border-radius: 0 !important;
+}
+
+/* Tailwind safelist — dynamic icon background colours used in table rows and schedule cards */
+/* bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 */
+/* bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 */
+/* bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 */
+/* bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 */
+/* bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 */
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
