@@ -11,7 +11,7 @@ const signupClientSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   phone: z.string().max(20).optional(),
   dateOfBirth: z.string().optional(),
-  gender: z.enum(['male', 'female', 'other']).optional(),
+  gender: z.enum(['male', 'female', 'other']).optional().or(z.literal('')),
   planId: z.string().optional(),
   acceptMarketing: z.boolean().optional(),
 });

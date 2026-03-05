@@ -196,6 +196,11 @@ export function LandingPricing() {
 
       if (!error && data && data.length > 0) {
         const ms = data.filter((p: Plan) => p.plan_type === 'recurring').map(transformPlan)
+          .sort((a: DisplayPlan, b: DisplayPlan) => {
+            const aPrice = parseFloat(a.price.replace(/[^0-9.]/g, ''))
+            const bPrice = parseFloat(b.price.replace(/[^0-9.]/g, ''))
+            return aPrice - bPrice
+          })
         const pg = data
           .filter((p: Plan) => p.plan_type === 'credit_package' || p.plan_type === 'drop_in')
           .map(transformPlan)

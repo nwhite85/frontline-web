@@ -75,7 +75,7 @@ function SignupContent() {
         .from('user_profiles')
         .select('id')
         .eq('email', form.email.toLowerCase())
-        .single()
+        .maybeSingle()
       if (data) {
         setError('An account with this email already exists. Please sign in instead.')
         setLoading(false)
@@ -101,23 +101,27 @@ function SignupContent() {
     if (!form.terms) { setError('Please accept the privacy policy to continue'); return }
     setLoading(true)
     try {
+      const payload = {
+        email: form.email,
+        password: form.password,
+        name: `${form.firstName} ${form.lastName}`,
+        phone: form.phone || undefined,
+        dateOfBirth: form.dateOfBirth || undefined,
+        gender: form.gender || undefined,
+        planId: selectedPlan.id,
+        acceptMarketing: form.marketing,
+      }
+      console.log('[signup] payload:', payload)
       const signupResponse = await fetch('/api/signup-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password,
-          name: `${form.firstName} ${form.lastName}`,
-          phone: form.phone,
-          dateOfBirth: form.dateOfBirth || undefined,
-          gender: form.gender || undefined,
-          planId: selectedPlan.id,
-          acceptMarketing: form.marketing,
-        }),
+        body: JSON.stringify(payload),
       })
       const signupResult = await signupResponse.json()
       if (!signupResponse.ok || !signupResult.success) {
-        setError(signupResult.error || 'Failed to create account')
+        const details = signupResult.details?.fieldErrors
+        const fieldMsg = details ? Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(', ') : ''
+        setError(fieldMsg || signupResult.error || 'Failed to create account')
         setLoading(false)
         return
       }
@@ -174,7 +178,7 @@ function SignupContent() {
                 <form onSubmit={handleStep1} className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label htmlFor="email" className="text-sm font-medium text-white/80">Email address</label>
-                    <Input id="email" type="email" placeholder="name@example.com"
+                    <Input id="email" type="email" autoComplete="email" placeholder="name@example.com"
                       value={form.email} onChange={(e) => update('email', e.target.value)} required
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
                   </div>
@@ -191,26 +195,26 @@ function SignupContent() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
                       <label htmlFor="firstName" className="text-sm font-medium text-white/80">First name</label>
-                      <Input id="firstName" placeholder="Jane" value={form.firstName}
+                      <Input id="firstName" autoComplete="given-name" placeholder="Jane" value={form.firstName}
                         onChange={(e) => update('firstName', e.target.value)} required
                         className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label htmlFor="lastName" className="text-sm font-medium text-white/80">Last name</label>
-                      <Input id="lastName" placeholder="Smith" value={form.lastName}
+                      <Input id="lastName" autoComplete="family-name" placeholder="Smith" value={form.lastName}
                         onChange={(e) => update('lastName', e.target.value)} required
                         className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label htmlFor="phone" className="text-sm font-medium text-white/80">Phone number</label>
-                    <Input id="phone" type="tel" placeholder="07123 456789" value={form.phone}
+                    <Input id="phone" type="tel" autoComplete="tel" placeholder="07123 456789" value={form.phone}
                       onChange={(e) => update('phone', e.target.value)} required
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label htmlFor="dob" className="text-sm font-medium text-white/80">Date of birth</label>
-                    <Input id="dob" type="date" value={form.dateOfBirth}
+                    <Input id="dob" type="date" autoComplete="bday" value={form.dateOfBirth}
                       onChange={(e) => update('dateOfBirth', e.target.value)}
                       className="bg-white/5 border-white/10 text-white focus-visible:ring-white/20 [color-scheme:dark]" />
                   </div>
@@ -227,14 +231,14 @@ function SignupContent() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label htmlFor="password" className="text-sm font-medium text-white/80">Password</label>
-                    <Input id="password" type="password" placeholder="At least 8 characters"
+                    <Input id="password" type="password" autoComplete="new-password" placeholder="At least 8 characters"
                       value={form.password} onChange={(e) => update('password', e.target.value)}
                       required minLength={8}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label htmlFor="confirm" className="text-sm font-medium text-white/80">Confirm password</label>
-                    <Input id="confirm" type="password" placeholder="Repeat your password"
+                    <Input id="confirm" type="password" autoComplete="new-password" placeholder="Repeat your password"
                       value={form.confirm} onChange={(e) => update('confirm', e.target.value)} required
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
                   </div>
