@@ -174,7 +174,7 @@ export default function ShopPage() {
         {/* Image container capped at 80rem, centred */}
         <div className="absolute inset-0 flex justify-center">
           <div className="relative h-full w-full" style={{ maxWidth: '75rem' }}>
-            <img src="/photos/img_levels_logos_transparent.png" alt="Frontline Shop" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: 'center 20%' }} />
+            <img src="/photos/img_levels_logos_transparent.webp" alt="Frontline Shop" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: 'center 20%' }} />
           </div>
         </div>
         {/* Edge fades on outer container */}

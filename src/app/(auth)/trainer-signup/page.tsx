@@ -66,23 +66,28 @@ export default function TrainerSignupPage() {
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-gray-700">Full name</label>
-                  <Input placeholder="Jane Smith" value={form.name} onChange={(e) => update('name', e.target.value)} required />
+                  <label htmlFor="name" className="text-sm font-medium text-white/80">Full name</label>
+                  <Input id="name" autoComplete="name" placeholder="Jane Smith" value={form.name} onChange={(e) => update('name', e.target.value)} required />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-gray-700">Email</label>
-                  <Input type="email" placeholder="name@example.com" value={form.email} onChange={(e) => update('email', e.target.value)} required />
+                  <label htmlFor="email" className="text-sm font-medium text-white/80">Email address</label>
+                  <Input id="email" type="email" autoComplete="email" placeholder="name@example.com" value={form.email} onChange={(e) => update('email', e.target.value)} required />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-gray-700">Specialisation</label>
-                  <Input placeholder="e.g. Strength & Conditioning" value={form.specialisation} onChange={(e) => update('specialisation', e.target.value)} />
+                  <label htmlFor="specialisation" className="text-sm font-medium text-white/80">Specialisation</label>
+                  <Input id="specialisation" placeholder="e.g. Strength & Conditioning" value={form.specialisation} onChange={(e) => update('specialisation', e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-gray-700">Password</label>
-                  <Input type="password" placeholder="At least 8 characters" value={form.password} onChange={(e) => update('password', e.target.value)} required minLength={8} />
+                  <label htmlFor="password" className="text-sm font-medium text-white/80">Password</label>
+                  <Input id="password" type="password" autoComplete="new-password" placeholder="At least 8 characters" value={form.password} onChange={(e) => update('password', e.target.value)} required minLength={8} />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-gray-700">Confirm password</label>
-                  <Input type="password" placeholder="Repeat your password" value={form.confirm} onChange={(e) => update('confirm', e.target.value)} required />
+                  <label htmlFor="confirm" className="text-sm font-medium text-white/80">Confirm password</label>
+                  <Input id="confirm" type="password" autoComplete="new-password" placeholder="Repeat your password" value={form.confirm} onChange={(e) => update('confirm', e.target.value)} required />
                 </div>
                 {error && (
                   <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2.5">

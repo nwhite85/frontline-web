@@ -111,7 +111,6 @@ function SignupContent() {
         planId: selectedPlan.id,
         acceptMarketing: form.marketing,
       }
-      console.log('[signup] payload:', payload)
       const signupResponse = await fetch('/api/signup-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,6 +124,46 @@ function SignupContent() {
         setLoading(false)
         return
       }
+      // Sign in the newly created user so the checkout API can authenticate them
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      })
+      if (signInError) {
+        console.error('Auto sign-in failed:', signInError)
+        // Still redirect to success — they can pay later
+        router.push('/signup/success')
+        return
+      }
+
+      // Create Stripe checkout session for the selected plan
+      try {
+        const checkoutRes = await fetch('/api/create-subscription-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: form.email,
+            name: `${form.firstName} ${form.lastName}`,
+            phone: form.phone || undefined,
+            planId: selectedPlan.id,
+            planName: selectedPlan.name,
+            planPrice: selectedPlan.price,
+            userId: signupResult.userId,
+            acceptMarketing: form.marketing,
+          }),
+        })
+        const checkoutData = await checkoutRes.json()
+        if (checkoutRes.ok && checkoutData.url) {
+          // Redirect to Stripe Checkout
+          window.location.href = checkoutData.url
+          return
+        }
+        console.error('Checkout session failed:', checkoutData)
+      } catch (checkoutErr) {
+        console.error('Checkout error:', checkoutErr)
+      }
+
+      // Fallback — if Stripe fails, still go to success page
       router.push('/signup/success')
     } catch (err) {
       console.error('Signup error:', err)

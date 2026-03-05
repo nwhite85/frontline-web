@@ -9,7 +9,6 @@ import { LandingPricing } from '@/components/landing/LandingPricing'
 import { LandingBooking } from '@/components/landing/LandingBooking'
 import { LandingMarquee } from '@/components/landing/LandingMarquee'
 import { LandingLevels } from '@/components/landing/LandingLevels'
-import { LandingTestimonials } from '@/components/landing/LandingTestimonials'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 
 function LandingPageInner() {

@@ -31,7 +31,7 @@ export function LandingLevels() {
       {/* Mobile header image */}
       <div className="lg:hidden relative w-full h-56 mb-10 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/photos/img_levels_logos_tweaked.png" alt="Training levels" className="w-full h-full object-contain scale-[1.35]" />
+        <img src="/photos/img_levels_logos_tweaked.webp" alt="Training levels" className="w-full h-full object-contain scale-[1.35]" />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black to-transparent" />
       </div>
 
@@ -100,7 +100,7 @@ export function LandingLevels() {
             <div className="relative aspect-[4/5]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/photos/img_levels_logos_tweaked.png"
+                src="/photos/img_levels_logos_tweaked.webp"
                 alt="Training levels"
                 className="w-full h-full object-contain scale-[1.35]"
               />

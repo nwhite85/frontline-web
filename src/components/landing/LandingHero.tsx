@@ -13,7 +13,7 @@ export function LandingHero() {
       {/* Background image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/photos/img_tug10.png"
+        src="/photos/img_tug10.webp"
         alt="Hero background"
         className="absolute inset-0 w-full h-full object-contain hero-img"
         style={{

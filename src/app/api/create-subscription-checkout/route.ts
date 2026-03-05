@@ -139,8 +139,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/signup/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/signup?plan=${planId}&cancelled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk'}/signup/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk'}/signup?plan=${planId}&cancelled=true`,
       metadata: {
         user_id: userId || '',
         plan_id: planId,

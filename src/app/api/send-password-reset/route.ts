@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = createServerSupabaseClient()
 
-    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001'}/client/setup`
+    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://frontlinefitness.co.uk'}/client/setup`
     const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl })
 
     if (error) {

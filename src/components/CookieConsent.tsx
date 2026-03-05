@@ -25,11 +25,13 @@ export function CookieConsent() {
   const accept = () => {
     localStorage.setItem('cookie-consent', 'accepted')
     setExpanded(false)
+    setShow(false)
   }
 
   const reject = () => {
     localStorage.setItem('cookie-consent', 'rejected')
     setExpanded(false)
+    setShow(false)
   }
 
   if (!show) return null
