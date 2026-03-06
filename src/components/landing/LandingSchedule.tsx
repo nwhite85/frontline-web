@@ -78,10 +78,12 @@ type RawSchedule = { scheduled_date: string; start_time: string; location?: stri
 function buildMapFromRaw(raw: RawSchedule[]): Map<string, ClassItem[]> {
   const map = new Map<string, ClassItem[]>()
   for (const s of raw) {
+    // Supabase sometimes returns the joined relation as an array — handle both
+    const cls = Array.isArray(s.class) ? s.class[0] : s.class
     const item: ClassItem = {
-      name: s.class?.name || 'Class',
+      name: cls?.name || 'Class',
       time: formatTime(s.start_time),
-      location: s.location || s.class?.location || '',
+      location: s.location || cls?.location || '',
     }
     const existing = map.get(s.scheduled_date) ?? []
     map.set(s.scheduled_date, [...existing, item])
