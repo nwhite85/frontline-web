@@ -359,4 +359,191 @@ export const posts: BlogPost[] = [
 <p>Frontline Fitness sessions incorporate HIIT-style intervals into outdoor bootcamp training at Lydiard Park and Lydiard Academy. The format is coached — intensity is guided, rest periods are timed, form is monitored — which produces better results than uncoached HIIT and significantly reduces injury risk. Your first session is free. No equipment needed, all fitness levels welcome.</p>
     `.trim(),
   },
+  {
+    slug: 'army-fitness-test-uk-requirements',
+    title: 'Army Fitness Test UK: Requirements, Standards and How to Pass It',
+    excerpt: 'Everything you need to know about the British Army fitness test — the PJFT and ADSC standards, what to expect on assessment day, and how to train to pass.',
+    date: '2026-04-01',
+    author: 'Nick White',
+    readTime: '7 min read',
+    category: 'Training',
+    content: `
+<p>Joining the British Army is one of the most demanding and rewarding things you can do with your fitness — and the selection process reflects that. The fitness tests aren't designed to break you; they're designed to confirm you're physically ready for basic training. Here's exactly what's involved, what the standards are, and how to prepare properly.</p>
+
+<h2>The Two Key Fitness Tests: PJFT and ADSC</h2>
+<p>There are two fitness hurdles before you get to basic training:</p>
+<ul>
+<li><strong>PJFT (Pre-Joining Fitness Test)</strong> — conducted at a local gym, usually on a treadmill. This is your first hurdle after your initial application</li>
+<li><strong>ADSC (Army Development and Selection Centre)</strong> — a multi-day residential assessment at a military establishment that includes fitness tests, interviews, team tasks, and medical examination</li>
+</ul>
+<p>Both must be passed. Failing either results in deferral or rejection depending on circumstances.</p>
+
+<h2>PJFT: The Pre-Joining Fitness Test</h2>
+<p>The PJFT is a 2.4km (1.5 mile) timed run on a treadmill set to 1% gradient. The pass time varies by age and gender. As approximate reference points (always check current standards on the official British Army website as these are updated periodically):</p>
+<ul>
+<li>Males aged 16–25: approximately 12 minutes 45 seconds</li>
+<li>Males aged 26–30: approximately 13 minutes 15 seconds</li>
+<li>Females aged 16–25: approximately 14 minutes 30 seconds</li>
+<li>Females aged 26–30: approximately 15 minutes 0 seconds</li>
+</ul>
+<p>These are minimum passing standards. Competitive candidates — particularly those aiming for combat roles, the Parachute Regiment, or special forces pathways — should aim significantly faster than the minimum. Arriving at your PJFT having only trained to the minimum is not the right approach.</p>
+
+<h2>ADSC: What to Expect</h2>
+<p>The ADSC is more comprehensive. Over one or two days you'll complete:</p>
+<ul>
+<li><strong>1.5 mile run</strong> — timed, on a marked route. Standards vary by role and age</li>
+<li><strong>Press-ups and sit-ups</strong> — assessed against role-specific minimum numbers within a set time</li>
+<li><strong>Jerry can carry</strong> — carrying two loaded jerrycans (approximately 20kg each) over 150 metres within a set time</li>
+<li><strong>Heaves (pull-ups)</strong> — required for some roles; a minimum number performed with correct technique</li>
+<li><strong>Team tasks and ice breaker</strong> — assessed for leadership, communication, and character under pressure</li>
+<li><strong>Medical and interview</strong> — physical examination and formal interview with a recruitment officer</li>
+</ul>
+<p>The physical elements are demanding but very passable with proper preparation. Most candidates who fail do so through inadequate preparation — specifically the run time and upper body strength elements.</p>
+
+<h2>Role-Specific Standards</h2>
+<p>Fitness standards vary significantly depending on which role you're applying for. Infantry, combat arms, and specialist roles (Royal Marines, Parachute Regiment, SAS selection pathway) have substantially higher requirements than logistics, medical, or administrative roles. Research the specific requirements for your intended role early and train to exceed them, not just meet them.</p>
+
+<h2>How to Train for the Army Fitness Test</h2>
+<p>A 12–16 week preparation block is appropriate for most candidates who are starting from a reasonable base fitness level. The key elements to train:</p>
+<ul>
+<li><strong>Running:</strong> 3 runs per week minimum — one interval session (400m or 800m repeats), one tempo run at 10km pace, one longer easy run. Build aerobic base before adding speed work</li>
+<li><strong>Upper body strength:</strong> Press-ups and pull-ups daily, or near-daily. Progressive overload — add reps each week</li>
+<li><strong>Core:</strong> Sit-ups, plank variations, and rotational work. The jerry can carry demands significant core stability under load</li>
+<li><strong>Loaded carries:</strong> Practise carrying weight over distance. This is undertraining by most candidates and directly tested at ADSC</li>
+</ul>
+
+<h2>Common Mistakes to Avoid</h2>
+<ul>
+<li>Only training the run and neglecting upper body strength</li>
+<li>Running too slow in training — you need to practise at and above target pace</li>
+<li>Not building mileage gradually — injury from sudden high mileage is the most common setback</li>
+<li>Neglecting recovery — rest days are essential, not optional</li>
+<li>Leaving preparation too late — 6 weeks is not enough for most people</li>
+</ul>
+
+<h2>Training in Swindon for Army Selection</h2>
+<p>If you're based in Swindon or Wiltshire and preparing for army selection, Frontline Fitness offers coached outdoor training sessions with an instructor who has a Royal Marines background. Sessions incorporate the functional fitness, interval running, and strength work that directly prepares candidates for PJFT and ADSC requirements. Your first session is free — come and tell us your goal and we'll build around it.</p>
+    `.trim(),
+  },
+  {
+    slug: 'how-to-get-fit-for-the-army',
+    title: 'How to Get Fit Enough to Join the Army: A 16-Week Training Plan',
+    excerpt: 'A structured 16-week training plan to prepare you physically for British Army selection — covering running, strength, and the specific elements tested at PJFT and ADSC.',
+    date: '2026-04-04',
+    author: 'Nick White',
+    readTime: '7 min read',
+    category: 'Training',
+    content: `
+<p>Getting fit enough to join the army is a specific goal, and specific goals require specific preparation. Generic gym programmes won't prepare you for the demands of ADSC and basic training. This 16-week plan is designed to build the run fitness, upper body strength, and functional capacity you'll need to pass selection and arrive at basic training ready to perform.</p>
+
+<h2>Before You Start: Baseline Assessment</h2>
+<p>On day one, test yourself honestly:</p>
+<ul>
+<li>1.5 mile timed run (on a track or GPS watch)</li>
+<li>Maximum press-ups in 2 minutes</li>
+<li>Maximum sit-ups in 2 minutes</li>
+<li>Maximum pull-ups (dead hang, full extension each rep)</li>
+</ul>
+<p>Record the numbers. You'll retest at weeks 8 and 16. Progress requires a baseline — don't skip this step.</p>
+
+<h2>Phase 1 — Weeks 1–4: Build the Base</h2>
+<p>The first month is about laying foundations, not breaking personal bests. The biggest mistake candidates make is going too hard too soon and picking up an injury that sets them back 4–6 weeks.</p>
+<ul>
+<li><strong>Running:</strong> 3 times per week — two easy 20–30 minute runs at conversational pace, one 15-minute tempo effort at slightly uncomfortable pace. Total weekly mileage: 10–15km</li>
+<li><strong>Strength:</strong> Press-ups and sit-ups daily. Start at 60–70% of your maximum — three sets each morning. Build from there</li>
+<li><strong>Pull-ups:</strong> 3–4 times per week. Even if you can only do 2–3, practice the movement pattern daily</li>
+<li><strong>Rest:</strong> Two full rest days per week. Non-negotiable in this phase</li>
+</ul>
+
+<h2>Phase 2 — Weeks 5–8: Add Intensity</h2>
+<p>The base is built. Now add quality to the running and volume to the strength work.</p>
+<ul>
+<li><strong>Running:</strong> 4 times per week — add one interval session (6–8 x 400m at faster than target pace, 90 seconds recovery). Increase weekly mileage to 20–25km</li>
+<li><strong>Strength:</strong> Increase press-up and sit-up volume significantly. Target sets of 30+ press-ups unbroken. Add dips and rowing movements if available</li>
+<li><strong>Loaded carries:</strong> Introduce weighted carries — two heavy bags, 15–20kg each, over 200m. Timed. This replicates the jerry can carry directly</li>
+<li><strong>Retest at week 8.</strong> You should see clear improvement across all metrics</li>
+</ul>
+
+<h2>Phase 3 — Weeks 9–12: Race-Specific Training</h2>
+<p>Everything now sharpens toward the specific demands of PJFT and ADSC.</p>
+<ul>
+<li><strong>Running:</strong> The weekly interval session becomes 800m repeats at your target PJFT pace or faster. Start practising your 2.4km time trial — aim to run it at 95% effort once per week</li>
+<li><strong>Strength:</strong> Begin testing yourself against ADSC minimum standards. Hit the numbers consistently before you arrive</li>
+<li><strong>Simulate assessment conditions:</strong> Do your press-up and sit-up tests when fatigued — after a run, not fresh. ADSC doesn't always happen in ideal conditions</li>
+</ul>
+
+<h2>Phase 4 — Weeks 13–16: Peak and Polish</h2>
+<p>Final sharpening. Don't introduce anything new — refine what you've built.</p>
+<ul>
+<li>Run times should be consistently under your target. If not, revert to more interval work</li>
+<li>Strength numbers should exceed minimums by a clear margin</li>
+<li>Week 15: reduce volume slightly. Don't arrive at ADSC fatigued from over-training the week before</li>
+<li>Week 16: light maintenance sessions only. Be rested, be ready</li>
+</ul>
+
+<h2>Nutrition and Recovery</h2>
+<p>Training for army selection is a serious physical undertaking. Fuel it properly:</p>
+<ul>
+<li>Protein: 1.6–2g per kg of bodyweight daily — essential for muscle repair and strength gains</li>
+<li>Carbohydrates: don't restrict them. Running performance degrades sharply on low carbohydrate intake</li>
+<li>Sleep: 8 hours minimum. More of your adaptation happens during sleep than during training</li>
+<li>Hydration: consistent daily intake, not just around sessions</li>
+</ul>
+
+<h2>Getting Support in Swindon</h2>
+<p>If you're in Swindon or Wiltshire and preparing for army selection, Frontline Fitness runs coached outdoor sessions designed around exactly this kind of functional fitness preparation. Led by an instructor with a Royal Marines background, sessions cover the running, strength, and conditioning elements directly relevant to PJFT and ADSC. First session is free — come with your goal and we'll train specifically toward it.</p>
+    `.trim(),
+  },
+  {
+    slug: 'forces-physical-training-methods',
+    title: 'Forces Physical Training: How the Military Builds Fitness',
+    excerpt: 'The British military\'s approach to physical training is methodical, progressive, and built around real-world performance. Here\'s how it works — and what civilians can take from it.',
+    date: '2026-04-08',
+    author: 'Nick White',
+    readTime: '6 min read',
+    category: 'Training',
+    content: `
+<p>The British Armed Forces have been developing physical training methodology for over a century. What they've arrived at isn't extreme or brutal by default — it's systematic, evidence-based, and built around a clear objective: producing personnel who are physically capable of performing their role under adverse conditions for extended periods. That's a more demanding target than most gym programmes aim for, and the methods reflect it.</p>
+
+<h2>The Core Principle: Functional Readiness</h2>
+<p>Military physical training isn't about aesthetics. It doesn't care what you look like — it cares what you can do. Carry a 30kg bergan for 20 miles. Sprint into cover under fire. Pull a casualty to safety. These demands shape every element of military PT. The training is functional because the output has to be functional.</p>
+<p>This is a fundamentally different starting point to most civilian fitness. When performance is the goal rather than appearance, the training that emerges is more transferable, more sustainable, and more effective at building genuine fitness capacity.</p>
+
+<h2>The PT Pillars of British Military Training</h2>
+<p>Across the British Armed Forces, physical training is built on four pillars:</p>
+<ul>
+<li><strong>Aerobic base:</strong> Long, sustained cardiovascular effort — loaded marches, long runs, swimming. This is the foundation everything else is built on. Without aerobic capacity, high-intensity efforts can't be sustained or recovered from properly</li>
+<li><strong>Muscular endurance:</strong> The ability to perform strength movements repeatedly over time — press-ups, sit-ups, pull-ups, loaded carries. Not maximum strength, but sustained output over a long duration</li>
+<li><strong>Anaerobic capacity:</strong> Short, maximal efforts — assault courses, speed drills, sprint intervals. Developed on top of the aerobic base, not instead of it</li>
+<li><strong>Mental resilience:</strong> Trained deliberately through sessions that push beyond comfort. The physical and mental are not treated as separate domains. Discomfort is part of the curriculum</li>
+</ul>
+
+<h2>How Military PT is Structured</h2>
+<p>Military PT follows a weekly structure designed to develop all four pillars without accumulating injury. A typical training week in a forces unit might include:</p>
+<ul>
+<li>Two to three long aerobic sessions (runs, loaded marches, circuits)</li>
+<li>One or two high-intensity sessions (assault course, speed intervals, sport)</li>
+<li>Daily calisthenics (press-ups, sit-ups, pull-ups) as baseline maintenance</li>
+<li>Deliberate recovery periods — active rest rather than complete inactivity</li>
+</ul>
+<p>The periodisation (how training intensity and volume changes over weeks and months) is planned. Units build fitness over months-long cycles ahead of deployment or selection courses — not random hard sessions every day.</p>
+
+<h2>The Role of Group Training</h2>
+<p>One of the most distinctive features of military PT is that it's done together. Sessions aren't solo gym visits — they're unit activities where no one is left behind and collective performance matters. This creates the accountability, camaraderie, and shared suffering that produces the psychological outcomes military training is known for.</p>
+<p>The group training model isn't just a social preference. Research consistently shows that people train harder, push further, and adhere more consistently when training with others. Military culture has known this empirically for a long time.</p>
+
+<h2>What Civilians Can Apply</h2>
+<p>You don't need to be serving to train like the military. The principles are directly transferable:</p>
+<ul>
+<li>Build aerobic base before adding intensity — don't skip the long, steady work</li>
+<li>Train functional movements — carries, pulls, pushes — not just machines</li>
+<li>Train with others — accountability and group energy are performance multipliers</li>
+<li>Accept discomfort as part of training — the adaptation happens at the edge of comfort, not within it</li>
+<li>Be consistent over weeks and months — the gains are cumulative, not immediate</li>
+</ul>
+
+<h2>Frontline Fitness: Forces-Led Training in Swindon</h2>
+<p>Frontline Fitness was built directly on these principles. Led by instructors with Royal Marines and forces fitness backgrounds, sessions at Lydiard Park and Lydiard Academy apply military physical training methodology in a format accessible to everyone — regardless of background or current fitness level. If you want to train the way the military trains, this is where to start. First session is free.</p>
+    `.trim(),
+  },
 ]
