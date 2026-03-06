@@ -158,6 +158,7 @@ export function LandingSchedule() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekOffset((w) => w - 1)}
+              aria-label="Previous week"
               className={`h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${
                 isDark
                   ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
@@ -170,7 +171,7 @@ export function LandingSchedule() {
               <button
                 onClick={() => setWeekOffset(0)}
                 className={`text-xs px-2 transition-colors ${
-                  isDark ? 'text-white/40 hover:text-white/70' : 'text-slate-400 hover:text-slate-600'
+                  isDark ? 'text-white/50 hover:text-white/70' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
                 Today
@@ -178,6 +179,7 @@ export function LandingSchedule() {
             )}
             <button
               onClick={() => setWeekOffset((w) => w + 1)}
+              aria-label="Next week"
               className={`h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${
                 isDark
                   ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
@@ -290,7 +292,7 @@ export function LandingSchedule() {
                     <p className={`text-sm font-medium leading-tight ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>
                       {cls.name}
                     </p>
-                    <div className={`flex items-center gap-1 mt-1.5 text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                    <div className={`flex items-center gap-1 mt-1.5 text-xs ${isDark ? 'text-white/50' : 'text-slate-400'}`}>
                       <Clock size={10} />
                       <span>{cls.time}</span>
                     </div>
@@ -331,7 +333,7 @@ export function LandingSchedule() {
                     }}
                   >
                     <p className={`font-medium ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>{cls.name}</p>
-                    <div className={`flex items-center gap-3 mt-2 text-sm ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                    <div className={`flex items-center gap-3 mt-2 text-sm ${isDark ? 'text-white/50' : 'text-slate-400'}`}>
                       <span className="flex items-center gap-1"><Clock size={12} />{cls.time}</span>
                       {cls.location && <span className="flex items-center gap-1"><MapPin size={12} />{cls.location}</span>}
                     </div>

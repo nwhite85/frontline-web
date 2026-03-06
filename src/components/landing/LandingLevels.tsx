@@ -69,7 +69,7 @@ export function LandingLevels() {
                   />
                   <div>
                     <p className="text-white font-semibold text-sm">
-                      {level.label} <span className="text-white/40 font-normal">— {level.tier}</span>
+                      {level.label} <span className="text-white/50 font-normal">— {level.tier}</span>
                     </p>
                     <p className="text-white/50 text-sm mt-1 leading-relaxed">{level.description}</p>
                   </div>

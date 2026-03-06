@@ -27,7 +27,7 @@ export default function ClientShell({ children }: ClientShellProps) {
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
           <a href="/client-dashboard">
-            <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" style={{ height: '20px', width: 'auto' }} />
+            <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width="80" height="20" style={{ height: '20px', width: 'auto' }} />
           </a>
           <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-white/50 hover:text-white">
             <LogOut className="h-4 w-4 mr-2" />Sign out

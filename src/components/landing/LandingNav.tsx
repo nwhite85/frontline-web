@@ -53,6 +53,7 @@ export function LandingNav() {
               <img
                 src="/logos/frontline-logo-blue.svg"
                 alt="Frontline Fitness"
+                width={80}
                 height={20}
                 style={{ height: '20px', width: 'auto' }}
               />

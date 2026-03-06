@@ -14,7 +14,9 @@ export function LandingHero() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/photos/img_tug10.webp"
-        alt="Hero background"
+        alt="Frontline Fitness outdoor bootcamp training"
+        fetchPriority="high"
+        decoding="async"
         className="absolute inset-0 w-full h-full object-contain hero-img"
         style={{
           filter: 'brightness(0.90) contrast(1.05)',

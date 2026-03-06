@@ -185,8 +185,9 @@ export function LandingBooking() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClass}>First Name</label>
+                    <label htmlFor="booking-first" className={labelClass}>First Name</label>
                     <Input
+                      id="booking-first"
                       type="text"
                       placeholder="First name"
                       value={firstName}
@@ -196,8 +197,9 @@ export function LandingBooking() {
                       />
                   </div>
                   <div>
-                    <label className={labelClass}>Last Name</label>
+                    <label htmlFor="booking-last" className={labelClass}>Last Name</label>
                     <Input
+                      id="booking-last"
                       type="text"
                       placeholder="Last name"
                       value={lastName}
@@ -209,8 +211,9 @@ export function LandingBooking() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Email Address</label>
+                  <label htmlFor="booking-email" className={labelClass}>Email Address</label>
                   <Input
+                    id="booking-email"
                     type="email"
                     placeholder="your@email.com"
                     value={email}
@@ -221,8 +224,9 @@ export function LandingBooking() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Select a Class</label>
+                  <label htmlFor="booking-class" className={labelClass}>Select a Class</label>
                   <select
+                    id="booking-class"
                     value={classScheduleId}
                     onChange={(e) => setClassScheduleId(e.target.value)}
                     required

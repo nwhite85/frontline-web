@@ -147,7 +147,7 @@ function PricingCard({ plan }: { plan: DisplayPlan }) {
           <h3 className={`text-lg font-semibold mb-2 ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>{plan.name}</h3>
           <div className="flex items-end gap-1">
             <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>{plan.price}</span>
-            <span className={`text-sm mb-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>{plan.period}</span>
+            <span className={`text-sm mb-1 ${isDark ? 'text-white/50' : 'text-slate-400'}`}>{plan.period}</span>
           </div>
         </div>
 
