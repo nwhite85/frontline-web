@@ -160,9 +160,9 @@ export default function ShopPage() {
                   <span className="text-sm text-white/50">Subtotal</span>
                   <span className="font-bold text-white">£{subtotal.toFixed(2)}</span>
                 </div>
-                <a href="/checkout" className="block">
-                  <Button size="xl" className="w-full">Checkout</Button>
-                </a>
+                <div className="text-center py-2 px-4 rounded-full border border-white/10 text-white/30 text-xs font-semibold uppercase tracking-wide cursor-not-allowed">
+                  Orders opening soon
+                </div>
               </div>
             )}
           </div>
@@ -187,16 +187,78 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Coming soon */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center py-24 px-6 text-center gap-6">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/5 border border-white/10">
-          <ShoppingBag size={36} className="text-white opacity-30" />
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-2">Coming Soon</p>
-          <h2 className="text-3xl font-bold uppercase text-white tracking-tight mb-3">Shop Opening Soon</h2>
-          <p className="text-white/40 text-sm max-w-xs mx-auto">Frontline branded kit and gear will be available here shortly. Check back soon.</p>
-        </div>
+      {/* Orders not yet open banner */}
+      <div className="relative z-10 bg-brand-blue/10 border-b border-brand-blue/20 px-6 py-3 text-center">
+        <p className="text-brand-blue text-xs font-semibold uppercase tracking-widest">Orders opening soon — browse the range below</p>
+      </div>
+
+      {/* Category filter */}
+      <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 pt-8 pb-4 flex gap-2">
+        {categories.map(c => (
+          <button
+            key={c}
+            onClick={() => setCategory(c)}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide transition-colors border ${
+              category === c
+                ? 'bg-brand-blue border-brand-blue text-white'
+                : 'bg-transparent border-white/15 text-white/50 hover:border-white/30 hover:text-white/80'
+            }`}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* Product grid */}
+      <div className="relative z-10 flex-1 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 pb-16">
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-xl bg-white/[0.04] animate-pulse aspect-[3/4]" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3 text-white/30">
+            <ShoppingBag size={36} className="opacity-30 text-white" />
+            <p className="text-sm">No products yet — check back soon</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
+            {filtered.map(product => (
+              <div key={product.id} className="group flex flex-col rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.07] hover:border-white/15 transition-colors">
+                {/* Image */}
+                <div className="aspect-square bg-white/[0.05] overflow-hidden">
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ShoppingBag size={32} className="text-white opacity-10" />
+                    </div>
+                  )}
+                </div>
+                {/* Info */}
+                <div className="p-3 flex flex-col gap-2 flex-1">
+                  {isNew(product.created_at) && (
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-brand-blue">New</span>
+                  )}
+                  <p className="text-sm font-semibold text-white leading-tight">{product.name}</p>
+                  <p className="text-sm font-bold text-white mt-auto">£{product.price.toFixed(2)}</p>
+                  <button
+                    disabled
+                    className="w-full mt-1 rounded-full py-2 text-xs font-semibold border border-white/15 text-white/30 cursor-not-allowed"
+                    title="Orders opening soon"
+                  >
+                    Coming soon
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="relative z-10 h-14 border-t border-white/10">
