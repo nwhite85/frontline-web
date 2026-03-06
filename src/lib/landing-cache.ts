@@ -38,7 +38,7 @@ export const getCachedSchedule = unstable_cache(
   async (startDate: string, endDate: string) => {
     const { data } = await supabase
       .from('class_schedules')
-      .select('id, scheduled_date, start_time, end_time, location, max_capacity, current_bookings, status, class:class_id(name, description, skill_level, duration_minutes)')
+      .select('id, scheduled_date, start_time, end_time, location, max_capacity, current_bookings, status, class:class_id(name, description, skill_level, duration_minutes, location)')
       .gte('scheduled_date', startDate)
       .lte('scheduled_date', endDate)
       .in('status', ['scheduled', 'active'])
