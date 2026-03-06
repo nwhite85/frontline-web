@@ -14,7 +14,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
+      <NextThemesProvider attribute="class" defaultTheme="dark" enableSystem storageKey="frontline-theme">
         <ThemeProvider>
           <TooltipProvider>
             <SimpleAuthProvider>
