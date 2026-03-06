@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { CookieConsent } from '@/components/CookieConsent'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata: Metadata = {
   title: 'Frontline Fitness | Forces-Led Outdoor Training in Swindon',
@@ -98,6 +100,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         {children}
+        <Analytics />
+        <SpeedInsights />
         <Toaster />
         <CookieConsent />
       </body>
