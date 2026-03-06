@@ -1,4 +1,4 @@
-import { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -6,9 +6,18 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/dashboard/', '/dashboard-login/', '/client-dashboard/', '/client/', '/api/'],
+        disallow: [
+          '/dashboard',
+          '/dashboard/',
+          '/dashboard-login',
+          '/client',
+          '/client/',
+          '/api/',
+          '/checkout',
+          '/signup',
+        ],
       },
     ],
-    sitemap: 'https://www.frontlinefitness.co.uk/sitemap.xml',
+    sitemap: 'https://frontlinefitness.co.uk/sitemap.xml',
   }
 }
