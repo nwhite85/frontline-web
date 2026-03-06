@@ -1,15 +1,23 @@
-import { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next'
+import { posts } from '@/content/blog/posts'
+
+const BASE = 'https://frontlinefitness.co.uk'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://frontlinefitness.co.uk'
-  const now = new Date()
-
-  return [
-    { url: baseUrl, lastModified: now, changeFrequency: 'weekly', priority: 1 },
-    { url: `${baseUrl}/shop`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${baseUrl}/signup`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${baseUrl}/login`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${baseUrl}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+  const staticRoutes: MetadataRoute.Sitemap = [
+    { url: BASE, lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
+    { url: `${BASE}/blog`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${BASE}/shop`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${BASE}/privacy`, lastModified: new Date('2026-03-01'), changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${BASE}/support`, lastModified: new Date('2026-03-01'), changeFrequency: 'yearly', priority: 0.3 },
   ]
+
+  const blogRoutes: MetadataRoute.Sitemap = posts.map(post => ({
+    url: `${BASE}/blog/${post.slug}`,
+    lastModified: new Date(post.date),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }))
+
+  return [...staticRoutes, ...blogRoutes]
 }
