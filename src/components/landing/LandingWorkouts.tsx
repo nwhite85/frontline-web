@@ -1,10 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Container } from '@/components/ui/container'
-import { supabase } from '@/lib/supabase'
 import { Clock } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface ClassTemplate {
   id: string
@@ -106,29 +104,12 @@ function WorkoutCard({ cls }: { cls: ClassTemplate }) {
   )
 }
 
-export function LandingWorkouts() {
-  const [classes, setClasses] = useState<ClassTemplate[]>([])
-  const [loading, setLoading] = useState(true)
+export function LandingWorkouts({ initialClasses }: { initialClasses?: ClassTemplate[] }) {
+  const [classes] = useState<ClassTemplate[]>(
+    initialClasses && initialClasses.length > 0 ? initialClasses : fallbackClasses
+  )
 
-  useEffect(() => {
-    const fetch = async () => {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true })
-
-      if (!error && data && data.length > 0) {
-        setClasses(data)
-      } else {
-        setClasses(fallbackClasses)
-      }
-      setLoading(false)
-    }
-    fetch()
-  }, [])
-
-  const displayClasses = loading ? fallbackClasses : classes
+  const displayClasses = classes
 
   const left = displayClasses.slice(0, Math.ceil(displayClasses.length / 2))
   const right = displayClasses.slice(Math.ceil(displayClasses.length / 2))
@@ -137,13 +118,7 @@ export function LandingWorkouts() {
     <section id="workouts" className={`py-24 bg-[#090909]`}>
       <Container>
         {/* Header */}
-        <motion.div
-          className="mb-16"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          viewport={{ once: true, margin: '-60px' }}
-        >
+        <div className="mb-16">
           <p className="text-brand-blue text-sm font-semibold uppercase tracking-widest mb-3">
             WORKOUTS
           </p>
@@ -153,36 +128,24 @@ export function LandingWorkouts() {
           <p className={`text-lg max-w-xl text-white/60`}>
             Four distinct workout styles, each one designed to challenge you differently — keeping every session fresh, intense and always leaving you wanting more.
           </p>
-        </motion.div>
+        </div>
 
         {/* Staggered grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Left column — offset down on desktop */}
           <div className="flex flex-col gap-6 md:mt-20">
-            {left.map((cls, i) => (
-              <motion.div
-                key={cls.id}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.1 }}
-                viewport={{ once: true, margin: '-60px' }}
-              >
+            {left.map((cls) => (
+              <div key={cls.id}>
                 <WorkoutCard cls={cls} />
-              </motion.div>
+              </div>
             ))}
           </div>
           {/* Right column */}
           <div className="flex flex-col gap-6">
-            {right.map((cls, i) => (
-              <motion.div
-                key={cls.id}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.1 + 0.1 }}
-                viewport={{ once: true, margin: '-60px' }}
-              >
+            {right.map((cls) => (
+              <div key={cls.id}>
                 <WorkoutCard cls={cls} />
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>

@@ -108,23 +108,23 @@ export const useDashboardData = (user: any) => {
       // Query 1: Get active clients count
       const { count: clientCount } = await supabase
         .from('trainer_client')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'estimated', head: true })
         .eq('trainer_id', user.id)
         .is('archived_at', null);
 
       // Queries 2-8: Stats counts (already parallel — leave as-is)
       const [recentCheckIns, personalBests, appointmentsThisWeek, completedWorkouts, classesThisWeek, completedClasses] = await Promise.all([
-        supabase.from('activity_log').select('*', { count: 'exact', head: true })
+        supabase.from('activity_log').select('*', { count: 'estimated', head: true })
           .eq('trainer_id', user.id).eq('event_type', 'workout_completed').gte('created_at', weekAgo.toISOString()),
-        supabase.from('activity_log').select('*', { count: 'exact', head: true })
+        supabase.from('activity_log').select('*', { count: 'estimated', head: true })
           .eq('trainer_id', user.id).eq('event_type', 'personal_best_achieved').gte('created_at', weekAgo.toISOString()),
-        supabase.from('appointments').select('*', { count: 'exact', head: true })
+        supabase.from('appointments').select('*', { count: 'estimated', head: true })
           .eq('trainer_id', user.id).gte('appointment_date', new Date(new Date().setDate(new Date().getDate() - new Date().getDay())).toISOString().split('T')[0]),
-        supabase.from('activity_log').select('*', { count: 'exact', head: true })
+        supabase.from('activity_log').select('*', { count: 'estimated', head: true })
           .eq('trainer_id', user.id).eq('event_type', 'workout_completed').gte('created_at', new Date(new Date().setDate(new Date().getDate() - new Date().getDay())).toISOString()),
-        supabase.from('class_schedules').select('*', { count: 'exact', head: true })
+        supabase.from('class_schedules').select('*', { count: 'estimated', head: true })
           .eq('trainer_id', user.id).gte('scheduled_date', new Date(new Date().setDate(new Date().getDate() - new Date().getDay())).toISOString().split('T')[0]),
-        supabase.from('activity_log').select('*', { count: 'exact', head: true })
+        supabase.from('activity_log').select('*', { count: 'estimated', head: true })
           .eq('trainer_id', user.id).eq('event_type', 'class_completed').gte('created_at', new Date(new Date().setDate(new Date().getDate() - new Date().getDay())).toISOString())
       ]);
 

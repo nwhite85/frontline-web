@@ -1,10 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Container } from '@/components/ui/container'
-import { supabase } from '@/lib/supabase'
 import { ChevronLeft, ChevronRight, MapPin, Clock } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface ClassItem {
   name: string
@@ -75,47 +73,56 @@ function buildWeek(weekOffset: number, scheduleMap: Map<string, ClassItem[]>, us
   })
 }
 
-export function LandingSchedule() {
+type RawSchedule = { scheduled_date: string; start_time: string; location?: string; class?: { name?: string; location?: string } }
+
+function buildMapFromRaw(raw: RawSchedule[]): Map<string, ClassItem[]> {
+  const map = new Map<string, ClassItem[]>()
+  for (const s of raw) {
+    const item: ClassItem = {
+      name: s.class?.name || 'Class',
+      time: formatTime(s.start_time),
+      location: s.location || s.class?.location || '',
+    }
+    const existing = map.get(s.scheduled_date) ?? []
+    map.set(s.scheduled_date, [...existing, item])
+  }
+  return map
+}
+
+export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSchedule[] }) {
   const [weekOffset, setWeekOffset] = useState(0)
-  const [scheduleMap, setScheduleMap] = useState<Map<string, ClassItem[]>>(new Map())
-  const [useFallback, setUseFallback] = useState(true)
+  const [scheduleMap, setScheduleMap] = useState<Map<string, ClassItem[]>>(() => {
+    if (initialSchedules && initialSchedules.length > 0) return buildMapFromRaw(initialSchedules)
+    return new Map()
+  })
+  const [useFallback, setUseFallback] = useState(!initialSchedules || initialSchedules.length === 0)
   const [selectedDay, setSelectedDay] = useState(0)
 
-  useEffect(() => {
-    const fetch = async () => {
-      const today = new Date()
-      const start = new Date(today)
-      start.setDate(start.getDate() - 7)
-      const end = new Date(today)
-      end.setDate(end.getDate() + 28)
-
-      const { data, error } = await supabase
-        .from('class_schedules')
-        .select('*, class:classes(*)')
+  // Only fetch from client when navigating to a week not covered by server data
+  const fetchWeek = async (offset: number) => {
+    if (offset === 0 && initialSchedules && initialSchedules.length > 0) return // already have it
+    const start = new Date()
+    start.setDate(start.getDate() + offset * 7)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 6)
+    const { data, error } = await import('@/lib/supabase').then(m => 
+      m.supabase.from('class_schedules')
+        .select('scheduled_date, start_time, location, class:class_id(name, location)')
         .gte('scheduled_date', start.toISOString().split('T')[0])
         .lte('scheduled_date', end.toISOString().split('T')[0])
         .in('status', ['scheduled', 'active'])
-        .order('scheduled_date')
-        .order('start_time')
-
-      if (!error && data && data.length > 0) {
-        const map = new Map<string, ClassItem[]>()
-        for (const s of data as unknown as Record<string, unknown>[]) {
-          const cls = s.class as Record<string, unknown> | null
-          const item: ClassItem = {
-            name: (cls?.name as string) || 'Class',
-            time: formatTime(s.start_time as string),
-            location: (s.location as string) || (cls?.location as string) || '',
-          }
-          const existing = map.get(s.scheduled_date as string) ?? []
-          map.set(s.scheduled_date as string, [...existing, item])
-        }
-        setScheduleMap(map)
-        setUseFallback(false)
-      }
+        .order('scheduled_date').order('start_time').limit(50)
+    )
+    if (!error && data && data.length > 0) {
+      setScheduleMap(prev => {
+        const next = new Map(prev)
+        const newEntries = buildMapFromRaw(data as unknown as RawSchedule[])
+        newEntries.forEach((v, k) => next.set(k, v))
+        return next
+      })
+      setUseFallback(false)
     }
-    fetch()
-  }, [])
+  }
 
   const days = buildWeek(weekOffset, scheduleMap, useFallback)
 
@@ -134,13 +141,7 @@ export function LandingSchedule() {
     <section id="schedule" className={`py-24 bg-[#0b0e18]`}>
       <Container>
         {/* Header */}
-        <motion.div
-          className="mb-10"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          viewport={{ once: true, margin: '-60px' }}
-        >
+        <div>
           <p className="text-brand-blue text-sm font-semibold uppercase tracking-widest mb-3">Schedule</p>
           <h2 className={`text-4xl sm:text-5xl font-bold uppercase mb-4 text-white`}>
             When we train
@@ -148,14 +149,14 @@ export function LandingSchedule() {
           <p className={`text-lg max-w-xl text-white/60`}>
             Regular weekly sessions for every fitness level — same times every week, so you can plan around your life.
           </p>
-        </motion.div>
+        </div>
 
         {/* Week nav */}
         <div className="flex items-center justify-between mb-6">
           <span className={`text-sm text-white/50`}>{weekLabel}</span>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setWeekOffset((w) => w - 1)}
+              onClick={() => { const next = weekOffset - 1; setWeekOffset(next); fetchWeek(next) }}
               aria-label="Previous week"
               className={`h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${
 'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
@@ -165,7 +166,7 @@ export function LandingSchedule() {
             </button>
             {weekOffset !== 0 && (
               <button
-                onClick={() => setWeekOffset(0)}
+                onClick={() => { setWeekOffset(0) }}
                 className={`text-xs px-2 transition-colors ${
                   'text-white/50 hover:text-white/70'
                 }`}
@@ -174,7 +175,7 @@ export function LandingSchedule() {
               </button>
             )}
             <button
-              onClick={() => setWeekOffset((w) => w + 1)}
+              onClick={() => { const next = weekOffset + 1; setWeekOffset(next); fetchWeek(next) }}
               aria-label="Next week"
               className={`h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${
 'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
@@ -186,13 +187,7 @@ export function LandingSchedule() {
         </div>
 
         {/* Mobile day picker */}
-        <motion.div
-          className="flex gap-1.5 mb-4 md:hidden overflow-x-auto pb-1"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-          viewport={{ once: true, margin: '-60px' }}
-        >
+        <div>
           {days.map((day, i) => (
             <button
               key={day.dateStr}
@@ -209,19 +204,12 @@ export function LandingSchedule() {
               <span className="opacity-70">{day.date.getDate()}</span>
             </button>
           ))}
-        </motion.div>
+        </div>
 
         {/* Desktop grid */}
         <div className="hidden md:grid grid-cols-6 gap-3">
           {days.map((day, i) => (
-            <motion.div
-              key={day.dateStr}
-              className="flex flex-col gap-2"
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.05 }}
-              viewport={{ once: true, margin: '-60px' }}
-            >
+            <div>
               {/* Day header */}
               <div
                 className={`rounded-xl overflow-hidden text-center ${
@@ -297,7 +285,7 @@ export function LandingSchedule() {
                   <p className={`text-xs text-white/20`}>Rest</p>
                 </div>
               )}
-            </motion.div>
+            </div>
           ))}
         </div>
 

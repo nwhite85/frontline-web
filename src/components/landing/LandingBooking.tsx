@@ -1,60 +1,40 @@
 'use client'
 
-import { useState, useEffect, FormEvent } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState, FormEvent } from 'react'
 import { Container } from '@/components/ui/container'
 import { Input } from '@/components/ui/input'
 import { CheckCircle, AlertCircle } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface ScheduleOption {
   value: string
   label: string
 }
 
-export function LandingBooking() {
+type RawBookingOption = { id: string; scheduled_date: string; start_time: string; class?: { name?: string } }
+
+function mapToOptions(raw: RawBookingOption[]): ScheduleOption[] {
+  return raw.map((s) => {
+    const d = new Date(s.scheduled_date + 'T00:00:00')
+    const dayName = d.toLocaleDateString('en-GB', { weekday: 'short' })
+    const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    const className = s.class?.name || 'Class'
+    const time = (s.start_time || '').substring(0, 5)
+    return {
+      value: s.id,
+      label: `${dayName} ${dateStr} – ${className} at ${time}`,
+    }
+  })
+}
+
+export function LandingBooking({ initialOptions }: { initialOptions?: RawBookingOption[] }) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [classScheduleId, setClassScheduleId] = useState('')
-  const [options, setOptions] = useState<ScheduleOption[]>([])
+  const [options] = useState<ScheduleOption[]>(() => mapToOptions(initialOptions ?? []))
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      const today = new Date()
-      const fourWeeksOut = new Date(today)
-      fourWeeksOut.setDate(fourWeeksOut.getDate() + 28)
-
-      const { data } = await supabase
-        .from('class_schedules')
-        .select('*, class:classes(*)')
-        .gte('scheduled_date', today.toISOString().split('T')[0])
-        .lte('scheduled_date', fourWeeksOut.toISOString().split('T')[0])
-        .in('status', ['scheduled', 'active'])
-        .order('scheduled_date', { ascending: true })
-        .order('start_time', { ascending: true })
-
-      if (data) {
-        const mapped = data.map((s: Record<string, unknown>) => {
-          const d = new Date((s.scheduled_date as string) + 'T00:00:00')
-          const dayName = d.toLocaleDateString('en-GB', { weekday: 'short' })
-          const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-          const cls = s.class as Record<string, unknown> | null
-          const className = cls?.name as string || 'Class'
-          const time = ((s.start_time as string) || '').substring(0, 5)
-          return {
-            value: s.id as string,
-            label: `${dayName} ${dateStr} – ${className} at ${time}`,
-          }
-        })
-        setOptions(mapped)
-      }
-    }
-    fetchSchedules()
-  }, [])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -127,12 +107,7 @@ export function LandingBooking() {
       <Container className="relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left — copy (always white; it's over the dark photo) */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            viewport={{ once: true, margin: '-60px' }}
-          >
+          <div>
             <p className="text-brand-blue text-sm font-semibold uppercase tracking-widest mb-3">
               Try a class
             </p>
@@ -142,19 +117,10 @@ export function LandingBooking() {
             <p className="text-white/70 text-lg leading-relaxed">
               It all begins with one session. The community and results keep people coming back.
             </p>
-          </motion.div>
+          </div>
 
           {/* Right — form card */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
-            viewport={{ once: true, margin: '-60px' }}
-            className={`rounded-2xl backdrop-blur-sm p-6 bg-black/60`}
-            style={{
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)',
-            }}
-          >
+          <div>
             <h3 className={`text-xl font-semibold mb-6 text-white`}>
               Book Your Free Class
             </h3>
@@ -251,7 +217,7 @@ export function LandingBooking() {
                 </button>
               </form>
             )}
-          </motion.div>
+          </div>
         </div>
       </Container>
     </section>

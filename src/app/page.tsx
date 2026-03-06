@@ -6,8 +6,33 @@ import { LandingPricing } from '@/components/landing/LandingPricing'
 import { LandingBooking } from '@/components/landing/LandingBooking'
 import { LandingLevels } from '@/components/landing/LandingLevels'
 import { LandingFooter } from '@/components/landing/LandingFooter'
+import {
+  getCachedMembershipPlans,
+  getCachedClasses,
+  getCachedSchedule,
+  getCachedBookingOptions,
+} from '@/lib/landing-cache'
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // Date ranges for schedule and booking
+  const today = new Date()
+  const startDate = today.toISOString().split('T')[0]
+  const scheduleEnd = new Date(today)
+  scheduleEnd.setDate(today.getDate() + 6)
+  const scheduleEndDate = scheduleEnd.toISOString().split('T')[0]
+  const bookingEnd = new Date(today)
+  bookingEnd.setDate(today.getDate() + 14)
+  const bookingEndDate = bookingEnd.toISOString().split('T')[0]
+
+  // Fetch all landing data server-side (cached)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [plans, classes, schedules, bookingOptions] = await Promise.all([
+    getCachedMembershipPlans(),
+    getCachedClasses(),
+    getCachedSchedule(startDate, scheduleEndDate),
+    getCachedBookingOptions(startDate, bookingEndDate),
+  ]) as [any[], any[], any[], any[]]
+
   return (
     <div id="main-content" className="bg-black text-white min-h-screen">
       {/* Container border rails */}
@@ -16,11 +41,11 @@ export default function LandingPage() {
       </div>
       <LandingNav />
       <LandingHero />
-      <LandingWorkouts />
-      <LandingSchedule />
+      <LandingWorkouts initialClasses={classes} />
+      <LandingSchedule initialSchedules={schedules} />
       <LandingLevels />
-      <LandingPricing />
-      <LandingBooking />
+      <LandingPricing initialPlans={plans} />
+      <LandingBooking initialOptions={bookingOptions} />
       {/* <LandingTestimonials /> — hidden until reviews come in */}
       <LandingFooter />
     </div>

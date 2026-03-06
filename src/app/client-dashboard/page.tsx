@@ -139,7 +139,7 @@ function ClassesTab({ userId }: { userId: string }) {
     const today = new Date().toISOString().split('T')[0]
     const [{ data: schedData }, { data: bData }, { data: allBookings }] = await Promise.all([
       supabase.from('class_schedules')
-        .select('*, trainer_id, class:class_id(name, description, location, duration_minutes, skill_level, max_capacity)')
+        .select('id, scheduled_date, start_time, end_time, location, max_capacity, current_bookings, status, trainer_id, class:class_id(name, description, location, duration_minutes, skill_level, max_capacity)')
         .eq('status', 'scheduled').gte('scheduled_date', today)
         .order('scheduled_date', { ascending: true }).order('start_time', { ascending: true }),
       supabase.from('class_bookings')
@@ -251,7 +251,7 @@ function AppointmentsTab({ userId }: { userId: string }) {
       if (tc && tc.appointment_status !== 'active') { setHasAccess(false); setLoading(false); return }
       setHasAccess(true)
       const today = new Date().toISOString().split('T')[0]
-      const { data } = await supabase.from('appointments').select('*, appointment_type:appointment_type_id(name)').in('status', ['available','scheduled']).gte('appointment_date', today).order('appointment_date', { ascending: true })
+      const { data } = await supabase.from('appointments').select('*, appointment_type:appointment_type_id(name)').in('status', ['available','scheduled']).gte('appointment_date', today).order('appointment_date', { ascending: true }).limit(20)
       setAppointments((data as Appointment[]) ?? []); setLoading(false)
     }
     load()
@@ -297,7 +297,7 @@ function EventsTab({ userId }: { userId: string }) {
       supabase.from('challenge_schedules')
         .select('*, trainer_id, challenge:challenge_id(name, description)')
         .eq('status','scheduled').gte('scheduled_date', today).order('scheduled_date', { ascending: true }),
-      supabase.from('events').select('*').gte('event_date', today).order('event_date', { ascending: true }),
+      supabase.from('events').select('id, title, event_date, location, description').gte('event_date', today).order('event_date', { ascending: true }).limit(10),
       supabase.from('challenge_bookings')
         .select('challenge_schedule_id, booking_status')
         .eq('client_id', userId)
@@ -398,7 +398,7 @@ function ClientDashboardContent() {
     Promise.resolve(supabase.auth.getSession()).then(({ data: { session }, error }) => {
       if (error || !session) { router.push('/login'); return }
       setUser(session.user); setUserId(session.user.id)
-      Promise.resolve(supabase.from('user_profiles').select('*').eq('id', session.user.id).single()).then(({ data }) => { if (data) setProfile(data) }).catch(() => {})
+      Promise.resolve(supabase.from('user_profiles').select('id, first_name, last_name, name, email, phone, avatar_url, membership_status, membership_plan').eq('id', session.user.id).single()).then(({ data }) => { if (data) setProfile(data) }).catch(() => {})
       setLoading(false)
     }).catch(() => { router.push('/login') })
   }, [router])

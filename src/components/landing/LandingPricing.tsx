@@ -1,10 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Container } from '@/components/ui/container'
-import { supabase } from '@/lib/supabase'
 import { Check } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface Plan {
   id: string
@@ -171,60 +169,27 @@ function PricingCard({ plan }: { plan: DisplayPlan }) {
   )
 }
 
-export function LandingPricing() {
+export function LandingPricing({ initialPlans }: { initialPlans?: Plan[] }) {
   const [tab, setTab] = useState<'memberships' | 'paygo'>('memberships')
-  const [memberships, setMemberships] = useState<DisplayPlan[]>([])
-  const [payGo, setPayGo] = useState<DisplayPlan[]>([])
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchPlans = async () => {
-      const { data, error } = await supabase
-        .from('membership_plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true })
+  const sortByPrice = (a: DisplayPlan, b: DisplayPlan) => {
+    const aPrice = parseFloat(a.price.replace(/[^0-9.]/g, ''))
+    const bPrice = parseFloat(b.price.replace(/[^0-9.]/g, ''))
+    return aPrice - bPrice
+  }
 
-      if (!error && data && data.length > 0) {
-        const ms = data.filter((p: Plan) => p.plan_type === 'recurring').map(transformPlan)
-          .sort((a: DisplayPlan, b: DisplayPlan) => {
-            const aPrice = parseFloat(a.price.replace(/[^0-9.]/g, ''))
-            const bPrice = parseFloat(b.price.replace(/[^0-9.]/g, ''))
-            return aPrice - bPrice
-          })
-        const pg = data
-          .filter((p: Plan) => p.plan_type === 'credit_package' || p.plan_type === 'drop_in')
-          .map(transformPlan)
-          .sort((a: DisplayPlan, b: DisplayPlan) => {
-            const aPrice = parseFloat(a.price.replace(/[^0-9.]/g, ''))
-            const bPrice = parseFloat(b.price.replace(/[^0-9.]/g, ''))
-            return aPrice - bPrice
-          })
-        setMemberships(ms.length > 0 ? ms : fallbackMemberships)
-        setPayGo(pg.length > 0 ? pg : fallbackPayGo)
-      } else {
-        setMemberships(fallbackMemberships)
-        setPayGo(fallbackPayGo)
-      }
-      setLoading(false)
-    }
-    fetchPlans()
-  }, [])
+  const plans = initialPlans ?? []
+  const ms = plans.filter((p) => p.plan_type === 'recurring').map(transformPlan).sort(sortByPrice)
+  const pg = plans.filter((p) => p.plan_type === 'credit_package' || p.plan_type === 'drop_in').map(transformPlan).sort(sortByPrice)
 
-  const displayMemberships = loading ? fallbackMemberships : memberships
-  const displayPayGo = loading ? fallbackPayGo : payGo
+  const displayMemberships = ms.length > 0 ? ms : fallbackMemberships
+  const displayPayGo = pg.length > 0 ? pg : fallbackPayGo
 
   return (
     <section id="pricing" className={`py-24 bg-[#090909]`}>
       <Container>
         {/* Header */}
-        <motion.div
-          className="mb-12"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          viewport={{ once: true, margin: '-60px' }}
-        >
+        <div>
           <p className="text-brand-blue text-sm font-semibold uppercase tracking-widest mb-3">
             PRICING
           </p>
@@ -234,7 +199,7 @@ export function LandingPricing() {
           <p className={`text-lg max-w-xl text-white/60`}>
             Flexible membership and pay-as-you-go packages to suit you. No contracts, freedom to cancel any time.
           </p>
-        </motion.div>
+        </div>
 
         {/* Tab switcher */}
         <div className="flex justify-center mb-10">
@@ -260,15 +225,9 @@ export function LandingPricing() {
         {/* Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {(tab === 'memberships' ? displayMemberships : displayPayGo).map((plan, i) => (
-            <motion.div
-              key={plan.slug}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.1 }}
-              viewport={{ once: true, margin: '-60px' }}
-            >
+            <div>
               <PricingCard plan={plan} />
-            </motion.div>
+            </div>
           ))}
         </div>
       </Container>
