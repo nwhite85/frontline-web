@@ -166,7 +166,7 @@ function PricingCard({ plan }: { plan: DisplayPlan }) {
           onClick={() => (window.location.href = `/signup?plan=${plan.slug}`)}
           className={`w-full py-2.5 rounded-full text-sm font-medium transition-colors ${
             plan.highlighted
-              ? 'bg-brand-blue hover:bg-[#3b72d6] text-white'
+              ? 'bg-brand-blue hover:bg-brand-blue/85 text-white'
               : isDark
               ? 'bg-white/10 hover:bg-white/20 text-white'
               : 'bg-black/5 hover:bg-black/10 text-[#0f0f0f]'

@@ -395,12 +395,12 @@ function ClientDashboardContent() {
   const setupComplete = searchParams.get('setup') === 'complete'
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    Promise.resolve(supabase.auth.getSession()).then(({ data: { session }, error }) => {
       if (error || !session) { router.push('/login'); return }
       setUser(session.user); setUserId(session.user.id)
-      supabase.from('user_profiles').select('*').eq('id', session.user.id).single().then(({ data }) => { if (data) setProfile(data) })
+      Promise.resolve(supabase.from('user_profiles').select('*').eq('id', session.user.id).single()).then(({ data }) => { if (data) setProfile(data) }).catch(() => {})
       setLoading(false)
-    })
+    }).catch(() => { router.push('/login') })
   }, [router])
 
   const firstName = profile?.first_name || profile?.name?.split(' ')[0] || null

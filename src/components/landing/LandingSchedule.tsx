@@ -356,7 +356,7 @@ export function LandingSchedule() {
           </div>
           <button
             onClick={() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })}
-            className="shrink-0 inline-flex items-center gap-1.5 bg-brand-blue hover:bg-[#3b72d6] text-white rounded-full px-6 py-2.5 text-sm font-medium transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 bg-brand-blue hover:bg-brand-blue/85 text-white rounded-full px-6 py-2.5 text-sm font-medium transition-colors"
           >
             Book a free trial <ChevronRight size={14} />
           </button>

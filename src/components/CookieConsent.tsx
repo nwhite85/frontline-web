@@ -48,7 +48,7 @@ export function CookieConsent() {
                 Privacy Policy
               </a>
             </p>
-            <button onClick={() => setExpanded(false)} className="text-white/30 hover:text-white/60 transition-colors shrink-0 mt-0.5">
+            <button onClick={() => setExpanded(false)} aria-label="Close cookie banner" className="text-white/30 hover:text-white/60 transition-colors shrink-0 mt-0.5">
               <X className="h-4 w-4" />
             </button>
           </div>

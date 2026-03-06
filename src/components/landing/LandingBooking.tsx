@@ -249,7 +249,7 @@ export function LandingBooking() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full mt-2 py-3 rounded-full bg-brand-blue hover:bg-[#3b72d6] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+                  className="w-full mt-2 py-3 rounded-full bg-brand-blue hover:bg-brand-blue/85 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
                 >
                   {submitting ? 'Booking…' : 'Book your free class'}
                 </button>

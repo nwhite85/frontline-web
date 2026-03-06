@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/utils/rateLimit';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
@@ -114,6 +115,12 @@ function generateICS(items: CalendarScheduleItem[]): string {
 }
 
 export async function GET(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown'
+  const { success } = rateLimit(ip, { limit: 30, windowMs: 60_000 })
+  if (!success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');

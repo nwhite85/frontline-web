@@ -52,7 +52,51 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <link rel="preload" href="/fonts/sohne-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'SportsActivityLocation',
+              name: 'Frontline Fitness',
+              description: 'Forces-led outdoor fitness bootcamp in Swindon. Group training, personal training, and bootcamp sessions.',
+              url: 'https://frontlinefitness.co.uk',
+              image: 'https://frontlinefitness.co.uk/photos/og-image.jpg',
+              telephone: '',
+              address: {
+                '@type': 'PostalAddress',
+                addressLocality: 'Swindon',
+                addressRegion: 'Wiltshire',
+                addressCountry: 'GB',
+              },
+              geo: {
+                '@type': 'GeoCoordinates',
+                latitude: 51.5424,
+                longitude: -1.8241,
+              },
+              openingHoursSpecification: [
+                {
+                  '@type': 'OpeningHoursSpecification',
+                  dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                  opens: '06:00',
+                  closes: '20:00',
+                },
+              ],
+              sameAs: [
+                'https://www.facebook.com/profile.php?id=61586574820165&locale=en_GB',
+                'https://www.instagram.com/frontlinefitness.co.uk/',
+              ],
+              priceRange: '££',
+            }),
+          }}
+        />
+      </head>
       <body suppressHydrationWarning>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-white focus:text-black focus:px-4 focus:py-2 focus:rounded-md focus:text-sm focus:font-medium">
+          Skip to main content
+        </a>
         {children}
         <Toaster />
         <CookieConsent />

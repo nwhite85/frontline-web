@@ -14,7 +14,7 @@ import { LandingFooter } from '@/components/landing/LandingFooter'
 function LandingPageInner() {
   const { isDark } = useLandingTheme()
   return (
-    <div className={isDark ? 'bg-black text-white min-h-screen' : 'bg-[#f8f9fa] text-[#0f0f0f] min-h-screen'}>
+    <div id="main-content" className={isDark ? 'bg-black text-white min-h-screen' : 'bg-[#f8f9fa] text-[#0f0f0f] min-h-screen'}>
       {/* Container border rails */}
       <div className="fixed inset-0 pointer-events-none z-[60]">
         <div
