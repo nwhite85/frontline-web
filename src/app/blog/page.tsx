@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     description: 'Training tips, outdoor fitness guides, and community stories from Frontline Fitness in Swindon.',
     url: 'https://frontlinefitness.co.uk/blog',
   },
+  alternates: {
+    canonical: 'https://frontlinefitness.co.uk/blog',
+  },
 }
 
 export default function BlogPage() {

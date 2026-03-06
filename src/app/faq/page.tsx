@@ -9,6 +9,9 @@ export const metadata: Metadata = {
     description: 'Common questions about Frontline Fitness bootcamp in Swindon answered.',
     url: 'https://frontlinefitness.co.uk/faq',
   },
+  alternates: {
+    canonical: 'https://frontlinefitness.co.uk/faq',
+  },
 }
 
 const faqs = [
@@ -98,6 +101,15 @@ const faqs = [
   },
 ]
 
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://frontlinefitness.co.uk' },
+    { '@type': 'ListItem', position: 2, name: 'FAQ', item: 'https://frontlinefitness.co.uk/faq' },
+  ],
+}
+
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
@@ -114,6 +126,7 @@ export default function FAQPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
 
       {/* Nav */}
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">

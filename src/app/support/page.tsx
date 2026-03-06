@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Support | Frontline Fitness',
-  description: 'Get help with the Frontline Fitness app.',
+  description: 'Get help with the Frontline Fitness app — booking, membership, account, and technical support.',
+  alternates: { canonical: 'https://frontlinefitness.co.uk/support' },
+  robots: { index: false, follow: false },
 }
 
 export default function SupportPage() {

@@ -9,6 +9,18 @@ export const metadata: Metadata = {
     description: 'Coach-led outdoor bootcamp sessions across Swindon. All fitness levels welcome — first session free.',
     url: 'https://frontlinefitness.co.uk/swindon-bootcamp',
   },
+  alternates: {
+    canonical: 'https://frontlinefitness.co.uk/swindon-bootcamp',
+  },
+}
+
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://frontlinefitness.co.uk' },
+    { '@type': 'ListItem', position: 2, name: 'Swindon Bootcamp', item: 'https://frontlinefitness.co.uk/swindon-bootcamp' },
+  ],
 }
 
 const jsonLd = {
@@ -40,6 +52,7 @@ export default function SwindonBootcampPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
 
       {/* Nav */}
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">

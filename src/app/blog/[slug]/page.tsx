@@ -33,6 +33,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       publishedTime: post.date,
       authors: [post.author],
     },
+    alternates: {
+      canonical: `https://frontlinefitness.co.uk/blog/${post.slug}`,
+    },
   }
 }
 
@@ -42,6 +45,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound()
 
   const related = posts.filter(p => p.slug !== post.slug).slice(0, 3)
+
+  const breadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://frontlinefitness.co.uk' },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://frontlinefitness.co.uk/blog' },
+      { '@type': 'ListItem', position: 3, name: post.title, item: `https://frontlinefitness.co.uk/blog/${post.slug}` },
+    ],
+  }
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -60,6 +73,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
 
       {/* Nav */}
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">
