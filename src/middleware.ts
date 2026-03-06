@@ -55,7 +55,26 @@ export async function middleware(req: NextRequest) {
 
   // Use getSession() in middleware — reads JWT from cookie locally, no network call.
   // getUser() (with network validation) is used in page/API code where it matters.
-  const { data: { session } } = await supabase.auth.getSession()
+  // Wrap in try/catch with timeout — if Supabase is unreachable, fail open on public
+  // routes and redirect to login on protected routes rather than hanging.
+  let session = null
+  try {
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('auth_timeout')), 3000)
+      ),
+    ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>
+    session = result.data.session
+  } catch {
+    // Supabase unreachable — redirect protected routes to login, allow public through
+    if (pathname.startsWith('/dashboard')) {
+      const loginUrl = req.nextUrl.clone()
+      loginUrl.pathname = '/dashboard-login'
+      return NextResponse.redirect(loginUrl)
+    }
+    return res
+  }
 
   // Protect dashboard routes — redirect to trainer login
   if (pathname.startsWith('/dashboard') && !session) {
