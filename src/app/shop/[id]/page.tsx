@@ -97,7 +97,7 @@ export default function ProductPage() {
         <div className="lg:grid lg:grid-cols-2 lg:gap-12">
           {/* Image */}
           <div className="rounded-xl bg-[#0d1420] border border-white/10 overflow-hidden mb-8 lg:mb-0">
-            <div className="relative aspect-square w-full">
+            <div className="relative aspect-[2/3] w-full">
               {product.image_url ? (
                 <img
                   src={product.image_url}

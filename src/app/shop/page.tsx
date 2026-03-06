@@ -126,7 +126,7 @@ export default function ShopPage() {
               ) : (
                 cart.map((item, idx) => (
                   <div key={idx} className="flex gap-3 items-start">
-                    <div className="w-16 h-16 rounded-lg bg-[#0d1420] flex-shrink-0 overflow-hidden">
+                    <div className="w-12 h-16 rounded-lg bg-[#0d1420] flex-shrink-0 overflow-hidden">
                       {item.product.image_url && (
                         <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
                       )}
@@ -227,7 +227,7 @@ export default function ShopPage() {
             {filtered.map(product => (
               <div key={product.id} className="group flex flex-col rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.07] hover:border-white/15 transition-colors">
                 {/* Image */}
-                <div className="aspect-square bg-white/[0.05] overflow-hidden">
+                <div className="aspect-[2/3] bg-white/[0.05] overflow-hidden">
                   {product.image_url ? (
                     <img
                       src={product.image_url}
