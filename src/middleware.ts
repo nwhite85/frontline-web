@@ -53,17 +53,19 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Use getSession() in middleware — reads JWT from cookie locally, no network call.
+  // getUser() (with network validation) is used in page/API code where it matters.
+  const { data: { session } } = await supabase.auth.getSession()
 
   // Protect dashboard routes — redirect to trainer login
-  if (pathname.startsWith('/dashboard') && !user) {
+  if (pathname.startsWith('/dashboard') && !session) {
     const loginUrl = req.nextUrl.clone()
     loginUrl.pathname = '/dashboard-login'
     return NextResponse.redirect(loginUrl)
   }
 
   // Protect API routes — return 401
-  if (pathname.startsWith('/api/') && !user) {
+  if (pathname.startsWith('/api/') && !session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
