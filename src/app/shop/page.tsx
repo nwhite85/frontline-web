@@ -29,7 +29,7 @@ const isNew = (createdAt: string) => {
 export default function ShopPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [loading, setLoading] = useState(true)
-  const [category, setCategory] = useState('All')
+  const [category, setCategory] = useState('all')
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
 
@@ -53,8 +53,17 @@ export default function ShopPage() {
     fetchProducts()
   }, [])
 
-  const categories = ['All', "Men's", "Women's"]
-  const filtered = category === 'All' ? products : products.filter(p => p.category === category)
+  const CATEGORY_LABELS: Record<string, string> = {
+    mens: "Men's",
+    womens: "Women's",
+    unisex: 'Unisex',
+    accessories: 'Accessories',
+  }
+
+  const presentCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)))
+  const orderedCategories = ['mens', 'womens', 'unisex', 'accessories'].filter(c => presentCategories.includes(c))
+  const categories = ['all', ...orderedCategories]
+  const filtered = category === 'all' ? products : products.filter(p => p.category === category)
 
   function removeFromCart(idx: number) {
     setCart(prev => prev.filter((_, i) => i !== idx))
@@ -204,7 +213,7 @@ export default function ShopPage() {
                 : 'bg-transparent border-white/15 text-white/50 hover:border-white/30 hover:text-white/80'
             }`}
           >
-            {c}
+            {c === 'all' ? 'All' : (CATEGORY_LABELS[c] ?? c)}
           </button>
         ))}
       </div>
