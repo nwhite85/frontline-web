@@ -280,7 +280,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-sidebar-accent transition-colors">
-                      <Avatar className="size-8 rounded-md shrink-0">
+                      <Avatar className="size-8 rounded-md shrink-0 after:rounded-md">
                         <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[11px] font-semibold">
                           {initials}
                         </AvatarFallback>
