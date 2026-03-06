@@ -5,7 +5,6 @@ import { Container } from '@/components/ui/container'
 import { supabase } from '@/lib/supabase'
 import { Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useLandingTheme } from '@/contexts/LandingThemeContext'
 
 interface ClassTemplate {
   id: string
@@ -110,7 +109,6 @@ function WorkoutCard({ cls }: { cls: ClassTemplate }) {
 export function LandingWorkouts() {
   const [classes, setClasses] = useState<ClassTemplate[]>([])
   const [loading, setLoading] = useState(true)
-  const { isDark } = useLandingTheme()
 
   useEffect(() => {
     const fetch = async () => {
@@ -136,7 +134,7 @@ export function LandingWorkouts() {
   const right = displayClasses.slice(Math.ceil(displayClasses.length / 2))
 
   return (
-    <section id="workouts" className={`py-24 ${isDark ? 'bg-[#090909]' : 'bg-[#f8f9fa]'}`}>
+    <section id="workouts" className={`py-24 bg-[#090909]`}>
       <Container>
         {/* Header */}
         <motion.div
@@ -149,10 +147,10 @@ export function LandingWorkouts() {
           <p className="text-brand-blue text-sm font-semibold uppercase tracking-widest mb-3">
             WORKOUTS
           </p>
-          <h2 className={`text-4xl sm:text-5xl font-bold uppercase mb-4 ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>
+          <h2 className={`text-4xl sm:text-5xl font-bold uppercase mb-4 text-white`}>
             Train at Your Best
           </h2>
-          <p className={`text-lg max-w-xl ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+          <p className={`text-lg max-w-xl text-white/60`}>
             Four distinct workout styles, each one designed to challenge you differently — keeping every session fresh, intense and always leaving you wanting more.
           </p>
         </motion.div>

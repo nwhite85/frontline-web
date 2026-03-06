@@ -5,7 +5,6 @@ import { Container } from '@/components/ui/container'
 import { supabase } from '@/lib/supabase'
 import { ChevronLeft, ChevronRight, MapPin, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useLandingTheme } from '@/contexts/LandingThemeContext'
 
 interface ClassItem {
   name: string
@@ -81,7 +80,6 @@ export function LandingSchedule() {
   const [scheduleMap, setScheduleMap] = useState<Map<string, ClassItem[]>>(new Map())
   const [useFallback, setUseFallback] = useState(true)
   const [selectedDay, setSelectedDay] = useState(0)
-  const { isDark } = useLandingTheme()
 
   useEffect(() => {
     const fetch = async () => {
@@ -133,7 +131,7 @@ export function LandingSchedule() {
   })()
 
   return (
-    <section id="schedule" className={`py-24 ${isDark ? 'bg-[#0b0e18]' : 'bg-[#eef2ff]'}`}>
+    <section id="schedule" className={`py-24 bg-[#0b0e18]`}>
       <Container>
         {/* Header */}
         <motion.div
@@ -144,25 +142,23 @@ export function LandingSchedule() {
           viewport={{ once: true, margin: '-60px' }}
         >
           <p className="text-brand-blue text-sm font-semibold uppercase tracking-widest mb-3">Schedule</p>
-          <h2 className={`text-4xl sm:text-5xl font-bold uppercase mb-4 ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>
+          <h2 className={`text-4xl sm:text-5xl font-bold uppercase mb-4 text-white`}>
             When we train
           </h2>
-          <p className={`text-lg max-w-xl ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+          <p className={`text-lg max-w-xl text-white/60`}>
             Regular weekly sessions for every fitness level — same times every week, so you can plan around your life.
           </p>
         </motion.div>
 
         {/* Week nav */}
         <div className="flex items-center justify-between mb-6">
-          <span className={`text-sm ${isDark ? 'text-white/50' : 'text-slate-400'}`}>{weekLabel}</span>
+          <span className={`text-sm text-white/50`}>{weekLabel}</span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekOffset((w) => w - 1)}
               aria-label="Previous week"
               className={`h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${
-                isDark
-                  ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
-                  : 'border-black/10 bg-black/5 hover:bg-black/10 text-slate-500 hover:text-slate-900'
+'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
               }`}
             >
               <ChevronLeft size={16} />
@@ -171,7 +167,7 @@ export function LandingSchedule() {
               <button
                 onClick={() => setWeekOffset(0)}
                 className={`text-xs px-2 transition-colors ${
-                  isDark ? 'text-white/50 hover:text-white/70' : 'text-slate-400 hover:text-slate-600'
+                  'text-white/50 hover:text-white/70'
                 }`}
               >
                 Today
@@ -181,9 +177,7 @@ export function LandingSchedule() {
               onClick={() => setWeekOffset((w) => w + 1)}
               aria-label="Next week"
               className={`h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${
-                isDark
-                  ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
-                  : 'border-black/10 bg-black/5 hover:bg-black/10 text-slate-500 hover:text-slate-900'
+'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
               }`}
             >
               <ChevronRight size={16} />
@@ -208,9 +202,7 @@ export function LandingSchedule() {
                   ? 'bg-brand-blue text-white'
                   : day.isToday
                   ? 'border border-brand-blue/50 text-brand-blue'
-                  : isDark
-                  ? 'border border-white/10 text-white/50 hover:text-white'
-                  : 'border border-black/10 text-slate-400 hover:text-slate-700'
+                  :'border border-white/10 text-white/50 hover:text-white'
               }`}
             >
               <span>{SHORT_DAYS[day.dayOfWeek]}</span>
@@ -234,15 +226,13 @@ export function LandingSchedule() {
               <div
                 className={`rounded-xl overflow-hidden text-center ${
                   day.isToday
-                    ? isDark ? 'bg-brand-blue/15' : 'bg-brand-blue/8'
-                    : isDark ? 'bg-white/[0.04]' : 'bg-slate-50'
+                    ? 'bg-brand-blue/15'
+                    : 'bg-white/[0.04]'
                 }`}
                 style={{
                   border: day.isToday
                     ? '1px solid rgba(73,130,232,0.35)'
-                    : isDark
-                    ? '1px solid rgba(255,255,255,0.08)'
-                    : '1px solid rgba(0,0,0,0.07)',
+                    :'1px solid rgba(255,255,255,0.08)'
                 }}
               >
                 {/* Accent bar */}
@@ -251,24 +241,22 @@ export function LandingSchedule() {
                   style={{
                     background: day.isToday
                       ? '#4982e8'
-                      : isDark
-                      ? 'rgba(255,255,255,0.12)'
-                      : 'rgba(0,0,0,0.08)',
+                      :'rgba(255,255,255,0.12)'
                   }}
                 />
                 <div className="py-3 px-2">
                   <p className={`text-[10px] font-semibold uppercase tracking-widest ${
-                    day.isToday ? 'text-brand-blue' : isDark ? 'text-white/35' : 'text-slate-400'
+                    day.isToday ? 'text-brand-blue' : 'text-white/35'
                   }`}>
                     {SHORT_DAYS[day.dayOfWeek]}
                   </p>
                   <p className={`text-xl font-bold leading-none mt-1 ${
-                    day.isToday ? 'text-brand-blue' : isDark ? 'text-white/90' : 'text-slate-800'
+                    day.isToday ? 'text-brand-blue' : 'text-white/90'
                   }`}>
                     {day.date.getDate()}
                   </p>
                   <p className={`text-[10px] mt-0.5 ${
-                    day.isToday ? 'text-brand-blue/70' : isDark ? 'text-white/25' : 'text-slate-400'
+                    day.isToday ? 'text-brand-blue/70' : 'text-white/25'
                   }`}>
                     {day.date.toLocaleDateString('en-GB', { month: 'short' })}
                   </p>
@@ -281,23 +269,21 @@ export function LandingSchedule() {
                   <div
                     key={i}
                     className={`rounded-xl transition-colors p-5 cursor-pointer ${
-                      isDark ? 'bg-white/[0.04] hover:bg-white/[0.07]' : 'bg-white hover:bg-slate-50'
+                      'bg-white/[0.04] hover:bg-white/[0.07]'
                     }`}
                     style={{
-                      boxShadow: isDark
-                        ? '0 4px 12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)'
-                        : '0 4px 12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.05), inset 0 0 0 2px #ffffff',
+                      boxShadow:'0 4px 12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)'
                     }}
                   >
-                    <p className={`text-sm font-medium leading-tight ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>
+                    <p className={`text-sm font-medium leading-tight text-white`}>
                       {cls.name}
                     </p>
-                    <div className={`flex items-center gap-1 mt-1.5 text-xs ${isDark ? 'text-white/50' : 'text-slate-400'}`}>
+                    <div className={`flex items-center gap-1 mt-1.5 text-xs text-white/50`}>
                       <Clock size={10} />
                       <span>{cls.time}</span>
                     </div>
                     {cls.location && (
-                      <div className={`flex items-center gap-1 mt-0.5 text-xs ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                      <div className={`flex items-center gap-1 mt-0.5 text-xs text-white/30`}>
                         <MapPin size={10} />
                         <span>{cls.location}</span>
                       </div>
@@ -306,9 +292,9 @@ export function LandingSchedule() {
                 ))
               ) : (
                 <div className={`rounded-xl border border-dashed p-3 text-center ${
-                  isDark ? 'border-white/[0.05]' : 'border-black/10'
+                  'border-white/[0.05]'
                 }`}>
-                  <p className={`text-xs ${isDark ? 'text-white/20' : 'text-slate-300'}`}>Rest</p>
+                  <p className={`text-xs text-white/20`}>Rest</p>
                 </div>
               )}
             </motion.div>
@@ -325,15 +311,13 @@ export function LandingSchedule() {
                 {day.classes.map((cls, i) => (
                   <div
                     key={i}
-                    className={`rounded-xl p-5 ${isDark ? 'bg-white/[0.04]' : 'bg-white'}`}
+                    className={`rounded-xl p-5 bg-white/[0.04]`}
                     style={{
-                      boxShadow: isDark
-                        ? '0 4px 12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)'
-                        : '0 4px 12px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.05), inset 0 0 0 2px #ffffff',
+                      boxShadow:'0 4px 12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)'
                     }}
                   >
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>{cls.name}</p>
-                    <div className={`flex items-center gap-3 mt-2 text-sm ${isDark ? 'text-white/50' : 'text-slate-400'}`}>
+                    <p className={`font-medium text-white`}>{cls.name}</p>
+                    <div className={`flex items-center gap-3 mt-2 text-sm text-white/50`}>
                       <span className="flex items-center gap-1"><Clock size={12} />{cls.time}</span>
                       {cls.location && <span className="flex items-center gap-1"><MapPin size={12} />{cls.location}</span>}
                     </div>
@@ -342,9 +326,9 @@ export function LandingSchedule() {
               </div>
             ) : (
               <div className={`rounded-xl border border-dashed p-8 text-center ${
-                isDark ? 'border-white/10' : 'border-black/10'
+                'border-white/10'
               }`}>
-                <p className={isDark ? 'text-white/30' : 'text-slate-400'}>No classes scheduled</p>
+                <p className={'text-white/30'}>No classes scheduled</p>
               </div>
             )
           })()}

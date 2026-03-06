@@ -5,7 +5,6 @@ import { Container } from '@/components/ui/container'
 import { supabase } from '@/lib/supabase'
 import { Check } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useLandingTheme } from '@/contexts/LandingThemeContext'
 
 interface Plan {
   id: string
@@ -118,7 +117,6 @@ const fallbackPayGo: DisplayPlan[] = [
 ]
 
 function PricingCard({ plan }: { plan: DisplayPlan }) {
-  const { isDark } = useLandingTheme()
 
   return (
     <div className="relative pt-4">
@@ -130,31 +128,27 @@ function PricingCard({ plan }: { plan: DisplayPlan }) {
       <div
         className={`rounded-2xl p-6 flex flex-col gap-6 ${
           plan.highlighted
-            ? isDark ? 'bg-blue-950/30' : 'bg-brand-blue/5'
-            : isDark ? 'bg-white/[0.03]' : 'bg-white'
+            ? 'bg-blue-950/30'
+            : 'bg-white/[0.03]'
         }`}
         style={{
           boxShadow: plan.highlighted
-            ? isDark
-              ? '0 8px 32px rgba(73,130,232,0.25), 0 0 0 1px rgba(73,130,232,0.6), inset 0 0 0 2px rgba(0,0,0,0.35)'
-              : '0 8px 32px rgba(73,130,232,0.15), 0 0 0 1px rgba(73,130,232,0.4), inset 0 0 0 2px #ffffff'
-            : isDark
-            ? '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)'
-            : '0 8px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.05), inset 0 0 0 2px #ffffff',
+            ?'0 8px 32px rgba(73,130,232,0.25), 0 0 0 1px rgba(73,130,232,0.6), inset 0 0 0 2px rgba(0,0,0,0.35)'
+            :'0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)'
         }}
       >
         <div>
-          <h3 className={`text-lg font-semibold mb-2 ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>{plan.name}</h3>
+          <h3 className={`text-lg font-semibold mb-2 text-white`}>{plan.name}</h3>
           <div className="flex items-end gap-1">
-            <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>{plan.price}</span>
-            <span className={`text-sm mb-1 ${isDark ? 'text-white/50' : 'text-slate-400'}`}>{plan.period}</span>
+            <span className={`text-4xl font-bold text-white`}>{plan.price}</span>
+            <span className={`text-sm mb-1 text-white/50`}>{plan.period}</span>
           </div>
         </div>
 
         {plan.features.length > 0 && (
           <ul className="space-y-2 flex-1">
             {plan.features.map((f, i) => (
-              <li key={i} className={`flex items-start gap-2 text-sm ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
+              <li key={i} className={`flex items-start gap-2 text-sm text-white/70`}>
                 <Check size={14} className="text-brand-blue mt-0.5 flex-shrink-0" />
                 <span>{f}</span>
               </li>
@@ -167,9 +161,7 @@ function PricingCard({ plan }: { plan: DisplayPlan }) {
           className={`w-full py-2.5 rounded-full text-sm font-medium transition-colors ${
             plan.highlighted
               ? 'bg-brand-blue hover:bg-brand-blue/85 text-white'
-              : isDark
-              ? 'bg-white/10 hover:bg-white/20 text-white'
-              : 'bg-black/5 hover:bg-black/10 text-[#0f0f0f]'
+              :'bg-white/10 hover:bg-white/20 text-white'
           }`}
         >
           {plan.buttonText}
@@ -184,7 +176,6 @@ export function LandingPricing() {
   const [memberships, setMemberships] = useState<DisplayPlan[]>([])
   const [payGo, setPayGo] = useState<DisplayPlan[]>([])
   const [loading, setLoading] = useState(true)
-  const { isDark } = useLandingTheme()
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -224,7 +215,7 @@ export function LandingPricing() {
   const displayPayGo = loading ? fallbackPayGo : payGo
 
   return (
-    <section id="pricing" className={`py-24 ${isDark ? 'bg-[#090909]' : 'bg-[#f8f9fa]'}`}>
+    <section id="pricing" className={`py-24 bg-[#090909]`}>
       <Container>
         {/* Header */}
         <motion.div
@@ -237,10 +228,10 @@ export function LandingPricing() {
           <p className="text-brand-blue text-sm font-semibold uppercase tracking-widest mb-3">
             PRICING
           </p>
-          <h2 className={`text-4xl sm:text-5xl font-bold uppercase mb-4 ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>
+          <h2 className={`text-4xl sm:text-5xl font-bold uppercase mb-4 text-white`}>
             Simple, Transparent Pricing
           </h2>
-          <p className={`text-lg max-w-xl ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+          <p className={`text-lg max-w-xl text-white/60`}>
             Flexible membership and pay-as-you-go packages to suit you. No contracts, freedom to cancel any time.
           </p>
         </motion.div>
@@ -248,7 +239,7 @@ export function LandingPricing() {
         {/* Tab switcher */}
         <div className="flex justify-center mb-10">
           <div className={`flex items-center gap-1 border rounded-full p-1 ${
-            isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'
+            'bg-white/5 border-white/10'
           }`}>
             {(['memberships', 'paygo'] as const).map((t) => (
               <button
@@ -257,9 +248,7 @@ export function LandingPricing() {
                 className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
                   tab === t
                     ? 'bg-brand-blue text-white'
-                    : isDark
-                    ? 'text-white/50 hover:text-white'
-                    : 'text-slate-500 hover:text-slate-900'
+                    :'text-white/50 hover:text-white'
                 }`}
               >
                 {t === 'memberships' ? 'Memberships' : 'Pay & Go'}

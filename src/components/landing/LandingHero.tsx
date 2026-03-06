@@ -1,8 +1,6 @@
-'use client'
-
 import { Container } from '@/components/ui/container'
 import { ChevronRight } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { ScrollButton } from './ScrollButton'
 
 export function LandingHero() {
   return (
@@ -22,28 +20,7 @@ export function LandingHero() {
           filter: 'brightness(0.90) contrast(1.05)',
         }}
       />
-      <style>{`
-        @media (min-width: 640px) {
-          .hero-img {
-            object-fit: contain;
-            object-position: 50% 15% !important;
-            transform: scale(1.2);
-            transform-origin: 50% 15%;
-          }
-        }
-        @media (max-width: 639px) {
-          .hero-img {
-            object-fit: contain !important;
-            object-position: 0% 18% !important;
-            transform: translateX(-10px) scale(1.2);
-            transform-origin: 0% 18%;
-          }
-        }
-      `}</style>
 
-
-
-      {/* Edge fades */}
       {/* Edge fades */}
       <div className="absolute inset-y-0 right-0 w-16 sm:w-56 xl:w-80 bg-gradient-to-l from-black to-transparent pointer-events-none z-10" />
       <div className="absolute inset-y-0 left-0 w-16 sm:w-56 xl:w-80 bg-gradient-to-r from-black to-transparent pointer-events-none z-10" />
@@ -58,12 +35,7 @@ export function LandingHero() {
       <div className="absolute inset-x-0 bottom-20 z-10">
         <Container className="px-6 sm:px-8">
           <div className="text-right">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              className="flex flex-wrap items-baseline gap-x-3 mb-2 justify-end"
-            >
+            <div className="flex flex-wrap items-baseline gap-x-3 mb-2 justify-end animate-fade-up">
               <h1 className="contents">
                 <span className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-none drop-shadow-lg">
                   FRONTLINE
@@ -72,27 +44,18 @@ export function LandingHero() {
                   FITNESS
                 </span>
               </h1>
-            </motion.div>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.25 }}
-              className="text-sm sm:text-base text-white/80 max-w-md leading-relaxed mb-5 drop-shadow ml-auto"
-            >
+            </div>
+            <p className="text-sm sm:text-base text-white/80 max-w-md leading-relaxed mb-5 drop-shadow ml-auto animate-fade-up animation-delay-150">
               Forces-led outdoor fitness for everyone. Train in the fresh air with expert guidance that gets results.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.4 }}
-            >
-              <button
-                onClick={() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })}
+            </p>
+            <div className="animate-fade-up animation-delay-300">
+              <ScrollButton
+                target="booking"
                 className="inline-flex items-center bg-brand-blue hover:bg-brand-blue/85 text-white rounded-full px-6 py-2.5 text-sm font-medium transition-colors"
               >
                 Try a Class <ChevronRight size={14} className="ml-1" />
-              </button>
-            </motion.div>
+              </ScrollButton>
+            </div>
           </div>
         </Container>
       </div>

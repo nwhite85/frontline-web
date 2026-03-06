@@ -5,7 +5,6 @@ import Link from 'next/link'
 
 import { Container } from '@/components/ui/container'
 import { Menu, X, Sun, Moon } from 'lucide-react'
-import { useLandingTheme } from '@/contexts/LandingThemeContext'
 
 const navLinks = [
   { label: 'Workouts', id: 'workouts' },
@@ -36,7 +35,6 @@ const socialLinks = [
 
 export function LandingNav() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { isDark } = useLandingTheme()
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })

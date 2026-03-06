@@ -257,3 +257,37 @@ pre, code {
 .animate-marquee {
   animation: marquee 20s linear infinite;
 }
+
+/* Hero fade-up animation */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out forwards;
+  opacity: 0;
+}
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+/* Hero image responsive positioning */
+@media (min-width: 640px) {
+  .hero-img {
+    object-fit: contain;
+    object-position: 50% 15% !important;
+    transform: scale(1.2);
+    transform-origin: 50% 15%;
+  }
+}
+@media (max-width: 639px) {
+  .hero-img {
+    object-fit: contain !important;
+    object-position: 0% 18% !important;
+    transform: translateX(-10px) scale(1.2);
+    transform-origin: 0% 18%;
+  }
+}

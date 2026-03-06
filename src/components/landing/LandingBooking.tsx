@@ -6,7 +6,6 @@ import { Container } from '@/components/ui/container'
 import { Input } from '@/components/ui/input'
 import { CheckCircle, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useLandingTheme } from '@/contexts/LandingThemeContext'
 
 interface ScheduleOption {
   value: string
@@ -22,7 +21,6 @@ export function LandingBooking() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  const { isDark } = useLandingTheme()
 
   useEffect(() => {
     const fetchSchedules = async () => {
@@ -100,13 +98,9 @@ export function LandingBooking() {
   }
 
   // Input class — adapts to theme
-  const inputClass = `w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-colors ${
-    isDark
-      ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30'
-      : 'bg-white border-black/15 text-[#0f0f0f] placeholder:text-slate-400'
-  }`
+  const inputClass = 'w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-colors bg-white/5 border-white/10 text-white placeholder:text-white/30'
 
-  const labelClass = `block text-sm font-medium mb-1.5 ${isDark ? 'text-white/70' : 'text-slate-700'}`
+  const labelClass = `block text-sm font-medium mb-1.5 text-white/70`
 
   return (
     <section id="booking" className="relative py-24 overflow-hidden">
@@ -116,9 +110,9 @@ export function LandingBooking() {
         src="/photos/img_trial.webp"
         alt=""
         className="absolute inset-0 w-full h-full object-cover object-[center_20%]"
-        style={{ filter: isDark ? 'brightness(0.22)' : 'brightness(0.25)' }}
+        style={{ filter: 'brightness(0.22)' }}
       />
-      <div className={`absolute inset-0 bg-gradient-to-t ${isDark ? 'from-black/80 via-black/40' : 'from-black/70 via-black/30'} to-transparent`} />
+      <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent`} />
       {/* Desktop only: constrained width + side fades */}
       <div className="hidden sm:flex absolute inset-0 justify-center pointer-events-none">
         <div className="relative w-full h-full" style={{ maxWidth: '85rem' }}>
@@ -156,21 +150,19 @@ export function LandingBooking() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
             viewport={{ once: true, margin: '-60px' }}
-            className={`rounded-2xl backdrop-blur-sm p-6 ${isDark ? 'bg-black/60' : 'bg-white'}`}
+            className={`rounded-2xl backdrop-blur-sm p-6 bg-black/60`}
             style={{
-              boxShadow: isDark
-                ? '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)'
-                : '0 8px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.05), inset 0 0 0 2px #ffffff',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 0 2px rgba(0,0,0,0.35)',
             }}
           >
-            <h3 className={`text-xl font-semibold mb-6 ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>
+            <h3 className={`text-xl font-semibold mb-6 text-white`}>
               Book Your Free Class
             </h3>
 
             {success ? (
               <div className="flex flex-col items-center gap-4 py-8 text-center">
                 <CheckCircle className="text-emerald-400" size={48} />
-                <p className={`text-base font-medium ${isDark ? 'text-white' : 'text-[#0f0f0f]'}`}>
+                <p className={`text-base font-medium text-white`}>
                   Thanks for booking! We&apos;ll be in touch soon to confirm your free trial class.
                 </p>
               </div>
@@ -231,18 +223,18 @@ export function LandingBooking() {
                     onChange={(e) => setClassScheduleId(e.target.value)}
                     required
                     className={`${inputClass} appearance-none cursor-pointer`}
-                    style={{ colorScheme: isDark ? 'dark' : 'light' }}
+                    style={{ colorScheme: 'dark' }}
                   >
-                    <option value="" disabled className={isDark ? 'bg-[#1a1a1a]' : 'bg-white'}>
+                    <option value="" disabled className={'bg-[#1a1a1a]'}>
                       Choose a class…
                     </option>
                     {options.length === 0 ? (
-                      <option value="none" disabled className={isDark ? 'bg-[#1a1a1a]' : 'bg-white'}>
+                      <option value="none" disabled className={'bg-[#1a1a1a]'}>
                         No upcoming classes available
                       </option>
                     ) : (
                       options.map((opt) => (
-                        <option key={opt.value} value={opt.value} className={isDark ? 'bg-[#1a1a1a]' : 'bg-white'}>
+                        <option key={opt.value} value={opt.value} className={'bg-[#1a1a1a]'}>
                           {opt.label}
                         </option>
                       ))

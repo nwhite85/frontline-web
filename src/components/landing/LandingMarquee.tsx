@@ -1,5 +1,3 @@
-'use client'
-
 const items = [
   'COMMUNITY DRIVEN', 'PROGRESS FOCUSED',
   'COMMUNITY DRIVEN', 'PROGRESS FOCUSED',
