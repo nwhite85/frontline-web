@@ -25,9 +25,7 @@ export const getCachedClasses = unstable_cache(
   async () => {
     const { data } = await supabase
       .from('classes')
-      .select('id, name, description, duration_minutes, image_url, is_active, display_order')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
+      .select('id, name, description, duration_minutes, image_url')
       .limit(20)
     return data ?? []
   },

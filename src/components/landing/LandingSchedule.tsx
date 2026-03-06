@@ -141,7 +141,7 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
     <section id="schedule" className={`py-24 bg-[#0b0e18]`}>
       <Container>
         {/* Header */}
-        <div>
+        <div className="mb-10">
           <p className="text-brand-blue text-sm font-semibold uppercase tracking-widest mb-3">Schedule</p>
           <h2 className={`text-4xl sm:text-5xl font-bold uppercase mb-4 text-white`}>
             When we train
@@ -187,7 +187,7 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
         </div>
 
         {/* Mobile day picker */}
-        <div>
+        <div className="flex gap-1.5 mb-4 md:hidden overflow-x-auto pb-1">
           {days.map((day, i) => (
             <button
               key={day.dateStr}
