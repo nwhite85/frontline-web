@@ -256,7 +256,7 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
                 day.classes.map((cls, i) => (
                   <div
                     key={i}
-                    className={`rounded-xl transition-colors p-5 cursor-pointer ${
+                    className={`mt-3 rounded-xl transition-colors p-5 cursor-pointer ${
                       'bg-white/[0.04] hover:bg-white/[0.07]'
                     }`}
                     style={{
