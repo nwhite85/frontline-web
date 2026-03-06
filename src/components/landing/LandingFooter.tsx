@@ -54,6 +54,8 @@ export function LandingFooter() {
           <img
             src="/logos/frontline-logo-white.svg"
             alt="Frontline Fitness"
+            width={80}
+            height={20}
             style={{ height: '20px', width: 'auto' }}
           />
 
@@ -103,6 +105,8 @@ export function LandingFooter() {
           <img
             src="/logos/frontline-logo-white.svg"
             alt="Frontline Fitness"
+            width={80}
+            height={20}
             style={{ height: '20px', width: 'auto' }}
             className="mb-8"
           />
