@@ -15,7 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/support`, lastModified: new Date('2026-03-01'), changeFrequency: 'yearly', priority: 0.3 },
   ]
 
-  const blogRoutes: MetadataRoute.Sitemap = posts.map(post => ({
+  const blogRoutes: MetadataRoute.Sitemap = [...posts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(post => ({
     url: `${BASE}/blog/${post.slug}`,
     lastModified: new Date(post.date),
     changeFrequency: 'monthly' as const,
