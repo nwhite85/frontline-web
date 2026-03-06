@@ -188,7 +188,7 @@ export default function ShopPage() {
       </div>
 
       {/* Orders not yet open banner */}
-      <div className="relative z-10 bg-brand-blue/10 border-b border-brand-blue/20 px-6 py-3 text-center">
+      <div className="relative z-10 bg-brand-blue/10 border-b border-brand-blue/20 px-6 py-5 text-center">
         <p className="text-brand-blue text-xs font-semibold uppercase tracking-widest">Orders opening soon — browse the range below</p>
       </div>
 
