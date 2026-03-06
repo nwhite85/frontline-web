@@ -35,8 +35,8 @@ interface Product {
   id: string
   name: string
   price: number
-  category: 'mens' | 'womens'
-  type: 'hoodie' | 'vest' | 'tshirt' | 'shorts' | 'other'
+  category: 'mens' | 'womens' | 'unisex' | 'accessories'
+  type: 'hoodie' | 'vest' | 'tshirt' | 'shorts' | 'jacket' | 'leggings' | 'bra' | 'cap' | 'other'
   colors: string[]
   sizes: string[]
   description: string
@@ -46,11 +46,22 @@ interface Product {
   created_at: string
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  mens: "Men's",
+  womens: "Women's",
+  unisex: 'Unisex',
+  accessories: 'Accessories',
+}
+
 const TYPE_LABELS: Record<string, string> = {
   hoodie: 'Hoodie',
   vest: 'Vest',
   tshirt: 'T-Shirt',
   shorts: 'Shorts',
+  jacket: 'Jacket',
+  leggings: 'Leggings',
+  bra: 'Sports Bra',
+  cap: 'Cap',
   other: 'Other',
 }
 
@@ -60,7 +71,7 @@ const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 const EMPTY_FORM = {
   name: '',
   price: '',
-  category: 'mens' as 'mens' | 'womens',
+  category: 'mens' as Product['category'],
   type: 'tshirt' as Product['type'],
   colors: [] as string[],
   sizes: [] as string[],
@@ -145,6 +156,8 @@ export default function ShopPage() {
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="mens">Men&apos;s</SelectItem>
             <SelectItem value="womens">Women&apos;s</SelectItem>
+            <SelectItem value="unisex">Unisex</SelectItem>
+            <SelectItem value="accessories">Accessories</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -412,7 +425,7 @@ export default function ShopPage() {
                       </TableCell>
                       <TableCell className="py-2">
                         <Badge variant="outline" className="text-xs capitalize">
-                          {product.category === 'mens' ? "Men's" : "Women's"}
+                          {CATEGORY_LABELS[product.category] ?? product.category}
                         </Badge>
                       </TableCell>
                       <TableCell className="py-2 text-sm font-medium">£{product.price.toFixed(2)}</TableCell>
@@ -545,6 +558,8 @@ export default function ShopPage() {
                     <SelectContent>
                       <SelectItem value="mens">Men&apos;s</SelectItem>
                       <SelectItem value="womens">Women&apos;s</SelectItem>
+                      <SelectItem value="unisex">Unisex</SelectItem>
+                      <SelectItem value="accessories">Accessories</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -559,6 +574,10 @@ export default function ShopPage() {
                       <SelectItem value="vest">Vest</SelectItem>
                       <SelectItem value="tshirt">T-Shirt</SelectItem>
                       <SelectItem value="shorts">Shorts</SelectItem>
+                      <SelectItem value="jacket">Jacket</SelectItem>
+                      <SelectItem value="leggings">Leggings</SelectItem>
+                      <SelectItem value="bra">Sports Bra</SelectItem>
+                      <SelectItem value="cap">Cap</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
