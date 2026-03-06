@@ -16,12 +16,22 @@ import {
 export default async function LandingPage() {
   // Date ranges for schedule and booking
   const today = new Date()
-  const startDate = today.toISOString().split('T')[0]
-  const scheduleEnd = new Date(today)
-  scheduleEnd.setDate(today.getDate() + 6)
+
+  // Start from Monday of the current week so the full week shows
+  const monday = new Date(today)
+  const dayOfWeek = today.getDay() // 0=Sun, 1=Mon...
+  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  monday.setDate(today.getDate() + daysToMonday)
+  const startDate = monday.toISOString().split('T')[0]
+
+  // Schedule: current week Mon → next week Sun (13 days)
+  const scheduleEnd = new Date(monday)
+  scheduleEnd.setDate(monday.getDate() + 13)
   const scheduleEndDate = scheduleEnd.toISOString().split('T')[0]
+
+  // Booking dropdown: today → 3 weeks out
   const bookingEnd = new Date(today)
-  bookingEnd.setDate(today.getDate() + 14)
+  bookingEnd.setDate(today.getDate() + 21)
   const bookingEndDate = bookingEnd.toISOString().split('T')[0]
 
   // Fetch all landing data server-side (cached)
