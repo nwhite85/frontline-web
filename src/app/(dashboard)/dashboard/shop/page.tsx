@@ -114,7 +114,7 @@ export default function ShopPage() {
       label ? (
         <Button variant="outline" className="bg-card" onClick={activeTab === 'products' ? handleOpenAdd : undefined}>
           <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
-          {label}
+          <span className="hidden lg:inline">{label}</span>
         </Button>
       ) : null
     )
@@ -142,8 +142,8 @@ export default function ShopPage() {
         <div className="relative max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search…"
-            className="pl-8 h-8 text-sm w-28 lg:w-48 bg-card"
+            placeholder="Search"
+            className="pl-8 h-8 text-sm w-24 lg:w-48 bg-card"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
