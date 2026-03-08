@@ -152,16 +152,8 @@ function AppShellInner({ children }: { children: ReactNode }) {
           >
             <Menu style={{ width: 20, height: 20 }} />
           </button>
-          {/* Tabs in centre if present, otherwise logo */}
-          <div className="flex-1 flex items-center justify-center overflow-hidden">
-            {headerTabs
-              ? <div className="flex items-center">{headerTabs}</div>
-              : <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} />
-            }
-          </div>
-          <div className="size-8 shrink-0 rounded-md bg-primary flex items-center justify-center text-[11px] font-semibold text-primary-foreground">
-            {initials}
-          </div>
+          <div className="flex-1" />
+          {headerTabs && <div className="flex items-center shrink-0">{headerTabs}</div>}
         </div>
 
         {/* Mobile nav drawer */}
