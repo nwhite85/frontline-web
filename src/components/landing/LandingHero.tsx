@@ -33,7 +33,7 @@ export function LandingHero() {
       <div className="hidden sm:block absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none z-10" />
 
       {/* Text card — pinned to bottom */}
-      <div className="absolute inset-x-0 bottom-10 sm:bottom-4 z-10">
+      <div className="absolute inset-x-0 bottom-10 sm:bottom-7 z-10">
         <Container className="px-6 sm:px-8">
           <div className="text-right">
             <div className="flex flex-wrap items-baseline gap-x-3 mb-2 justify-end animate-fade-up">
