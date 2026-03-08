@@ -159,11 +159,9 @@ function AppShellInner({ children }: { children: ReactNode }) {
               : <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} />
             }
           </div>
-          <Avatar className="size-8 rounded-md shrink-0">
-            <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[11px] font-semibold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <div className="size-8 shrink-0 rounded-md bg-primary flex items-center justify-center text-[11px] font-semibold text-primary-foreground">
+            {initials}
+          </div>
         </div>
 
         {/* Mobile nav drawer */}
