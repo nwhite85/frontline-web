@@ -6,7 +6,7 @@ export function LandingHero() {
   return (
     <section
       className="relative overflow-hidden bg-black"
-      style={{ height: "100svh", maxWidth: "85rem", margin: "0 auto" }}
+      style={{ height: "calc(100svh - 4rem)", marginTop: "4rem", maxWidth: "85rem", marginLeft: "auto", marginRight: "auto" }}
     >
       {/* Background image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
