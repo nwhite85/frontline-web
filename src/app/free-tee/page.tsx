@@ -156,10 +156,10 @@ export default function FounderMerchPage() {
             </>
           ) : (
             <>
-              <div className="rounded-xl border border-white/10 bg-[#0a0f1a] overflow-hidden flex flex-col">
+              <div className="rounded-xl border border-white/10 bg-[#0a0f1a] flex flex-col">
 
                 {/* Image inside card */}
-                <div className="w-full overflow-hidden">
+                <div className="w-full overflow-hidden rounded-t-xl">
                   <img src="/images/founder-tee.png" alt="Frontline Fitness Tee &amp; Vest" className="w-full object-cover scale-110" />
                 </div>
 
