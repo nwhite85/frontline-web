@@ -329,7 +329,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
               {/* Nav items */}
               <ScrollArea className="flex-1 py-2">
-                <nav className="flex flex-col gap-0.5 px-3">
+                <nav className="flex flex-col gap-0.5 px-2">
                   {activeModule.items.map((item) => {
                     const Icon = item.icon
                     const isActive = pathname === item.href ||
@@ -339,7 +339,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
                         key={item.href}
                         href={item.href}
                         className={cn(
-                          'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors',
+                          'flex items-center gap-2.5 rounded-md px-4 py-1.5 text-sm transition-colors',
                           isActive
                             ? 'bg-sidebar-accent text-sidebar-primary font-medium'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -358,7 +358,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
               <div className="border-t border-sidebar-border p-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-sidebar-accent transition-colors">
+                    <button className="flex w-full items-center gap-2.5 rounded-md px-4 py-2 text-sm hover:bg-sidebar-accent transition-colors">
                       <Avatar className="size-8 rounded-md shrink-0 after:rounded-md">
                         <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[11px] font-semibold">
                           {initials}
