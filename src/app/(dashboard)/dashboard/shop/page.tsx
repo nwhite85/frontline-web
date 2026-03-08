@@ -455,10 +455,20 @@ export default function ShopPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="py-2">
-                        <Badge variant={product.active ? 'default' : 'secondary'} className="text-xs">
-                          {product.active ? 'Active' : 'Inactive'}
-                        </Badge>
+                      <TableCell className="py-2" onClick={e => e.stopPropagation()}>
+                        <Switch
+                          checked={product.active}
+                          onCheckedChange={async (checked) => {
+                            setProducts(prev => prev.map(p => p.id === product.id ? { ...p, active: checked } : p))
+                            const { error } = await supabase.from('shop_products')
+                              // @ts-ignore
+                              .update({ active: checked }).eq('id', product.id)
+                            if (error) {
+                              setProducts(prev => prev.map(p => p.id === product.id ? { ...p, active: !checked } : p))
+                              toast.error('Failed to update status')
+                            }
+                          }}
+                        />
                       </TableCell>
                       <TableCell className="py-2" onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
