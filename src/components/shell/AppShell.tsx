@@ -401,7 +401,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
           {(headerTabs || headerSearch || actions) && (
             <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-6" style={{ zIndex: 20 }}>
               {headerTabs && <div className="hidden lg:flex items-center shrink-0">{headerTabs}</div>}
-              <div className="flex items-center gap-2 flex-1">
+              <div className="flex items-center gap-2 flex-1 min-w-0 max-w-[45%] lg:max-w-none">
                 {headerSearch}
               </div>
               <div className="ml-auto flex items-center gap-2">

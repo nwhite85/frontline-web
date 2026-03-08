@@ -142,14 +142,14 @@ export default function ShopPage() {
         <div className="relative max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search products…"
-            className="pl-8 h-8 text-sm w-48 bg-card"
+            placeholder="Search…"
+            className="pl-8 h-8 text-sm w-28 lg:w-48 bg-card"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-32 h-8 text-sm bg-card">
+          <SelectTrigger className="w-20 lg:w-32 h-8 text-sm bg-card">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
