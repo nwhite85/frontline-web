@@ -156,14 +156,27 @@ export default function FounderMerchPage() {
             </>
           ) : (
             <>
-              <div>
-                <h2 className="text-2xl font-semibold text-white">Claim your merch</h2>
-                <p className="text-sm text-white/50 mt-1">
-                  {step === 1 && 'Select your name to get started'}
-                  {step === 2 && `Hi ${name.split(' ')[0]}! Choose your item`}
-                  {step === 3 && 'Choose your preferred fit'}
-                  {step === 4 && 'Almost done — pick your size'}
-                </p>
+              <div className="flex items-start gap-3">
+                {step > 1 && (
+                  <button
+                    onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4)}
+                    className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors shrink-0"
+                    aria-label="Back"
+                  >
+                    <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                )}
+                <div>
+                  <h2 className="text-2xl font-semibold text-white">Claim your merch</h2>
+                  <p className="text-sm text-white/50 mt-1">
+                    {step === 1 && 'Select your name to get started'}
+                    {step === 2 && `Hi ${name.split(' ')[0]}! Choose your item`}
+                    {step === 3 && 'Choose your preferred fit'}
+                    {step === 4 && 'Almost done — pick your size'}
+                  </p>
+                </div>
               </div>
 
               {/* Step bar */}
@@ -206,7 +219,6 @@ export default function FounderMerchPage() {
                         </button>
                       ))}
                     </div>
-                    <button onClick={() => setStep(1)} className="text-xs text-white/30 hover:text-white/50 transition-colors text-left">← Back</button>
                   </div>
                 )}
 
@@ -225,7 +237,6 @@ export default function FounderMerchPage() {
                         </button>
                       ))}
                     </div>
-                    <button onClick={() => setStep(2)} className="text-xs text-white/30 hover:text-white/50 transition-colors text-left">← Back</button>
                   </div>
                 )}
 
@@ -263,7 +274,6 @@ export default function FounderMerchPage() {
                     >
                       {submitting ? 'Submitting…' : 'Confirm Order'}
                     </Button>
-                    <button onClick={() => setStep(3)} className="text-xs text-white/30 hover:text-white/50 transition-colors text-left">← Back</button>
                   </div>
                 )}
 
