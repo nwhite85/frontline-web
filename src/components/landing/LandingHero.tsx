@@ -25,11 +25,8 @@ export function LandingHero() {
       <div className="absolute inset-y-0 right-0 w-16 sm:w-56 xl:w-80 bg-gradient-to-l from-black to-transparent pointer-events-none z-10" />
       <div className="absolute inset-y-0 left-0 w-16 sm:w-56 xl:w-80 bg-gradient-to-r from-black to-transparent pointer-events-none z-10" />
 
-      {/* Mobile bottom fade */}
-      <div className="absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-black from-40% via-black/95 via-70% to-transparent pointer-events-none z-10" />
-
-      {/* Subtle top fade for nav */}
-      <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black from-20% via-black/80 via-50% to-transparent pointer-events-none" />
+      {/* Bottom fade */}
+      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none z-10" />
 
       {/* Text card — pinned to bottom */}
       <div className="absolute inset-x-0 bottom-4 z-10">
