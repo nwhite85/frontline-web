@@ -157,9 +157,8 @@ export default function FounderMerchPage() {
           ) : (
             <>
               {/* Product image */}
-              <div className="w-full overflow-hidden rounded-xl relative">
+              <div className="w-full overflow-hidden rounded-xl">
                 <img src="/images/founder-tee.png" alt="Frontline Fitness Tee &amp; Vest" className="w-full object-cover scale-110" />
-                <div className="absolute inset-0 bg-black/30 rounded-xl" />
               </div>
 
               <div className="flex items-start gap-3">
