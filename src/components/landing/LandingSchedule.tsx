@@ -211,7 +211,7 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
         {/* Desktop grid */}
         <div className="hidden md:grid grid-cols-6 gap-3">
           {days.map((day, i) => (
-            <div>
+            <div key={day.dateStr}>
               {/* Day header */}
               <div
                 className={`rounded-xl overflow-hidden text-center ${

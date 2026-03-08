@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Container } from '@/components/ui/container'
 import { Check } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 interface Plan {
   id: string
@@ -54,10 +55,15 @@ function transformPlan(plan: Plan): DisplayPlan {
   }
 }
 
-const fallbackMemberships: DisplayPlan[] = [
+interface FounderDisplayPlan extends DisplayPlan {
+  standardPrice?: string
+}
+
+const fallbackMemberships: FounderDisplayPlan[] = [
   {
     name: '1 Class',
     price: '£32',
+    standardPrice: '£34',
     period: '/month',
     features: ['1 class per week', 'Circuits, Intervals, Strength, Endurance', 'Personal progress tracking', 'Community support'],
     highlighted: false,
@@ -67,6 +73,7 @@ const fallbackMemberships: DisplayPlan[] = [
   {
     name: '2 Classes',
     price: '£39',
+    standardPrice: '£41',
     period: '/month',
     features: ['2 classes per week', 'Circuits, Intervals, Strength, Endurance', 'Personal progress tracking', 'Community support'],
     highlighted: false,
@@ -76,6 +83,7 @@ const fallbackMemberships: DisplayPlan[] = [
   {
     name: 'Unlimited',
     price: '£42',
+    standardPrice: '£44',
     period: '/month',
     features: ['Unlimited classes', 'Circuits, Intervals, Strength, Endurance', 'Personal progress tracking', 'Community support'],
     highlighted: true,
@@ -114,7 +122,7 @@ const fallbackPayGo: DisplayPlan[] = [
   },
 ]
 
-function PricingCard({ plan }: { plan: DisplayPlan }) {
+function PricingCard({ plan, isFounder }: { plan: FounderDisplayPlan, isFounder?: boolean }) {
 
   return (
     <div className="relative pt-4">
@@ -136,11 +144,39 @@ function PricingCard({ plan }: { plan: DisplayPlan }) {
         }}
       >
         <div>
-          <h3 className={`text-lg font-semibold mb-2 text-white`}>{plan.name}</h3>
-          <div className="flex items-end gap-1">
-            <span className={`text-4xl font-bold text-white`}>{plan.price}</span>
-            <span className={`text-sm mb-1 text-white/50`}>{plan.period}</span>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+            {isFounder && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex-shrink-0 text-[10px] font-bold uppercase tracking-widest text-brand-blue border border-brand-blue/30 bg-brand-blue/10 px-2 py-0.5 rounded-full hover:bg-brand-blue/20 transition-colors">
+                    Founder
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 bg-[#0d1420] border border-white/10 text-white p-4" side="top">
+                  <p className="text-xs font-bold uppercase tracking-widest text-brand-blue mb-2">Founding Member Rate</p>
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    Sign up before <span className="text-white font-medium">1 June 2026</span> and you&apos;ll always pay less than our standard rate — even with annual price rises.
+                  </p>
+                  <p className="text-xs text-white/40 mt-2">
+                    Standard rate from June: {plan.standardPrice}/month
+                  </p>
+                  <p className="text-xs text-white/50 mt-3 pt-3 border-t border-white/10">
+                    All existing members will be on the Founder rate.
+                  </p>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
+          <div className="flex items-end gap-1">
+            <span className="text-4xl font-bold text-white">{plan.price}</span>
+            <span className="text-sm mb-1 text-white/50">{plan.period}</span>
+          </div>
+          {isFounder && plan.standardPrice && (
+            <p className="text-xs text-white/30 mt-1.5">
+              Standard rate: <span className="line-through">{plan.standardPrice}</span>/month after launch
+            </p>
+          )}
         </div>
 
         {plan.features.length > 0 && (
@@ -202,7 +238,7 @@ export function LandingPricing({ initialPlans }: { initialPlans?: Plan[] }) {
         </div>
 
         {/* Tab switcher */}
-        <div className="flex justify-center mb-10">
+        <div className="flex justify-center mt-8 mb-10">
           <div className={`flex items-center gap-1 border rounded-full p-1 ${
             'bg-white/5 border-white/10'
           }`}>
@@ -222,11 +258,13 @@ export function LandingPricing({ initialPlans }: { initialPlans?: Plan[] }) {
           </div>
         </div>
 
+
+
         {/* Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {(tab === 'memberships' ? displayMemberships : displayPayGo).map((plan, i) => (
-            <div>
-              <PricingCard plan={plan} />
+            <div key={i}>
+              <PricingCard plan={plan as FounderDisplayPlan} isFounder={tab === 'memberships'} />
             </div>
           ))}
         </div>
