@@ -165,10 +165,10 @@ function AppShellInner({ children }: { children: ReactNode }) {
               <SheetTitle className="text-sm font-semibold text-sidebar-foreground">Frontline</SheetTitle>
             </SheetHeader>
             <ScrollArea className="flex-1 min-h-0">
-              <nav className="flex flex-col px-3 py-3 gap-4">
+              <nav className="flex flex-col px-4 py-3 gap-4">
                 {NAV_MODULES.map((module) => (
                   <div key={module.id}>
-                    <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{module.label}</p>
+                    <p className="px-4 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{module.label}</p>
                     {module.items.map((item) => {
                       const Icon = item.icon
                       const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
@@ -178,7 +178,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
                           href={item.href}
                           onClick={() => setMobileNavOpen(false)}
                           className={cn(
-                            'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors',
+                            'flex items-center gap-2.5 rounded-md px-4 py-1.5 text-sm transition-colors',
                             isActive
                               ? 'bg-sidebar-accent text-sidebar-primary font-medium'
                               : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -329,7 +329,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
               {/* Nav items */}
               <ScrollArea className="flex-1 py-2">
-                <nav className="flex flex-col gap-0.5 px-3">
+                <nav className="flex flex-col gap-0.5 px-4">
                   {activeModule.items.map((item) => {
                     const Icon = item.icon
                     const isActive = pathname === item.href ||
@@ -339,7 +339,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
                         key={item.href}
                         href={item.href}
                         className={cn(
-                          'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors',
+                          'flex items-center gap-2.5 rounded-md px-4 py-1.5 text-sm transition-colors',
                           isActive
                             ? 'bg-sidebar-accent text-sidebar-primary font-medium'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
