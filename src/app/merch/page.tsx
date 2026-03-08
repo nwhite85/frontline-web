@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect, useRef } from 'react'
+import { Button } from '@/components/ui/button'
 
 const ALL_NAMES = [
   'Andrew S', 'Carla F', 'Charlotte M', 'Clair L', 'Dani C', 'Danny D',
@@ -17,275 +17,269 @@ const ALL_NAMES = [
   'Will H', 'Yaw B', 'Zsuzsi L',
 ]
 
-const ITEMS = ['T-Shirt', 'Vest']
-const FITS = ["Men's", "Ladies'"]
-const SIZES: Record<string, string[]> = {
-  "Men's":   ['S', 'M', 'L', 'XL', 'XXL'],
-  "Ladies'": ['XS', 'S', 'M', 'L', 'XL'],
-}
+const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']
 
-type Step = 'name' | 'item' | 'fit' | 'size' | 'confirm' | 'done'
+function NamePicker({ available, onSelect }: { available: string[], onSelect: (n: string) => void }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
 
-export default function MerchPage() {
-  const [step, setStep] = useState<Step>('name')
-  const [availableNames, setAvailableNames] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const [name, setName] = useState('')
-  const [item, setItem] = useState('')
-  const [fit, setFit] = useState('')
-  const [size, setSize] = useState('')
+  const filtered = available.filter(n => n.toLowerCase().includes(query.toLowerCase()))
 
   useEffect(() => {
-    async function loadClaimed() {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any).from('merch_orders').select('name')
-      const claimed = new Set((data || []).map((r: { name: string }) => r.name))
-      setAvailableNames(ALL_NAMES.filter(n => !claimed.has(n)))
-      setLoading(false)
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
-    loadClaimed()
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  async function handleSubmit() {
-    setSubmitting(true)
-    setError(null)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: err } = await (supabase as any).from('merch_orders').insert({
-      name, item, fit, size,
-    })
-    if (err) {
-      setError('Something went wrong — please try again.')
-      setSubmitting(false)
-    } else {
-      setStep('done')
-    }
-  }
-
   return (
-    <div style={{
-      minHeight: '100svh',
-      background: '#0a1628',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px 16px',
-      fontFamily: '"SohneVar", "Helvetica Neue", Arial, sans-serif',
-    }}>
-      {/* Logo */}
-      <div style={{ marginBottom: 32, textAlign: 'center' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logos/frontline-logo-white.svg" alt="Frontline Fitness" style={{ height: 36, objectFit: 'contain' }} />
+    <div ref={ref} className="relative">
+      <div
+        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 cursor-text"
+        onClick={() => setOpen(true)}
+      >
+        <input
+          className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-white/30"
+          placeholder="Search your name…"
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+        />
+        <svg className="w-4 h-4 text-white/30 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </div>
-
-      <div style={{
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 16,
-        padding: '32px 24px',
-        width: '100%',
-        maxWidth: 480,
-      }}>
-
-        {/* DONE */}
-        {step === 'done' && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
-            <h2 style={{ color: 'white', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>You're sorted!</h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15 }}>
-              {name} — {fit} {item}, size {size}
-            </p>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 12 }}>
-              Nick will be in touch when it's ready to collect.
-            </p>
-          </div>
-        )}
-
-        {/* STEP: NAME */}
-        {step === 'name' && (
-          <>
-            <h2 style={{ color: 'white', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Claim your merch</h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 24 }}>
-              Pick your name to get started. Already claimed names are hidden.
-            </p>
-            {loading ? (
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Loading…</p>
-            ) : availableNames.length === 0 ? (
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>All orders have been submitted!</p>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {availableNames.map(n => (
-                  <button key={n} onClick={() => { setName(n); setStep('item') }} style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: 8,
-                    color: 'white',
-                    fontSize: 14,
-                    padding: '8px 14px',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.16)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* STEP: ITEM */}
-        {step === 'item' && (
-          <>
-            <Back onClick={() => setStep('name')} />
-            <h2 style={{ color: 'white', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Hi {name} 👋</h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 24 }}>What would you like?</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {ITEMS.map(i => (
-                <OptionButton key={i} label={i} onClick={() => { setItem(i); setStep('fit') }} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* STEP: FIT */}
-        {step === 'fit' && (
-          <>
-            <Back onClick={() => setStep('item')} />
-            <h2 style={{ color: 'white', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>{item}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 24 }}>Which fit?</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {FITS.map(f => (
-                <OptionButton key={f} label={f} onClick={() => { setFit(f); setStep('size') }} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* STEP: SIZE */}
-        {step === 'size' && (
-          <>
-            <Back onClick={() => setStep('fit')} />
-            <h2 style={{ color: 'white', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>{fit} {item}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 24 }}>What size?</p>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {SIZES[fit].map(s => (
-                <button key={s} onClick={() => { setSize(s); setStep('confirm') }} style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 8,
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  padding: '12px 20px',
-                  cursor: 'pointer',
-                  minWidth: 60,
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.16)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-[#0a0f1a] border border-white/10 rounded-lg overflow-hidden shadow-xl">
+          {filtered.length > 0 ? (
+            <div className="max-h-52 overflow-y-auto">
+              {filtered.map(n => (
+                <button
+                  key={n}
+                  className="w-full text-left px-3 py-2.5 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+                  onMouseDown={() => { onSelect(n); setOpen(false); setQuery('') }}
                 >
-                  {s}
+                  {n}
                 </button>
               ))}
             </div>
-          </>
-        )}
-
-        {/* STEP: CONFIRM */}
-        {step === 'confirm' && (
-          <>
-            <Back onClick={() => setStep('size')} />
-            <h2 style={{ color: 'white', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Confirm your order</h2>
-            <div style={{
-              background: 'rgba(255,255,255,0.06)',
-              borderRadius: 10,
-              padding: '16px 20px',
-              marginBottom: 24,
-              marginTop: 16,
-            }}>
-              <Row label="Name" value={name} />
-              <Row label="Item" value={item} />
-              <Row label="Fit" value={fit} />
-              <Row label="Size" value={size} />
-            </div>
-            {error && <p style={{ color: '#f87171', fontSize: 14, marginBottom: 12 }}>{error}</p>}
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              style={{
-                width: '100%',
-                background: '#2563eb',
-                color: 'white',
-                border: 'none',
-                borderRadius: 10,
-                padding: '14px',
-                fontSize: 16,
-                fontWeight: 600,
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                opacity: submitting ? 0.6 : 1,
-                transition: 'opacity 0.15s',
-              }}
-            >
-              {submitting ? 'Submitting…' : 'Submit order'}
-            </button>
-          </>
-        )}
-      </div>
+          ) : (
+            <div className="px-3 py-3 text-sm text-white/40">No names found</div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
-function Back({ onClick }: { onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      background: 'none',
-      border: 'none',
-      color: 'rgba(255,255,255,0.4)',
-      fontSize: 13,
-      cursor: 'pointer',
-      padding: '0 0 16px 0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 4,
-    }}>
-      ← Back
-    </button>
-  )
-}
+export default function FounderMerchPage() {
+  const [submitted, setSubmitted] = useState<string[]>([])
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [name, setName] = useState('')
+  const [item, setItem] = useState('')
+  const [fit, setFit] = useState('')
+  const [size, setSize] = useState('')
+  const [done, setDone] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
-function OptionButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      background: 'rgba(255,255,255,0.08)',
-      border: '1px solid rgba(255,255,255,0.15)',
-      borderRadius: 10,
-      color: 'white',
-      fontSize: 16,
-      fontWeight: 500,
-      padding: '14px 20px',
-      cursor: 'pointer',
-      textAlign: 'left',
-      transition: 'background 0.15s',
-    }}
-    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.16)')}
-    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-    >
-      {label}
-    </button>
-  )
-}
+  useEffect(() => {
+    fetch('/api/merch-order')
+      .then(r => r.json())
+      .then((data: { name: string }[]) => {
+        if (Array.isArray(data)) setSubmitted(data.map(d => d.name))
+      })
+      .catch(() => {})
+  }, [])
 
-function Row({ label, value }: { label: string; value: string }) {
+  const available = ALL_NAMES.filter(n => !submitted.includes(n))
+
+  const handleSubmit = async () => {
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/merch-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, item, fit, size }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setDone(true)
+    } catch {
+      setError('Something went wrong — please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>{label}</span>
-      <span style={{ color: 'white', fontSize: 14, fontWeight: 500 }}>{value}</span>
+    <div className="min-h-screen text-white flex flex-col relative overflow-hidden" style={{ background: '#0d1f3c' }}>
+      {/* Angled dark top section */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: '60%',
+        background: '#000000',
+        clipPath: 'polygon(0 0, 100% 0, 100% 65%, 0 100%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Border rails */}
+      <div className="fixed inset-0 pointer-events-none z-40">
+        <div className="max-w-6xl mx-auto h-full border-x border-[rgba(255,255,255,0.06)]" />
+      </div>
+
+      {/* Nav */}
+      <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">
+        <div className="max-w-6xl mx-auto pl-[13px] sm:pl-[21px] lg:pl-[29px] pr-4 sm:pr-6 lg:pr-8 h-full flex items-center">
+          <a href="/">
+            <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width="80" height="20" style={{ height: '20px', width: 'auto' }} />
+          </a>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md flex flex-col gap-5">
+
+          {done ? (
+            <>
+              <div>
+                <h2 className="text-2xl font-semibold text-white">Order received!</h2>
+                <p className="text-sm text-white/50 mt-1">Thanks for claiming your founding member merch</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-[#0a0f1a] p-6">
+                <p className="text-sm text-white/70 leading-relaxed">
+                  Thanks <span className="text-white font-medium">{name}</span> — your {fit} {item === 'tshirt' ? 'T-Shirt' : 'Vest'} in size <span className="text-white font-medium">{size}</span> has been noted. We&apos;ll be in touch when it&apos;s ready.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <h2 className="text-2xl font-semibold text-white">Claim your merch</h2>
+                <p className="text-sm text-white/50 mt-1">
+                  {step === 1 && 'Select your name to get started'}
+                  {step === 2 && `Hi ${name.split(' ')[0]}! Choose your item`}
+                  {step === 3 && 'Choose your preferred fit'}
+                  {step === 4 && 'Almost done — pick your size'}
+                </p>
+              </div>
+
+              {/* Step bar */}
+              <div className="flex items-center gap-1.5">
+                {([1, 2, 3, 4] as const).map(s => (
+                  <div key={s} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${s <= step ? 'bg-[#4982e8]' : 'bg-white/10'}`} />
+                ))}
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-[#0a0f1a] p-6 flex flex-col gap-4">
+
+                {/* Step 1: Name */}
+                {step === 1 && (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-white/80">Your name</label>
+                      <NamePicker available={available} onSelect={n => { setName(n); setStep(2) }} />
+                    </div>
+                    {available.length === 0 && (
+                      <p className="text-sm text-white/40 text-center py-2">All orders have been submitted.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 2: Item */}
+                {step === 2 && (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2">
+                      {[{ value: 'tshirt', label: 'T-Shirt', desc: 'Classic crew neck tee' }, { value: 'vest', label: 'Vest', desc: 'Sleeveless training vest' }].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setItem(opt.value); setStep(3) }}
+                          className="flex items-center justify-between px-4 py-3.5 rounded-lg border border-white/10 hover:border-white/25 hover:bg-white/5 transition-all text-left"
+                        >
+                          <div>
+                            <p className="text-white font-medium text-sm">{opt.label}</p>
+                            <p className="text-white/40 text-xs mt-0.5">{opt.desc}</p>
+                          </div>
+                          <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => setStep(1)} className="text-xs text-white/30 hover:text-white/50 transition-colors text-left">← Back</button>
+                  </div>
+                )}
+
+                {/* Step 3: Fit */}
+                {step === 3 && (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2">
+                      {[{ value: "Men's", label: "Men's fit" }, { value: "Ladies'", label: "Ladies' fit" }].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setFit(opt.value); setStep(4) }}
+                          className="flex items-center justify-between px-4 py-3.5 rounded-lg border border-white/10 hover:border-white/25 hover:bg-white/5 transition-all text-left"
+                        >
+                          <p className="text-white font-medium text-sm">{opt.label}</p>
+                          <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => setStep(2)} className="text-xs text-white/30 hover:text-white/50 transition-colors text-left">← Back</button>
+                  </div>
+                )}
+
+                {/* Step 4: Size */}
+                {step === 4 && (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-white/80">Size — {fit} {item === 'tshirt' ? 'T-Shirt' : 'Vest'}</label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {SIZES.map(s => (
+                          <button
+                            key={s}
+                            onClick={() => setSize(s)}
+                            className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                              size === s
+                                ? 'bg-[#4982e8] border-[#4982e8] text-white'
+                                : 'border-white/10 text-white/60 hover:border-white/25 hover:text-white bg-white/5'
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {error && (
+                      <div className="rounded-md bg-red-500/10 border border-red-500/20 px-3 py-2.5">
+                        <p className="text-sm text-red-400">{error}</p>
+                      </div>
+                    )}
+                    <Button
+                      size="xl"
+                      className="w-full"
+                      onClick={handleSubmit}
+                      disabled={!size || submitting}
+                    >
+                      {submitting ? 'Submitting…' : 'Confirm Order'}
+                    </Button>
+                    <button onClick={() => setStep(3)} className="text-xs text-white/30 hover:text-white/50 transition-colors text-left">← Back</button>
+                  </div>
+                )}
+
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="relative z-10 h-14">
+        <div className="max-w-6xl mx-auto pl-[13px] sm:pl-[21px] lg:pl-[29px] pr-4 sm:pr-6 lg:pr-8 h-full flex items-center gap-6">
+          <span className="text-xs text-white/30">© Frontline Fitness</span>
+          <a href="/privacy" className="text-xs text-white/30 hover:text-white/60 transition-colors">Privacy &amp; Terms</a>
+        </div>
+      </div>
     </div>
   )
 }

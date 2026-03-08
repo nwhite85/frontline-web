@@ -16,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
           '/checkout',
           '/signup',
           '/founder-merch',
+          '/merch',
         ],
       },
     ],
