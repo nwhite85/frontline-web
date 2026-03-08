@@ -144,17 +144,22 @@ function AppShellInner({ children }: { children: ReactNode }) {
       <div className="flex h-screen overflow-hidden bg-background">
 
         {/* Mobile top bar */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between px-4 bg-sidebar border-b border-sidebar-border">
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-2 px-3 bg-sidebar border-b border-sidebar-border">
           <button
             onClick={() => setMobileNavOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent transition-colors"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent transition-colors"
             aria-label="Open navigation"
           >
             <Menu style={{ width: 20, height: 20 }} />
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width={28} height={28} style={{ width: 28, height: 28, objectFit: 'contain' }} />
-          <Avatar className="size-8 rounded-md">
+          {/* Tabs in centre if present, otherwise logo */}
+          <div className="flex-1 flex items-center justify-center overflow-hidden">
+            {headerTabs
+              ? <div className="flex items-center">{headerTabs}</div>
+              : <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+            }
+          </div>
+          <Avatar className="size-8 rounded-md shrink-0">
             <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[11px] font-semibold">
               {initials}
             </AvatarFallback>
@@ -394,9 +399,9 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
         {/* Main area */}
         <div className="flex flex-1 flex-col overflow-hidden pt-14 lg:pt-0">
-          {/* Header */}
-          {(headerTabs || headerSearch || actions) && (
-            <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-6" style={{ zIndex: 20 }}>
+          {/* Header — desktop only when tabs present; always show search/actions row */}
+          {(headerSearch || actions || (headerTabs && true)) && (
+            <header className={`h-14 shrink-0 items-center gap-3 border-b border-border px-6 ${headerTabs ? 'hidden lg:flex' : 'flex'}`} style={{ zIndex: 20 }}>
               {headerTabs && <div className="flex items-center shrink-0">{headerTabs}</div>}
               <div className="flex items-center gap-2 flex-1">
                 {headerSearch}
