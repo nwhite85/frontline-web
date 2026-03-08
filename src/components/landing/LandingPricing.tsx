@@ -162,7 +162,7 @@ function PricingCard({ plan, isFounder }: { plan: FounderDisplayPlan, isFounder?
                     Standard rate from June: {plan.standardPrice}/month
                   </p>
                   <p className="text-xs text-white/50 mt-3 pt-3 border-t border-white/10">
-                    All existing members will be on the Founder rate.
+                    All existing members will be Founders.
                   </p>
                 </PopoverContent>
               </Popover>
