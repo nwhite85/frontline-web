@@ -15,11 +15,8 @@ export function CookieConsent() {
         setExpanded(false)
       }, 2000)
       return () => clearTimeout(timer)
-    } else {
-      // Already consented — show icon only (so they can revisit)
-      setShow(true)
-      setExpanded(false)
     }
+    // Already consented — stay hidden
   }, [])
 
   const accept = () => {
