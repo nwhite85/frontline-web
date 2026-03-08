@@ -174,7 +174,7 @@ export default function FounderMerchPage() {
                   </button>
                 )}
                 <div>
-                  <h2 className="text-2xl font-semibold text-white">Order your free tee/vest</h2>
+                  <h2 className="text-2xl font-semibold text-white">Order your free vest or tee</h2>
                   <p className="text-sm text-white/50 mt-1">
                     {step === 1 && 'Select your name to get started'}
                     {step === 2 && `Hi ${name.split(' ')[0]}! Choose your item`}
