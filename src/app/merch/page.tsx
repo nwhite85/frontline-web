@@ -40,7 +40,8 @@ export default function MerchPage() {
 
   useEffect(() => {
     async function loadClaimed() {
-      const { data } = await supabase.from('merch_orders').select('name')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any).from('merch_orders').select('name')
       const claimed = new Set((data || []).map((r: { name: string }) => r.name))
       setAvailableNames(ALL_NAMES.filter(n => !claimed.has(n)))
       setLoading(false)
@@ -51,7 +52,8 @@ export default function MerchPage() {
   async function handleSubmit() {
     setSubmitting(true)
     setError(null)
-    const { error: err } = await supabase.from('merch_orders').insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: err } = await (supabase as any).from('merch_orders').insert({
       name, item, fit, size,
     })
     if (err) {
