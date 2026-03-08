@@ -78,28 +78,29 @@ export default function ExercisesPage() {
 
   useEffect(() => {
     setHeaderSearch(
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-        <Input
-          placeholder="Search exercises…"
-          className="pl-8 h-8 text-sm w-56 bg-card"
-          value={searchQuery}
-          onChange={e => { setSearchQuery(e.target.value); setPage(1) }}
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search"
+            className="pl-8 h-8 text-sm w-24 lg:w-56 bg-card"
+            value={searchQuery}
+            onChange={e => { setSearchQuery(e.target.value); setPage(1) }}
+          />
+        </div>
+        <Select value={equipmentFilter} onValueChange={v => { setEquipmentFilter(v); setPage(1) }}>
+          <SelectTrigger className="h-8 text-xs bg-card border-input w-20 lg:w-32"><SelectValue placeholder="Equipment" /></SelectTrigger>
+          <SelectContent>
+            {EQUIPMENT_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
     )
-    setHeaderTabs(
-      <Select value={equipmentFilter} onValueChange={v => { setEquipmentFilter(v); setPage(1) }}>
-        <SelectTrigger className="h-7 text-xs bg-card border-input w-32"><SelectValue placeholder="Equipment" /></SelectTrigger>
-        <SelectContent>
-          {EQUIPMENT_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    )
+    setHeaderTabs(null)
     setActions(
       <Button variant="outline" className="bg-card" onClick={() => setShowAdd(true)}>
         <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
-        Add Exercise
+        <span className="hidden lg:inline">Add Exercise</span>
       </Button>
     )
     return () => { setHeaderSearch(null); setActions(null); setHeaderTabs(null) }
