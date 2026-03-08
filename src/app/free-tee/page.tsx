@@ -156,42 +156,45 @@ export default function FounderMerchPage() {
             </>
           ) : (
             <>
-              <div className="flex items-start gap-3">
-                {step > 1 && (
-                  <button
-                    onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4)}
-                    className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors shrink-0"
-                    aria-label="Back"
-                  >
-                    <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                )}
-                <div>
-                  <h2 className="text-2xl font-semibold text-white">Order your free vest or tee</h2>
-                  <p className="text-sm text-white/50 mt-1">
-                    {step === 1 && 'Select your name to get started'}
-                    {step === 2 && `Hi ${name.split(' ')[0]}! Choose your item`}
-                    {step === 3 && 'Choose your preferred fit'}
-                    {step === 4 && 'Almost done — pick your size'}
-                  </p>
+              <div className="rounded-xl border border-white/10 bg-[#0a0f1a] overflow-hidden flex flex-col">
+
+                {/* Image inside card */}
+                <div className="w-full overflow-hidden">
+                  <img src="/images/founder-tee.png" alt="Frontline Fitness Tee &amp; Vest" className="w-full object-cover scale-110" />
                 </div>
-              </div>
 
-              {/* Product image */}
-              <div className="w-full overflow-hidden rounded-xl">
-                <img src="/images/founder-tee.png" alt="Frontline Fitness Tee &amp; Vest" className="w-full object-cover scale-110" />
-              </div>
+                <div className="p-6 flex flex-col gap-4">
 
-              {/* Step bar */}
-              <div className="flex items-center gap-1.5">
-                {([1, 2, 3, 4] as const).map(s => (
-                  <div key={s} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${s <= step ? 'bg-[#4982e8]' : 'bg-white/10'}`} />
-                ))}
-              </div>
+                {/* Header + back */}
+                <div className="flex items-start gap-3">
+                  {step > 1 && (
+                    <button
+                      onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4)}
+                      className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors shrink-0"
+                      aria-label="Back"
+                    >
+                      <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">Order your free vest or tee</h2>
+                    <p className="text-sm text-white/50 mt-1">
+                      {step === 1 && 'Select your name to get started'}
+                      {step === 2 && `Hi ${name.split(' ')[0]}! Choose your item`}
+                      {step === 3 && 'Choose your preferred fit'}
+                      {step === 4 && 'Almost done — pick your size'}
+                    </p>
+                  </div>
+                </div>
 
-              <div className="rounded-xl border border-white/10 bg-[#0a0f1a] p-6 flex flex-col gap-4">
+                {/* Step bar */}
+                <div className="flex items-center gap-1.5">
+                  {([1, 2, 3, 4] as const).map(s => (
+                    <div key={s} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${s <= step ? 'bg-[#4982e8]' : 'bg-white/10'}`} />
+                  ))}
+                </div>
 
                 {/* Step 1: Name */}
                 {step === 1 && (
@@ -282,7 +285,8 @@ export default function FounderMerchPage() {
                   </div>
                 )}
 
-              </div>
+                </div>{/* end p-6 */}
+              </div>{/* end card */}
             </>
           )}
         </div>
