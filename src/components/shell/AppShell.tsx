@@ -163,13 +163,13 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
         {/* Mobile nav drawer */}
         <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-          <SheetContent side="left" className="w-72 p-0 bg-sidebar border-sidebar-border">
-            <SheetHeader className="flex flex-row items-center gap-3 h-14 px-4 border-b border-sidebar-border">
+          <SheetContent side="left" className="w-72 p-0 bg-sidebar border-sidebar-border flex flex-col h-full">
+            <SheetHeader className="flex flex-row items-center gap-3 h-14 px-4 border-b border-sidebar-border shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} />
               <SheetTitle className="text-sm font-semibold text-sidebar-foreground">Frontline</SheetTitle>
             </SheetHeader>
-            <ScrollArea className="flex-1 h-[calc(100vh-7rem)]">
+            <ScrollArea className="flex-1 min-h-0">
               <nav className="flex flex-col px-2 py-3 gap-4">
                 {NAV_MODULES.map((module) => (
                   <div key={module.id}>
