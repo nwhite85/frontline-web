@@ -156,11 +156,6 @@ export default function FounderMerchPage() {
             </>
           ) : (
             <>
-              {/* Product image */}
-              <div className="w-full overflow-hidden rounded-xl">
-                <img src="/images/founder-tee.png" alt="Frontline Fitness Tee &amp; Vest" className="w-full object-cover scale-110" />
-              </div>
-
               <div className="flex items-start gap-3">
                 {step > 1 && (
                   <button
@@ -182,6 +177,11 @@ export default function FounderMerchPage() {
                     {step === 4 && 'Almost done — pick your size'}
                   </p>
                 </div>
+              </div>
+
+              {/* Product image */}
+              <div className="w-full overflow-hidden rounded-xl">
+                <img src="/images/founder-tee.png" alt="Frontline Fitness Tee &amp; Vest" className="w-full object-cover scale-110" />
               </div>
 
               {/* Step bar */}
