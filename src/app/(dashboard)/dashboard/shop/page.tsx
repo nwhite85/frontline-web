@@ -41,6 +41,7 @@ interface Product {
   sizes: string[]
   description: string
   image_url?: string
+  image_urls?: string[]
   active: boolean
   trainer_id: string
   created_at: string
@@ -77,6 +78,7 @@ const EMPTY_FORM = {
   sizes: [] as string[],
   description: '',
   image_url: '',
+  image_urls: [] as string[],
   active: true,
 }
 
@@ -100,8 +102,9 @@ export default function ShopPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([])
+  const [pendingImagePreviews, setPendingImagePreviews] = useState<string[]>([])
+  const [savedImageUrls, setSavedImageUrls] = useState<string[]>([])
 
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
@@ -201,8 +204,9 @@ export default function ShopPage() {
   const resetForm = () => {
     setForm({ ...EMPTY_FORM })
     setFormError(null)
-    setImageFile(null)
-    setImagePreview(null)
+    setPendingImageFiles([])
+    setPendingImagePreviews([])
+    setSavedImageUrls([])
     setEditingProduct(null)
   }
 
@@ -213,6 +217,9 @@ export default function ShopPage() {
 
   const handleOpenEdit = (product: Product) => {
     setEditingProduct(product)
+    const existingUrls = product.image_urls?.length
+      ? product.image_urls
+      : product.image_url ? [product.image_url] : []
     setForm({
       name: product.name,
       price: product.price.toString(),
@@ -222,49 +229,51 @@ export default function ShopPage() {
       sizes: product.sizes || [],
       description: product.description || '',
       image_url: product.image_url || '',
+      image_urls: existingUrls,
       active: product.active,
     })
     setFormError(null)
-    setImageFile(null)
-    setImagePreview(product.image_url || null)
+    setPendingImageFiles([])
+    setPendingImagePreviews([])
+    setSavedImageUrls(existingUrls)
     setSheetOpen(true)
   }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) { setFormError('Please select an image file'); return }
-    if (file.size > 5 * 1024 * 1024) { setFormError('Image must be less than 5MB'); return }
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    const total = savedImageUrls.length + pendingImagePreviews.length + files.length
+    if (total > 5) { setFormError('Maximum 5 images per product'); return }
+    const invalid = files.find(f => !f.type.startsWith('image/') || f.size > 5 * 1024 * 1024)
+    if (invalid) { setFormError('Images must be JPG/PNG under 5MB each'); return }
+    setPendingImageFiles(prev => [...prev, ...files])
+    setPendingImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))])
     setFormError(null)
+    e.target.value = ''
   }
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      setUploadingImage(true)
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`
       const filePath = `gear-products/${user!.id}/${fileName}`
-
-      const { error } = await supabase.storage
-        .from('gear-images')
-        .upload(filePath, file, { upsert: true })
-
+      const { error } = await supabase.storage.from('gear-images').upload(filePath, file, { upsert: true })
       if (error) throw error
-
-      const { data: publicUrlData } = supabase.storage
-        .from('gear-images')
-        .getPublicUrl(filePath)
-
+      const { data: publicUrlData } = supabase.storage.from('gear-images').getPublicUrl(filePath)
       return publicUrlData.publicUrl
     } catch (err) {
       logger.error('Upload error:', err)
-      setFormError('Failed to upload image. Please try again.')
       return null
-    } finally {
-      setUploadingImage(false)
     }
+  }
+
+  const removeSavedImage = (idx: number) => {
+    setSavedImageUrls(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const removePendingImage = (idx: number) => {
+    setPendingImageFiles(prev => prev.filter((_, i) => i !== idx))
+    setPendingImagePreviews(prev => prev.filter((_, i) => i !== idx))
   }
 
   const handleSubmit = async () => {
@@ -274,13 +283,19 @@ export default function ShopPage() {
     if (isNaN(price) || price <= 0) { setFormError('Enter a valid price'); return }
 
     setSubmitting(true)
+    setUploadingImage(pendingImageFiles.length > 0)
     try {
-      let imageUrl = form.image_url
-      if (imageFile) {
-        const uploaded = await uploadImage(imageFile)
-        if (uploaded) imageUrl = uploaded
-        else { setSubmitting(false); return }
+      // Upload any pending new images
+      const uploadedUrls: string[] = []
+      for (const file of pendingImageFiles) {
+        const url = await uploadImage(file)
+        if (url) uploadedUrls.push(url)
+        else { setFormError('Failed to upload one or more images'); setSubmitting(false); setUploadingImage(false); return }
       }
+      setUploadingImage(false)
+
+      const allImageUrls = [...savedImageUrls, ...uploadedUrls]
+      const primaryImageUrl = allImageUrls[0] || ''
 
       const payload = {
         name: form.name,
@@ -290,7 +305,8 @@ export default function ShopPage() {
         colors: form.colors,
         sizes: form.sizes,
         description: form.description,
-        image_url: imageUrl,
+        image_url: primaryImageUrl,
+        image_urls: allImageUrls,
         active: form.active,
         trainer_id: user!.id,
       }
@@ -502,36 +518,39 @@ export default function ShopPage() {
               <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</div>
             )}
 
-            {/* Image */}
-            <div className="grid gap-1.5">
-              <Label className="text-xs">Product Image</Label>
-              <div className="flex gap-4 items-start">
-                {/* 2:3 portrait preview */}
-                <div className="relative w-28 aspect-[2/3] rounded-lg border border-border bg-muted overflow-hidden shrink-0">
-                  {imagePreview ? (
-                    <>
-                      <img src={imagePreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => { setImageFile(null); setImagePreview(null); setForm(p => ({ ...p, image_url: '' })) }}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center shadow"
-                      >×</button>
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Image className="h-6 w-6 text-muted-foreground/40" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 pt-1">
-                  <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" id="product-image-upload" />
-                  <label htmlFor="product-image-upload" className="cursor-pointer inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-md px-3 py-1.5 hover:bg-muted">
-                    <Image className="h-3.5 w-3.5" />
-                    {imagePreview ? 'Change Image' : 'Upload Image'}
-                  </label>
-                  <p className="text-xs text-muted-foreground">PNG, JPG up to 5MB<br />Best: 1024 × 1536px (2:3)</p>
-                </div>
+            {/* Images */}
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Product Images</Label>
+                <span className="text-xs text-muted-foreground">{savedImageUrls.length + pendingImagePreviews.length}/5</span>
               </div>
+              <div className="flex flex-wrap gap-2">
+                {/* Saved images */}
+                {savedImageUrls.map((url, idx) => (
+                  <div key={url} className="relative w-20 aspect-[2/3] rounded-lg border border-border bg-muted overflow-hidden shrink-0">
+                    <img src={url} alt={`Image ${idx + 1}`} className="absolute inset-0 w-full h-full object-cover" />
+                    {idx === 0 && <span className="absolute bottom-0 inset-x-0 text-center text-[9px] bg-black/60 text-white py-0.5">Primary</span>}
+                    <button type="button" onClick={() => removeSavedImage(idx)} className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center shadow">×</button>
+                  </div>
+                ))}
+                {/* Pending (not yet uploaded) */}
+                {pendingImagePreviews.map((url, idx) => (
+                  <div key={idx} className="relative w-20 aspect-[2/3] rounded-lg border border-border bg-muted overflow-hidden shrink-0 opacity-70">
+                    <img src={url} alt={`Pending ${idx + 1}`} className="absolute inset-0 w-full h-full object-cover" />
+                    <span className="absolute bottom-0 inset-x-0 text-center text-[9px] bg-black/60 text-white py-0.5">Pending</span>
+                    <button type="button" onClick={() => removePendingImage(idx)} className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center shadow">×</button>
+                  </div>
+                ))}
+                {/* Add button */}
+                {savedImageUrls.length + pendingImagePreviews.length < 5 && (
+                  <label htmlFor="product-image-upload" className="w-20 aspect-[2/3] rounded-lg border border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-muted transition-colors shrink-0">
+                    <Image className="h-4 w-4 text-muted-foreground/50" />
+                    <span className="text-[10px] text-muted-foreground/60">Add</span>
+                  </label>
+                )}
+              </div>
+              <input type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" id="product-image-upload" />
+              <p className="text-xs text-muted-foreground">Up to 5 images · PNG/JPG under 5MB · Best: 1024×1536px (2:3)</p>
             </div>
 
             <Separator />
