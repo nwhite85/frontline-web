@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 
 const ALL_NAMES = [
@@ -19,6 +19,60 @@ const ALL_NAMES = [
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']
 
+function NamePicker({ available, onSelect }: { available: string[], onSelect: (n: string) => void }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = available.filter(n => n.toLowerCase().includes(query.toLowerCase()))
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <div
+        className="flex items-center gap-2 px-4 py-3 rounded-xl border border-white/15 bg-white/5 cursor-pointer"
+        onClick={() => setOpen(true)}
+      >
+        <input
+          className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-white/35"
+          placeholder="Search your name…"
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+        />
+        <svg className="w-4 h-4 text-white/30 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 w-full mt-1.5 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-xl">
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.map(n => (
+              <button
+                key={n}
+                className="w-full text-left px-4 py-2.5 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+                onMouseDown={() => { onSelect(n); setOpen(false); setQuery('') }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {open && filtered.length === 0 && (
+        <div className="absolute z-50 w-full mt-1.5 bg-[#111] border border-white/10 rounded-xl px-4 py-3 text-sm text-white/40 shadow-xl">
+          No names found
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function FounderMerchPage() {
   const [submitted, setSubmitted] = useState<string[]>([])
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
@@ -30,7 +84,6 @@ export default function FounderMerchPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  // Load already-submitted names
   useEffect(() => {
     fetch('/api/merch-order')
       .then(r => r.json())
@@ -71,7 +124,7 @@ export default function FounderMerchPage() {
             <div className="text-4xl mb-4">✓</div>
             <h2 className="text-xl font-bold text-white mb-2">Order received!</h2>
             <p className="text-white/60 text-sm leading-relaxed">
-              Thanks <span className="text-white font-medium">{name}</span> — your {fit}&apos;s {item === 'tshirt' ? 'T-Shirt' : 'Vest'} in size <span className="text-white font-medium">{size}</span> has been noted. We&apos;ll be in touch.
+              Thanks <span className="text-white font-medium">{name}</span> — your {fit} {item === 'tshirt' ? 'T-Shirt' : 'Vest'} in size <span className="text-white font-medium">{size}</span> has been noted. We&apos;ll be in touch.
             </p>
           </div>
         </div>
@@ -82,19 +135,14 @@ export default function FounderMerchPage() {
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <Image src="/logos/frontline-logo-fitness-white.svg" alt="Frontline Fitness" width={160} height={40} className="mx-auto" />
           <p className="text-white/40 text-sm mt-3">Founding Member — Free Merch</p>
         </div>
 
-        {/* Step indicator */}
         <div className="flex items-center gap-1.5 mb-6">
           {([1, 2, 3, 4] as const).map((s) => (
-            <div
-              key={s}
-              className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-[#4982e8]' : 'bg-white/10'}`}
-            />
+            <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-[#4982e8]' : 'bg-white/10'}`} />
           ))}
         </div>
 
@@ -104,21 +152,11 @@ export default function FounderMerchPage() {
           {step === 1 && (
             <div>
               <h2 className="text-white font-semibold text-lg mb-1">Who are you?</h2>
-              <p className="text-white/50 text-sm mb-4">Select your name from the list below.</p>
-              <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1">
-                {available.map(n => (
-                  <button
-                    key={n}
-                    onClick={() => { setName(n); setStep(2) }}
-                    className="text-left px-4 py-2.5 rounded-xl text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors border border-transparent hover:border-white/10"
-                  >
-                    {n}
-                  </button>
-                ))}
-                {available.length === 0 && (
-                  <p className="text-white/40 text-sm text-center py-4">All orders have been submitted.</p>
-                )}
-              </div>
+              <p className="text-white/50 text-sm mb-4">Select your name from the list.</p>
+              <NamePicker available={available} onSelect={(n) => { setName(n); setStep(2) }} />
+              {available.length === 0 && (
+                <p className="text-white/40 text-sm text-center mt-4">All orders have been submitted.</p>
+              )}
             </div>
           )}
 
@@ -126,7 +164,7 @@ export default function FounderMerchPage() {
           {step === 2 && (
             <div>
               <button onClick={() => setStep(1)} className="text-white/40 text-xs mb-4 hover:text-white/60 transition-colors">← Back</button>
-              <h2 className="text-white font-semibold text-lg mb-1">Hi {name.split(' ')[0]}! 👋</h2>
+              <h2 className="text-white font-semibold text-lg mb-1">Hi {name.split(' ')[0]}!</h2>
               <p className="text-white/50 text-sm mb-5">Which item would you like?</p>
               <div className="flex flex-col gap-3">
                 {[{ value: 'tshirt', label: 'T-Shirt', desc: 'Classic crew neck tee' }, { value: 'vest', label: 'Vest', desc: 'Sleeveless training vest' }].map(opt => (
