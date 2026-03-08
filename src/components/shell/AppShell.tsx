@@ -399,10 +399,10 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
         {/* Main area */}
         <div className="flex flex-1 flex-col overflow-hidden pt-14 lg:pt-0">
-          {/* Header — desktop only when tabs present; always show search/actions row */}
-          {(headerSearch || actions || (headerTabs && true)) && (
-            <header className={`h-14 shrink-0 items-center gap-3 border-b border-border px-6 ${headerTabs ? 'hidden lg:flex' : 'flex'}`} style={{ zIndex: 20 }}>
-              {headerTabs && <div className="flex items-center shrink-0">{headerTabs}</div>}
+          {/* Header */}
+          {(headerTabs || headerSearch || actions) && (
+            <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-6" style={{ zIndex: 20 }}>
+              {headerTabs && <div className="hidden lg:flex items-center shrink-0">{headerTabs}</div>}
               <div className="flex items-center gap-2 flex-1">
                 {headerSearch}
               </div>
