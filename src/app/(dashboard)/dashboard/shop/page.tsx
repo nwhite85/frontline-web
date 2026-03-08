@@ -505,23 +505,32 @@ export default function ShopPage() {
             {/* Image */}
             <div className="grid gap-1.5">
               <Label className="text-xs">Product Image</Label>
-              {imagePreview && (
-                <div className="relative inline-block">
-                  <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-lg border border-border" />
-                  <button
-                    type="button"
-                    onClick={() => { setImageFile(null); setImagePreview(null); setForm(p => ({ ...p, image_url: '' })) }}
-                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center"
-                  >×</button>
+              <div className="flex gap-4 items-start">
+                {/* 2:3 portrait preview */}
+                <div className="relative w-28 aspect-[2/3] rounded-lg border border-border bg-muted overflow-hidden shrink-0">
+                  {imagePreview ? (
+                    <>
+                      <img src={imagePreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => { setImageFile(null); setImagePreview(null); setForm(p => ({ ...p, image_url: '' })) }}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center shadow"
+                      >×</button>
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Image className="h-6 w-6 text-muted-foreground/40" />
+                    </div>
+                  )}
                 </div>
-              )}
-              <div>
-                <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" id="product-image-upload" />
-                <label htmlFor="product-image-upload" className="cursor-pointer inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-md px-3 py-1.5 hover:bg-muted">
-                  <Image className="h-3.5 w-3.5" />
-                  {imagePreview ? 'Change Image' : 'Upload Image'}
-                </label>
-                <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
+                <div className="flex flex-col gap-2 pt-1">
+                  <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" id="product-image-upload" />
+                  <label htmlFor="product-image-upload" className="cursor-pointer inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-md px-3 py-1.5 hover:bg-muted">
+                    <Image className="h-3.5 w-3.5" />
+                    {imagePreview ? 'Change Image' : 'Upload Image'}
+                  </label>
+                  <p className="text-xs text-muted-foreground">PNG, JPG up to 5MB<br />Best: 1024 × 1536px (2:3)</p>
+                </div>
               </div>
             </div>
 
