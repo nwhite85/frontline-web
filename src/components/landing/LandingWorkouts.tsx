@@ -79,7 +79,7 @@ function WorkoutCard({ cls }: { cls: ClassTemplate }) {
         src={imgSrc}
         alt={cls.name}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700"
-        style={{ transform: hovered ? 'scale(1.05)' : 'scale(1)', filter: hovered ? 'brightness(1)' : 'brightness(0.90)', transition: 'transform 700ms, filter 700ms' }}
+        style={{ transform: hovered ? 'scale(1.05)' : 'scale(1)', transition: 'transform 700ms' }}
       />
 
       {/* Duration badge */}
