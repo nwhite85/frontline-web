@@ -22,7 +22,9 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']
 function NamePicker({ available, onSelect }: { available: string[], onSelect: (n: string) => void }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [openUpward, setOpenUpward] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLDivElement>(null)
 
   const filtered = available.filter(n => n.toLowerCase().includes(query.toLowerCase()))
 
@@ -34,27 +36,38 @@ function NamePicker({ available, onSelect }: { available: string[], onSelect: (n
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const handleOpen = () => {
+    // Check if there's more space above or below
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      setOpenUpward(spaceBelow < 220)
+    }
+    setOpen(true)
+  }
+
   return (
     <div ref={ref} className="relative">
       <div
+        ref={inputRef}
         className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 cursor-text"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
       >
         <input
           className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-white/30"
           placeholder="Search your name…"
           value={query}
-          onChange={e => { setQuery(e.target.value); setOpen(true) }}
-          onFocus={() => setOpen(true)}
+          onChange={e => { setQuery(e.target.value); handleOpen() }}
+          onFocus={handleOpen}
         />
         <svg className="w-4 h-4 text-white/30 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-[#0a0f1a] border border-white/10 rounded-lg overflow-hidden shadow-xl">
+        <div className={`absolute z-[100] w-full bg-[#0d1117] border border-white/15 rounded-lg overflow-hidden shadow-2xl ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
           {filtered.length > 0 ? (
-            <div className="max-h-52 overflow-y-auto">
+            <div className="max-h-48 overflow-y-auto">
               {filtered.map(n => (
                 <button
                   key={n}
@@ -115,7 +128,7 @@ export default function FounderMerchPage() {
   }
 
   return (
-    <div className="min-h-screen text-white flex flex-col relative overflow-hidden" style={{ background: '#0d1f3c' }}>
+    <div className="min-h-screen text-white flex flex-col relative overflow-hidden pb-16" style={{ background: '#0d1f3c' }}>
       {/* Angled dark top section */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: '60%',
