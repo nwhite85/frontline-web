@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 const signupClientSchema = z.object({
   email: z.string().email('Invalid email format'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').optional(),
   name: z.string().min(1, 'Name is required').max(100),
   phone: z.string().max(20).optional(),
   dateOfBirth: z.string().optional(),
@@ -52,7 +52,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { email, password, name, phone, dateOfBirth, gender, planId: _planId, acceptMarketing } = parsed.data;
+    const { email, name, phone, dateOfBirth, gender, planId: _planId, acceptMarketing } = parsed.data;
+    // Auto-generate a secure password if not provided (trainer-added clients reset via email)
+    const password = parsed.data.password || Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!9';
 
     // Set default calorie goal based on gender (2500 for male, 2000 for others)
     const dailyCalorieGoal = gender === 'male' ? 2500 : 2000;
