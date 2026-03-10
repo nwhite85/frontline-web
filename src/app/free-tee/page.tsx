@@ -11,7 +11,7 @@ const ALL_NAMES = [
   'Jon M', 'Katherine M', 'Katya K', 'Katy S', 'Katy T', 'Kim C',
   'Lesley M', 'Lisa K', 'Lisa P', 'Liv K', 'Louise J', 'Lou J',
   'Lucy M', 'Lydia C', 'Magdalena M', 'Martin F', 'Mela V', 'Mel P',
-  'Michael C', 'Neil R', 'Olivia M', 'Paul S', 'Peter B', 'Rachel B',
+  'Michael C', 'Michelle G', 'Neil R', 'Olivia M', 'Paul S', 'Peter B', 'Rachel B',
   'Rebecca B', 'Richard S', 'Ross B', 'Sarah M', 'Scott P', 'Simon M',
   'Stuart M', 'Suzanne E', 'Tim H', 'Tony C', 'Tracey H', 'Vladimir M',
   'Will H', 'Yaw B', 'Zsuzsi L',
