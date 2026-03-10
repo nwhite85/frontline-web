@@ -32,6 +32,7 @@ import { sortData, toggleSortDirection, type SortConfig } from '@/utils/tableSor
 interface Workout {
   id: string
   title: string
+  workout_type?: 'strength' | 'circuit' | null
   est_duration?: string | null
   weight_unit?: string | null
   created_at: string
@@ -51,7 +52,7 @@ function WorkoutSheet({
   trainerId: string
   onSaved: () => void
 }) {
-  const [form, setForm] = useState({ title: '', est_duration: '' })
+  const [form, setForm] = useState({ title: '', est_duration: '', workout_type: 'strength' as 'strength' | 'circuit' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,6 +61,7 @@ function WorkoutSheet({
       setForm({
         title: editTarget?.title ?? '',
         est_duration: editTarget?.est_duration ?? '',
+        workout_type: editTarget?.workout_type ?? 'strength',
       })
       setError(null)
     }
@@ -74,6 +76,7 @@ function WorkoutSheet({
       const payload = {
         title: form.title.trim(),
         est_duration: form.est_duration.trim() || null,
+        workout_type: form.workout_type,
       }
       if (editTarget) {
         // @ts-ignore
@@ -103,6 +106,21 @@ function WorkoutSheet({
           <div className="grid gap-1.5">
             <Label>Title</Label>
             <Input value={form.title} onChange={e => set('title', e.target.value)} placeholder="e.g. Upper Body Push" />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Type</Label>
+            <div className="flex rounded-md border border-input overflow-hidden">
+              {(['strength', 'circuit'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => set('workout_type', t)}
+                  className={`flex-1 py-1.5 text-sm font-medium transition-colors ${form.workout_type === t ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:text-foreground'}`}
+                >
+                  {t === 'strength' ? '💪 Strength' : '🔄 Circuit'}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="grid gap-1.5">
             <Label>Est. Duration</Label>
@@ -187,7 +205,12 @@ function WorkoutSection({
                 </div>
               </TableCell>
               <TableCell className="py-3">
-                <p className="text-sm font-medium leading-none">{w.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium leading-none">{w.title}</p>
+                  {w.workout_type === 'circuit' && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-0">Circuit</Badge>
+                  )}
+                </div>
                 {w.exercise_names && w.exercise_names.length > 0 ? (
                   <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[300px]">
                     {w.exercise_names.slice(0, 4).join(' · ')}{(w.exercise_count ?? 0) > 4 ? ` +${(w.exercise_count ?? 0) - 4} more` : ''}
@@ -278,7 +301,7 @@ export default function WorkoutsPage() {
       // Step 1: fetch workouts
       const { data: workoutData, error: err1 } = await supabase
         .from('workouts')
-        .select('id, title, est_duration, weight_unit, created_at')
+        .select('id, title, workout_type, est_duration, weight_unit, created_at')
         .eq('trainer_id', user.id)
         .order('created_at', { ascending: false })
       if (err1) {
@@ -326,6 +349,7 @@ export default function WorkoutsPage() {
         return {
           id: w.id,
           title: w.title,
+          workout_type: w.workout_type ?? 'strength',
           est_duration: w.est_duration ?? null,
           weight_unit: w.weight_unit ?? null,
           created_at: w.created_at,
@@ -366,7 +390,7 @@ export default function WorkoutsPage() {
       const { data, error: err } = await supabase
         .from('workouts')
         // @ts-ignore
-        .insert({ title: 'Untitled Workout', trainer_id: user.id })
+        .insert({ title: 'Untitled Workout', trainer_id: user.id, workout_type: 'strength' })
         .select('id').single()
       if (err) throw err
       // @ts-ignore

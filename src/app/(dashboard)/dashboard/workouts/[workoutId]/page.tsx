@@ -67,6 +67,11 @@ interface ExerciseItem {
   dropset_notes: string[]
   measurement_type: 'reps' | 'time' | 'calories'
   hidden_fields: string[]
+  // Per-exercise tracking flags (show_* columns on workout_exercises)
+  show_reps: boolean
+  show_weight: boolean
+  show_time: boolean
+  show_distance: boolean
   position?: number
 }
 
@@ -108,6 +113,7 @@ function blankExercise(exercise?: Exercise): ExerciseItem {
     notes: '', superset_id: undefined, is_dropset: false,
     dropset_weights: [''], dropset_reps: [''], dropset_notes: [''],
     measurement_type: 'reps', hidden_fields: [],
+    show_reps: true, show_weight: true, show_time: false, show_distance: false,
   }
 }
 
@@ -274,7 +280,7 @@ function DropsetRows({
 function ExerciseRow({
   item, index, exerciseLabel, items, cols, weightUnit, allExercises,
   dragging, dragOver, onDragStart, onDragEnd, onDragOver, onDrop,
-  onChange, onRemove, onCycleMetric, onToggleField, onToggleSuperset,
+  onChange, onRemove, onCycleMetric, onToggleField, onToggleShowField, onToggleSuperset,
   onToggleDropset, onDropsetChange, onDropsetAdd, onDropsetRemove,
   selectionMode, isSelected, onBadgeClick,
 }: {
@@ -295,6 +301,7 @@ function ExerciseRow({
   onRemove: (i: number) => void
   onCycleMetric: (i: number) => void
   onToggleField: (i: number, f: string) => void
+  onToggleShowField: (i: number, f: 'show_reps' | 'show_weight' | 'show_time' | 'show_distance') => void
   onToggleSuperset: (i: number) => void
   onToggleDropset: (i: number) => void
   onDropsetChange: (i: number, field: string, di: number, val: string) => void
@@ -535,6 +542,30 @@ function ExerciseRow({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </div>
+
+      {/* Tracking field chip picker — shown on hover */}
+      <div className="opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center gap-1 px-2 pb-1.5 -mt-0.5 ml-9">
+        {([ 
+          { key: 'show_reps', label: 'Reps' },
+          { key: 'show_weight', label: 'Weight' },
+          { key: 'show_time', label: 'Time' },
+          { key: 'show_distance', label: 'Dist' },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={e => { e.stopPropagation(); onToggleShowField(index, key) }}
+            className={cn(
+              'text-[10px] px-1.5 py-0.5 rounded-full border font-medium transition-colors',
+              item[key]
+                ? 'bg-primary/15 border-primary/40 text-primary'
+                : 'bg-transparent border-border text-muted-foreground hover:border-muted-foreground'
+            )}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Dropset rows */}
@@ -783,6 +814,7 @@ export default function WorkoutBuilderPage() {
 
   // ── Core state ──
   const [title, setTitle] = useState('Untitled Workout')
+  const [workoutType, setWorkoutType] = useState<'strength' | 'circuit'>('strength')
   const [items, setItems] = useState<WorkoutItem[]>([])
   const [allExercises, setAllExercises] = useState<Exercise[]>([])
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('kg')
@@ -838,7 +870,7 @@ export default function WorkoutBuilderPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     try {
-      await db.from('workouts').update({ title: t.trim() || 'Untitled Workout', weight_unit: weightUnit })
+      await db.from('workouts').update({ title: t.trim() || 'Untitled Workout', weight_unit: weightUnit, workout_type: workoutType })
         .eq('id', workoutId).eq('trainer_id', user.id)
 
       await db.from('workout_exercises').delete().eq('workout_id', workoutId)
@@ -870,6 +902,10 @@ export default function WorkoutBuilderPage() {
               dropset_notes: ex.is_dropset ? ex.dropset_notes : null,
               hidden_fields: ex.hidden_fields.length ? ex.hidden_fields : null,
               measurement_type: ex.measurement_type,
+              show_reps: ex.show_reps,
+              show_weight: ex.show_weight,
+              show_time: ex.show_time,
+              show_distance: ex.show_distance,
             }
           })
         )
@@ -891,7 +927,7 @@ export default function WorkoutBuilderPage() {
       logger.error('Save error', err)
       setSaveStatus('error')
     }
-  }, [user, workoutId, weightUnit])
+  }, [user, workoutId, weightUnit, workoutType])
 
   const triggerAutoSave = useCallback((t: string, its: WorkoutItem[]) => {
     pendingSave.current = { title: t, items: its }
@@ -909,18 +945,19 @@ export default function WorkoutBuilderPage() {
     Promise.all([
       supabase.from('exercises').select('*').or(`trainer_id.eq.${user.id},trainer_id.is.null`),
       supabase.from('workouts').select(`
-        title, weight_unit,
-        workout_exercises(exercise_id,set_count,reps,rest_seconds,notes,time,distance,calories,weight,superset_id,position,is_dropset,dropset_weights,dropset_application,dropset_reps,dropset_notes,dropset_time,dropset_distance,dropset_calories,hidden_fields,measurement_type,exercises(id,name,equipment)),
+        title, weight_unit, workout_type,
+        workout_exercises(exercise_id,set_count,reps,rest_seconds,notes,time,distance,calories,weight,superset_id,position,is_dropset,dropset_weights,dropset_application,dropset_reps,dropset_notes,dropset_time,dropset_distance,dropset_calories,hidden_fields,measurement_type,show_reps,show_weight,show_time,show_distance,exercises(id,name,equipment)),
         workout_notes(id,note_text,position)
       `).eq('id', workoutId).eq('trainer_id', user.id).maybeSingle(),
     ]).then(([exRes, wRes]) => {
       if (exRes.data) setAllExercises(exRes.data as unknown as Exercise[])
-      type WdType = { title: string | null; weight_unit: string | null; workout_exercises: unknown[]; workout_notes: unknown[] }
+      type WdType = { title: string | null; weight_unit: string | null; workout_type: string | null; workout_exercises: unknown[]; workout_notes: unknown[] }
       const wd = wRes.data as unknown as WdType | null
       if (!wd) { setWorkoutNotFound(true); setLoading(false); return }
 
       setTitle(wd.title ?? 'Untitled Workout')
       setWeightUnit((wd.weight_unit ?? 'kg') as 'lbs' | 'kg')
+      setWorkoutType((wd.workout_type ?? 'strength') as 'strength' | 'circuit')
 
       const exItems: ExerciseItem[] = (wd.workout_exercises || []).map((we: any) => {
         const { minutes, seconds } = we.time ? secsToMM(we.time) : { minutes: '', seconds: '' }
@@ -943,6 +980,11 @@ export default function WorkoutBuilderPage() {
           dropset_notes: we.dropset_notes?.map(String) ?? [''],
           measurement_type: we.measurement_type ?? 'reps',
           hidden_fields: we.hidden_fields ?? [],
+          // Tracking flags — with backward compat from hidden_fields
+          show_reps: we.show_reps ?? !we.hidden_fields?.includes('reps'),
+          show_weight: we.show_weight ?? !we.hidden_fields?.includes('weight'),
+          show_time: we.show_time ?? false,
+          show_distance: we.show_distance ?? false,
           position: we.position ?? 0,
         }
       })
@@ -1012,6 +1054,21 @@ export default function WorkoutBuilderPage() {
         <Button variant="outline" size="icon" className="h-8 w-8 bg-card" disabled={!canRedo} onClick={redo}>
           <Redo2 className="h-3.5 w-3.5" />
         </Button>
+        <div className="flex rounded-md border border-input overflow-hidden h-8">
+          {(['strength', 'circuit'] as const).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => { setWorkoutType(t); triggerAutoSave(title, items) }}
+              className={cn(
+                'px-2.5 text-xs font-medium transition-colors',
+                workoutType === t ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {t === 'strength' ? 'Strength' : 'Circuit'}
+            </button>
+          ))}
+        </div>
         <SettingsMenu weightUnit={weightUnit} cols={cols}
           onSetWeightUnit={u => { setWeightUnit(u); triggerAutoSave(title, items) }}
           onToggleCol={k => setCols(c => ({ ...c, [k]: !c[k] }))} />
@@ -1019,7 +1076,7 @@ export default function WorkoutBuilderPage() {
       </div>
     )
     return () => setActions(null)
-  }, [setActions, canUndo, canRedo, saveStatus, weightUnit, cols, title, items])
+  }, [setActions, canUndo, canRedo, saveStatus, weightUnit, cols, title, items, workoutType, triggerAutoSave])
 
   // ── Mutations ──
   const updateItem = (index: number, field: string, val: unknown) => {
@@ -1076,6 +1133,14 @@ export default function WorkoutBuilderPage() {
       const hf = item.hidden_fields ?? []
       const updated = hf.includes(field) ? hf.filter(f => f !== field) : [...hf, field]
       const next = prev.map((it, i) => i === index ? { ...it, hidden_fields: updated } : it)
+      triggerAutoSave(title, next)
+      return next
+    })
+  }
+
+  const toggleShowField = (index: number, field: 'show_reps' | 'show_weight' | 'show_time' | 'show_distance') => {
+    setItems(prev => {
+      const next = prev.map((it, i) => i === index ? { ...it, [field]: !(it as ExerciseItem)[field] } : it)
       triggerAutoSave(title, next)
       return next
     })
@@ -1370,6 +1435,7 @@ export default function WorkoutBuilderPage() {
                 onRemove={removeItem}
                 onCycleMetric={cycleMetric}
                 onToggleField={toggleField}
+                onToggleShowField={toggleShowField}
                 onToggleSuperset={toggleSuperset}
                 onToggleDropset={toggleDropset}
                 onDropsetChange={dropsetChange}
