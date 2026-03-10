@@ -16,6 +16,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/webhooks/',
   '/api/bookings/trialist',
   '/api/calendar/',
+  '/api/merch-order',
 ]
 
 export async function middleware(req: NextRequest) {
