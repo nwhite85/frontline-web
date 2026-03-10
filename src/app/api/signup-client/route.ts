@@ -13,6 +13,7 @@ const signupClientSchema = z.object({
   dateOfBirth: z.string().optional(),
   gender: z.enum(['male', 'female', 'other']).optional().or(z.literal('')),
   planId: z.string().optional(),
+  trainerId: z.string().uuid().optional(),
   acceptMarketing: z.boolean().optional(),
 });
 import { rateLimit } from '@/utils/rateLimit';
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { email, name, phone, dateOfBirth, gender, planId: _planId, acceptMarketing } = parsed.data;
+    const { email, name, phone, dateOfBirth, gender, planId: _planId, trainerId: bodyTrainerId, acceptMarketing } = parsed.data;
     // Auto-generate a secure password if not provided (trainer-added clients reset via email)
     const password = parsed.data.password || Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!9';
 
@@ -144,8 +145,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create user profile' }, { status: 500 });
     }
 
-    // 3. Link to default trainer if configured
-    const defaultTrainerId = process.env.DEFAULT_TRAINER_ID;
+    // 3. Link to trainer — prefer trainerId from request body, fall back to env var
+    const defaultTrainerId = bodyTrainerId || process.env.DEFAULT_TRAINER_ID;
     if (defaultTrainerId) {
       logger.log('Step 3: Linking client to default trainer:', defaultTrainerId);
       try {
