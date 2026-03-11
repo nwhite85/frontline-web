@@ -255,7 +255,7 @@ export default function ShopPage() {
                     <span className="text-[9px] font-bold uppercase tracking-widest text-brand-blue">New</span>
                   )}
                   <p className="text-sm font-semibold text-white leading-tight">{product.name}</p>
-                  <p className="text-sm font-bold text-white mt-auto">£{product.price.toFixed(2)}</p>
+                  
                   <button
                     disabled
                     className="w-full mt-1 rounded-full py-2 text-xs font-semibold border border-white/15 text-white/30 cursor-not-allowed"
