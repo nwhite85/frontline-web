@@ -219,7 +219,7 @@ export default function ShopPage() {
       </div>
 
       {/* Product grid */}
-      <div className="relative z-10 flex-1 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 pb-16">
+      <div className="relative z-10 flex-1 max-w-6xl mx-auto px-3 sm:px-8 lg:px-12 pb-16">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             {Array.from({ length: 8 }).map((_, i) => (
