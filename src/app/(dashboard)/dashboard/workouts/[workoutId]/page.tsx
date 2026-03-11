@@ -1059,7 +1059,19 @@ export default function WorkoutBuilderPage() {
             <button
               key={t}
               type="button"
-              onClick={() => { setWorkoutType(t); triggerAutoSave(title, items) }}
+              onClick={async () => {
+                  setWorkoutType(t)
+                  // Save immediately — can't use triggerAutoSave here because
+                  // workoutType state update is async and doSave would use stale value
+                  setSaveStatus('saving')
+                  try {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    await (supabase as any).from('workouts').update({ workout_type: t })
+                      .eq('id', workoutId).eq('trainer_id', user?.id)
+                    setSaveStatus('saved')
+                    setTimeout(() => setSaveStatus('idle'), 2000)
+                  } catch { setSaveStatus('error') }
+                }}
               className={cn(
                 'px-2.5 text-xs font-medium transition-colors',
                 workoutType === t ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'
