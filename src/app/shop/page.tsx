@@ -221,7 +221,7 @@ export default function ShopPage() {
       {/* Product grid */}
       <div className="relative z-10 flex-1 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 pb-16">
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="rounded-xl bg-white/[0.04] animate-pulse aspect-[3/4]" />
             ))}
@@ -232,7 +232,7 @@ export default function ShopPage() {
             <p className="text-sm">No products yet — check back soon</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             {filtered.map(product => (
               <div key={product.id} className="group flex flex-col rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.07] hover:border-white/15 transition-colors">
                 {/* Image */}
