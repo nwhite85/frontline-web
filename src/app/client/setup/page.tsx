@@ -8,12 +8,11 @@ import { Input } from '@/components/ui/input'
 import { CheckCircle2 } from 'lucide-react'
 import ClientShell from '@/components/client/ClientShell'
 
-type Step = 1 | 2 | 3
+type Step = 1 | 2
 
 export default function ClientSetupPage() {
   const [step, setStep] = useState<Step>(1)
   const [personal, setPersonal] = useState({ dob: '', phone: '', emergency: '' })
-  const [goals, setGoals] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
@@ -74,23 +73,9 @@ export default function ClientSetupPage() {
     }
   }
 
-  const handleGoalsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-    try {
-      setStep(3)
-    } catch (err) {
-      console.error('Error saving goals:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const steps = [
     { label: 'Personal info', num: 1 },
-    { label: 'Fitness goals', num: 2 },
-    { label: 'Confirmation', num: 3 },
+    { label: 'Confirmation', num: 2 },
   ]
 
   return (
@@ -120,13 +105,11 @@ export default function ClientSetupPage() {
             <div>
               <h2 className="text-lg font-semibold text-white">
                 {step === 1 && 'Personal information'}
-                {step === 2 && 'Your fitness goals'}
-                {step === 3 && 'All done!'}
+                {step === 2 && 'All done!'}
               </h2>
               <p className="text-sm text-white/50 mt-1">
                 {step === 1 && 'We need a few details to keep you safe.'}
-                {step === 2 && "Tell us what you're working towards."}
-                {step === 3 && 'Your profile is set up and ready to go.'}
+                {step === 2 && 'Your profile is set up and ready to go.'}
               </p>
             </div>
 
@@ -157,29 +140,6 @@ export default function ClientSetupPage() {
             )}
 
             {step === 2 && (
-              <form onSubmit={handleGoalsSubmit} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="goals" className="text-sm font-medium text-white/80">What are your fitness goals?</label>
-                  <textarea
-                    id="goals"
-                    rows={5}
-                    placeholder="e.g. Lose weight, build strength, improve cardio, train for an event…"
-                    value={goals}
-                    onChange={(e) => setGoals(e.target.value)}
-                    required
-                    className="flex w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 resize-none"
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)}>Back</Button>
-                  <Button type="submit" className="flex-1" disabled={loading}>
-                    {loading ? 'Saving…' : 'Continue'}
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {step === 3 && (
               <div className="flex flex-col items-center gap-6 py-4">
                 <CheckCircle2 className="h-12 w-12 text-green-400" />
                 <p className="text-sm text-white/50 text-center">
