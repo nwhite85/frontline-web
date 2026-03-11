@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = createServerSupabaseClient()
 
-    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://frontlinefitness.co.uk'}/reset-password`
+    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://frontlinefitness.co.uk'}/update-password`
     const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl })
 
     if (error) {
