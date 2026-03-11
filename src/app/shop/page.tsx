@@ -219,7 +219,7 @@ export default function ShopPage() {
       </div>
 
       {/* Product grid */}
-      <div className="relative z-10 flex-1 max-w-6xl mx-auto px-3 sm:px-8 lg:px-12 pb-16">
+      <div className="relative z-10 flex-1 max-w-6xl mx-auto px-0 sm:px-8 lg:px-12 pb-16">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -234,7 +234,7 @@ export default function ShopPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             {filtered.map(product => (
-              <div key={product.id} className="group flex flex-col rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.07] hover:border-white/15 transition-colors">
+              <div key={product.id} className="group flex flex-col sm:rounded-xl overflow-hidden bg-white/[0.03] border-y sm:border border-white/[0.07] hover:border-white/15 transition-colors">
                 {/* Image */}
                 <div className="aspect-[2/3] bg-white/[0.05] overflow-hidden">
                   {product.image_url ? (
