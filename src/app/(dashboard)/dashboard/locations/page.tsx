@@ -232,21 +232,6 @@ export default function LocationsPage() {
     fetchLocations()
   }, [user])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('location-options-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'location_options',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { fetchLocations() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
 
   const toggleFavorite = async (loc: LocationOption) => {
     try {

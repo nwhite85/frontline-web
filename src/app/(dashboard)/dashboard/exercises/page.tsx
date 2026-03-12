@@ -127,21 +127,6 @@ export default function ExercisesPage() {
 
   useEffect(() => { fetchExercises() }, [user])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('exercises-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'exercises',
-      }, () => { fetchExercises() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
-
   const openEdit = (ex: Exercise) => {
     setEditExercise(ex)
     setFormName(ex.name)

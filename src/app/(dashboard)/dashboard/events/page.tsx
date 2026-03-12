@@ -290,21 +290,6 @@ export default function EventsPage() {
     fetchEvents()
   }, [user])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('event-templates-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'event_templates',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { fetchEvents() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
 
   const handleDelete = async () => {
     if (!deleteTarget) return

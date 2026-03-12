@@ -370,32 +370,6 @@ export default function SchedulePage() {
     if (user) refreshData()
   }, [user, selectedWeek])
 
-  // Real-time subscriptions
-  useEffect(() => {
-    if (!user) return
-    const appointmentChannel = supabase
-      .channel('schedule-appointments-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'appointments',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { refreshData() })
-      .subscribe()
-    const classChannel = supabase
-      .channel('schedule-class-schedules-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'class_schedules',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { refreshData() })
-      .subscribe()
-    return () => {
-      supabase.removeChannel(appointmentChannel)
-      supabase.removeChannel(classChannel)
-    }
-  }, [user, refreshData])
 
   // Inject top bar controls
   useEffect(() => {

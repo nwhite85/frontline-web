@@ -373,21 +373,6 @@ export default function PaymentsPage() {
     fetchData()
   }, [user])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('client-payments-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'client_payments',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { fetchData() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
 
   const handleSort = (key: string) => {
     const dir = toggleSortDirection(sortConfig?.key as string ?? null, key, sortConfig?.direction ?? null)

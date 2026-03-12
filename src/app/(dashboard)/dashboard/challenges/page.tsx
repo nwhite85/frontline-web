@@ -374,21 +374,6 @@ export default function ChallengesPage() {
     fetchChallenges()
   }, [user])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('challenges-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'challenges',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { fetchChallenges() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
 
   const handleDelete = async () => {
     if (!deleteTarget) return

@@ -404,21 +404,6 @@ export default function AppointmentsPage() {
     fetchAll()
   }, [user])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('appointment-templates-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'appointment_templates',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { fetchAll() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
 
   const handleDeleteTemplate = async () => {
     if (!deleteTemplateTarget) return

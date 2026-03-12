@@ -179,21 +179,6 @@ export default function ClientsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('user-profiles-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'user_profiles',
-      }, () => { fetchClients() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
-
   useEffect(() => {
     setActions(
       <Button variant="outline" className="bg-card" onClick={() => setShowAddClient(true)}>

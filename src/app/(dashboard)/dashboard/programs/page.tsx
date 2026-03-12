@@ -235,20 +235,6 @@ export default function ProgramsPage() {
 
   useEffect(() => { fetchPrograms() }, [fetchPrograms])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('programs-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'programs',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { fetchPrograms() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [user, fetchPrograms])
 
   const handleDelete = async (id: string) => {
     try {

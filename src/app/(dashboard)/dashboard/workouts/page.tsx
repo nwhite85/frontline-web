@@ -366,20 +366,6 @@ export default function WorkoutsPage() {
 
   useEffect(() => { fetchWorkouts() }, [fetchWorkouts])
 
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('workouts-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'workouts',
-        filter: `trainer_id=eq.${user.id}`,
-      }, () => { fetchWorkouts() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [user, fetchWorkouts])
 
   // ── New Workout: create immediately then redirect to builder ──
   const handleNew = async () => {
