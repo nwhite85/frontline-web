@@ -13,6 +13,7 @@ interface ShopProduct {
   price: number
   category: string
   image_url: string | null
+  image_urls: string[] | null
   colors: string[] | null
   sizes: string[] | null
   description: string | null
@@ -26,6 +27,7 @@ export default function ProductPage() {
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
+  const [activeImage, setActiveImage] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchProduct() {
@@ -34,7 +36,8 @@ export default function ProductPage() {
         .select('*')
         .eq('id', params.id)
         .single()
-      setProduct(data)
+      setProduct(data as ShopProduct | null)
+      setActiveImage((data as ShopProduct | null)?.image_url ?? null)
       setLoading(false)
     }
     fetchProduct()
@@ -95,21 +98,39 @@ export default function ProductPage() {
         </a>
 
         <div className="lg:grid lg:grid-cols-2 lg:gap-12">
-          {/* Image */}
-          <div className="rounded-xl bg-[#0d1420] border border-white/10 overflow-hidden mb-8 lg:mb-0">
-            <div className="relative aspect-[2/3] w-full">
-              {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-white/10">
-                  <ShoppingBag size={60} />
-                </div>
-              )}
+          {/* Image gallery */}
+          <div className="flex flex-col gap-3 mb-8 lg:mb-0">
+            <div className="rounded-xl bg-[#0d1420] border border-white/10 overflow-hidden">
+              <div className="relative aspect-[2/3] w-full">
+                {activeImage ? (
+                  <img
+                    src={activeImage}
+                    alt={product.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-white/10">
+                    <ShoppingBag size={60} />
+                  </div>
+                )}
+              </div>
             </div>
+            {/* Thumbnails — only show if there are multiple images */}
+            {product.image_urls && product.image_urls.length > 1 && (
+              <div className="flex gap-2">
+                {product.image_urls.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImage(url)}
+                    className={`rounded-lg overflow-hidden border-2 transition-colors flex-shrink-0 w-16 aspect-[2/3] ${
+                      activeImage === url ? 'border-brand-blue' : 'border-white/10 hover:border-white/30'
+                    }`}
+                  >
+                    <img src={url} alt={`${product.name} view ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Details */}

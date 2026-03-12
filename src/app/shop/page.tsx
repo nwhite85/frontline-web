@@ -13,6 +13,7 @@ interface ShopProduct {
   price: number
   category: string
   image_url: string | null
+  image_urls: string[] | null
   colors: string[] | null
   sizes: string[] | null
   description: string | null
@@ -45,7 +46,7 @@ export default function ShopPage() {
     async function fetchProducts() {
       const { data } = await supabase
         .from('shop_products')
-        .select('id, name, price, category, image_url, colors, sizes, description, created_at')
+        .select('id, name, price, category, image_url, image_urls, colors, sizes, description, created_at')
         .eq('active', true)
       setProducts(data ?? [])
       setLoading(false)
@@ -236,13 +237,22 @@ export default function ShopPage() {
             {filtered.map(product => (
               <div key={product.id} className="group flex flex-col rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.07] hover:border-white/15 transition-colors">
                 {/* Image */}
-                <div className="aspect-[2/3] bg-white/[0.05] overflow-hidden">
+                <div className="aspect-[2/3] bg-white/[0.05] overflow-hidden relative">
                   {product.image_url ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    <>
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0"
+                      />
+                      {product.image_urls && product.image_urls[1] && (
+                        <img
+                          src={product.image_urls[1]}
+                          alt={`${product.name} back`}
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                        />
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ShoppingBag size={32} className="text-white opacity-10" />
