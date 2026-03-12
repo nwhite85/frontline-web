@@ -11,18 +11,56 @@ export default function UpdatePasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [ready, setReady] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') return
-    })
+    const init = async () => {
+      const hash = window.location.hash.substring(1)
+      const params = new URLSearchParams(hash)
+      const errorCode = params.get('error_code')
+      const errorDesc = params.get('error_description')
+
+      if (errorCode) {
+        setError(
+          errorCode === 'otp_expired'
+            ? 'This reset link has expired. Please request a new one.'
+            : (errorDesc?.replace(/\+/g, ' ') ?? 'Invalid reset link.')
+        )
+        return
+      }
+
+      const access_token = params.get('access_token')
+      const refresh_token = params.get('refresh_token')
+      const type = params.get('type')
+
+      if (access_token && refresh_token && type === 'recovery') {
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+        if (error) {
+          setError('Invalid or expired reset link. Please request a new one.')
+          return
+        }
+        setReady(true)
+        return
+      }
+
+      // No hash — check if already have a valid session (e.g. logged-in user changing password)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setReady(true)
+      } else {
+        setError('No valid reset session. Please request a new password reset link.')
+      }
+    }
+    init()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) { setError('Passwords do not match'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return }
     setLoading(true)
+    setError(null)
     const { error } = await supabase.auth.updateUser({ password })
     if (error) { setError(error.message); setLoading(false) }
     else { router.push('/login') }
@@ -51,24 +89,40 @@ export default function UpdatePasswordPage() {
             <p className="text-sm text-white/50 mt-1">Choose a new password for your account</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-[#0a0f1a] p-6 flex flex-col gap-4">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="password" className="text-sm font-medium text-white/80">New password</label>
-                <Input id="password" type="password" placeholder="At least 8 characters"
-                  value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
-                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
+            {error && (
+              <div className="rounded-md bg-red-500/10 border border-red-500/20 px-3 py-2.5">
+                <p className="text-sm text-red-400">{error}</p>
+                {error.includes('expired') || error.includes('No valid') ? (
+                  <a href="/reset-password" className="text-sm text-blue-400 underline mt-1 block">Request a new link</a>
+                ) : null}
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="confirm" className="text-sm font-medium text-white/80">Confirm password</label>
-                <Input id="confirm" type="password" placeholder="Repeat your password"
-                  value={confirm} onChange={(e) => setConfirm(e.target.value)} required
-                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
+            )}
+
+            {ready && (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="password" className="text-sm font-medium text-white/80">New password</label>
+                  <Input id="password" type="password" placeholder="At least 8 characters"
+                    value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="confirm" className="text-sm font-medium text-white/80">Confirm password</label>
+                  <Input id="confirm" type="password" placeholder="Repeat your password"
+                    value={confirm} onChange={(e) => setConfirm(e.target.value)} required
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Updating…' : 'Update password'}
+                </Button>
+              </form>
+            )}
+
+            {!ready && !error && (
+              <div className="flex justify-center py-4">
+                <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
               </div>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Updating…' : 'Update password'}
-              </Button>
-            </form>
+            )}
           </div>
         </div>
       </div>
