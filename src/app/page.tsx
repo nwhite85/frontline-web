@@ -45,8 +45,8 @@ export default async function LandingPage() {
 
   return (
     <div id="main-content" className="bg-black text-white min-h-screen">
-      {/* Container border rails */}
-      <div className="fixed inset-0 pointer-events-none z-[60]">
+      {/* Container border rails — desktop only, start below the nav bar */}
+      <div className="fixed inset-0 sm:top-16 pointer-events-none z-[60]">
         <div className="max-w-6xl mx-auto h-full sm:border-x border-[rgba(255,255,255,0.10)]" />
       </div>
       <LandingNav />

@@ -5,7 +5,7 @@ import { ScrollButton } from './ScrollButton'
 export function LandingHero() {
   return (
     <section
-      className="relative overflow-hidden bg-black h-[100svh] sm:h-[calc(100svh-4rem)] mt-0 sm:mt-16 mx-auto"
+      className="relative overflow-hidden bg-black h-[100svh] sm:h-[calc(100svh-4.0625rem)] mt-0 sm:mt-[65px] mx-auto"
       style={{ maxWidth: "85rem" }}
     >
       {/* Background image */}
