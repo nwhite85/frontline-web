@@ -277,10 +277,9 @@ pre, code {
 /* Hero image responsive positioning */
 @media (min-width: 640px) {
   .hero-img {
-    object-fit: contain;
-    object-position: 50% 15% !important;
-    transform: scale(1.2);
-    transform-origin: 50% 15%;
+    object-fit: cover;
+    object-position: 50% 20% !important;
+    transform: none;
   }
 }
 @media (max-width: 639px) {
