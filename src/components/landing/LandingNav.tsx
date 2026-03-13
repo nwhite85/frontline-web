@@ -49,7 +49,7 @@ export function LandingNav() {
             {/* Logo */}
             <div className="flex-shrink-0">
               <img
-                src="/logos/frontline-logo-blue.svg"
+                src="/logos/frontline-logo-blue.png"
                 alt="Frontline Fitness"
                 width={80}
                 height={20}

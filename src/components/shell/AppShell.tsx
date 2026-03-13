@@ -160,8 +160,10 @@ function AppShellInner({ children }: { children: ReactNode }) {
         <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
           <SheetContent side="left" className="w-72 p-0 bg-sidebar border-sidebar-border flex flex-col h-full">
             <SheetHeader className="flex flex-row items-center gap-3 h-14 px-4 border-b border-sidebar-border shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+              <div className="flex items-center justify-center rounded-lg bg-primary shrink-0" style={{ width: 32, height: 32 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logos/frontline-logo-only-white.svg" alt="Frontline Fitness" width={20} height={20} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+              </div>
               <SheetTitle className="text-sm font-semibold text-sidebar-foreground">Frontline</SheetTitle>
             </SheetHeader>
             <ScrollArea className="flex-1 min-h-0">
@@ -226,14 +228,16 @@ function AppShellInner({ children }: { children: ReactNode }) {
         >
           {/* Logo */}
           <div className="flex h-14 w-full items-center justify-center border-b border-sidebar-border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logos/frontline-logo-blue.svg"
-              alt="Frontline Fitness"
-              width={28}
-              height={28}
-              style={{ width: 28, height: 28, objectFit: 'contain' }}
-            />
+            <div className="flex items-center justify-center rounded-lg bg-primary" style={{ width: 32, height: 32 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logos/frontline-logo-only-white.svg"
+                alt="Frontline Fitness"
+                width={20}
+                height={20}
+                style={{ width: 20, height: 20, objectFit: 'contain' }}
+              />
+            </div>
           </div>
 
           {/* Module buttons */}

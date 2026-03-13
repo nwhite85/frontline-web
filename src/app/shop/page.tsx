@@ -99,7 +99,7 @@ export default function ShopPage() {
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">
         <div className="max-w-6xl mx-auto pl-[13px] sm:pl-[21px] lg:pl-[29px] pr-4 sm:pr-6 lg:pr-8 h-full flex items-center justify-between">
           <a href="/">
-            <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width="80" height="20" style={{ height: '20px', width: 'auto' }} />
+            <img src="/logos/frontline-logo-blue.png" alt="Frontline Fitness" width="80" height="20" style={{ height: '20px', width: 'auto' }} />
           </a>
           <button
             onClick={() => setCartOpen(true)}
@@ -243,15 +243,15 @@ export default function ShopPage() {
                       <img
                         src={product.image_url}
                         alt={product.name}
-                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0 scale-[1.15]"
-                        style={{ objectPosition: 'center 15%' }}
+                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0"
+                        style={{ objectPosition: 'center 15%', transform: 'scale(1.15)', transformOrigin: 'center 15%' }}
                       />
                       {product.image_urls && product.image_urls[1] && (
                         <img
                           src={product.image_urls[1]}
                           alt={`${product.name} back`}
-                          className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100 scale-[1.15]"
-                          style={{ objectPosition: 'center 15%' }}
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                          style={{ objectPosition: 'center 15%', transform: 'scale(1.15)', transformOrigin: 'center 15%' }}
                         />
                       )}
                     </>

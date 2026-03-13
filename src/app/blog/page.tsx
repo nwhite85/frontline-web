@@ -24,7 +24,7 @@ export default function BlogPage() {
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">
         <div className="max-w-6xl mx-auto pl-[13px] sm:pl-[21px] lg:pl-[29px] pr-4 sm:pr-6 lg:pr-8 h-full flex items-center">
           <a href="/">
-            <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width="80" height="20" style={{ height: '20px', width: 'auto' }} />
+            <img src="/logos/frontline-logo-blue.png" alt="Frontline Fitness" width="80" height="20" style={{ height: '20px', width: 'auto' }} />
           </a>
         </div>
       </div>

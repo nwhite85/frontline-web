@@ -30,7 +30,10 @@ function StatCard({ name, stat, icon: Icon, loading, accent = false }: {
     <Card>
       <CardContent>
         <div className="flex items-center gap-3">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${accent ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-accent text-primary'}`}>
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-lg ${accent ? 'text-emerald-600 dark:text-emerald-400' : 'bg-accent text-primary'}`}
+            style={accent ? { backgroundColor: 'rgba(34, 197, 94, 0.12)' } : undefined}
+          >
             <Icon className="h-4 w-4" />
           </div>
           <div className="min-w-0">

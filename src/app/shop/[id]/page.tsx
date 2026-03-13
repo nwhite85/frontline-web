@@ -83,7 +83,7 @@ export default function ProductPage() {
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">
         <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 h-full flex items-center">
           <a href="/">
-            <img src="/logos/frontline-logo-blue.svg" alt="Frontline Fitness" width="80" height="20" style={{ height: '20px', width: 'auto' }} />
+            <img src="/logos/frontline-logo-blue.png" alt="Frontline Fitness" width="80" height="20" style={{ height: '20px', width: 'auto' }} />
           </a>
         </div>
       </div>
