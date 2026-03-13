@@ -228,7 +228,7 @@ export default function ClientsPage() {
       const response = await fetch('/api/signup-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newEmail.trim(), name: fullName, trainerId: user.id }),
+        body: JSON.stringify({ email: newEmail.trim(), name: fullName, trainerId: user.id, fromDashboard: true }),
       })
       const result = await response.json()
       if (!result.success) throw new Error(result.error || 'Failed to add client')
@@ -259,8 +259,15 @@ export default function ClientsPage() {
 
   const handleDelete = async (clientId: string) => {
     try {
-      const { error } = await supabase.from('user_profiles').delete().eq('id', clientId)
-      if (error) throw error
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: clientId }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to delete client')
+      }
       setClients(prev => prev.filter(c => c.id !== clientId))
       setDeleteId(null)
       toast.success('Client deleted')
@@ -419,7 +426,7 @@ export default function ClientsPage() {
           <SheetHeader>
             <SheetTitle>Add New Client</SheetTitle>
           </SheetHeader>
-          <div className="flex flex-col gap-4 py-4">
+          <div className="flex flex-col gap-4 py-4 px-4 overflow-y-auto flex-1">
             {addError && (
               <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{addError}</div>
             )}

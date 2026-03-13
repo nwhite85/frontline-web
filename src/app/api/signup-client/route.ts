@@ -15,6 +15,7 @@ const signupClientSchema = z.object({
   planId: z.string().optional(),
   trainerId: z.string().uuid().optional(),
   acceptMarketing: z.boolean().optional(),
+  fromDashboard: z.boolean().optional(),
 });
 import { rateLimit } from '@/utils/rateLimit';
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { email, name, phone, dateOfBirth, gender, planId: _planId, trainerId: bodyTrainerId, acceptMarketing } = parsed.data;
+    const { email, name, phone, dateOfBirth, gender, planId: _planId, trainerId: bodyTrainerId, acceptMarketing, fromDashboard } = parsed.data;
     // Auto-generate a secure password if not provided (trainer-added clients reset via email)
     const password = parsed.data.password || Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!9';
 
@@ -120,9 +121,9 @@ export async function POST(req: NextRequest) {
           gender: gender || null,
           daily_calorie_goal: dailyCalorieGoal,
           user_type: 'client',
-          status: 'lead', // Set as lead initially, will become active after payment
+          status: fromDashboard ? 'active' : 'lead',
           join_date: new Date().toISOString().split('T')[0],
-          is_active: false, // Not active until payment
+          is_active: fromDashboard ? true : false,
           weight_unit: 'lbs',
           accept_marketing: acceptMarketing || false
         }])

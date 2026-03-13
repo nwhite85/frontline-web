@@ -1,65 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { logger } from '@/utils/logger';
-import { rateLimit } from '@/utils/rateLimit';
-import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js'
 
-const deleteUserSchema = z.object({
-  userId: z.string().uuid('Invalid user ID'),
-});
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://alvqlnqecjhemrgjmgqa.supabase.co'
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdnFsbnFlY2poZW1yZ2ptZ3FhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODU3ODM0MSwiZXhwIjoyMDg0MTU0MzQxfQ.tL0a6fsVtmmCOqAD1__yeUnFslhLlMWrTDObej7HL6g'
 
-export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
-  const { success } = rateLimit(ip, { limit: 10, windowMs: 60_000 });
-  if (!success) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-  }
+const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false }
+})
 
+export async function DELETE(req: NextRequest) {
   try {
-    const body = await request.json();
-    const parsed = deleteUserSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
-    }
-    const { userId } = parsed.data;
+    const { userId } = await req.json()
+    if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
-    const supabaseAdmin = createServerSupabaseClient();
-
-    // Verify the requesting user is authenticated and is a trainer
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Verify user is a trainer
-    const { data: profile } = await supabaseAdmin
+    // Delete from user_profiles (bypasses RLS)
+    const { error: profileError } = await supabaseAdmin
       .from('user_profiles')
-      .select('user_type')
-      .eq('id', user.id)
-      .single();
+      .delete()
+      .eq('id', userId)
+    if (profileError) throw profileError
 
-    if (profile?.user_type !== 'trainer') {
-      return NextResponse.json({ error: 'Only trainers can delete users' }, { status: 403 });
-    }
+    // Delete from Supabase Auth
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    if (authError) throw authError
 
-    // Delete the user from auth
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-    if (error) {
-      logger.error('Error deleting auth user:', error);
-      return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    logger.error('API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ success: true })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to delete user'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
