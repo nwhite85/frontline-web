@@ -42,7 +42,7 @@ interface Client {
   first_name?: string
   email: string
   programs: string
-  status: 'Active' | 'At Risk' | 'Disengaged' | 'Inactive' | 'Archived'
+  status: 'Active' | 'At Risk' | 'Disengaged' | 'Inactive' | 'Archived' | 'Lead'
   last_activity_date?: string | null
 }
 
@@ -147,9 +147,11 @@ export default function ClientsPage() {
           ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24))
           : Infinity
 
-        const isArchived = profile.status === 'archived' || profile.is_active === false
+        const isArchived = profile.status === 'archived'
+        const isLead = profile.status === 'lead'
         let status: Client['status'] = 'Active'
         if (isArchived) status = 'Archived'
+        else if (isLead) status = 'Lead'
         else if (daysInactive >= 30) status = 'Inactive'
         else if (daysInactive >= 14) status = 'Disengaged'
         else if (daysInactive >= 7) status = 'At Risk'
@@ -206,7 +208,7 @@ export default function ClientsPage() {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            {['All', 'Active', 'At Risk', 'Disengaged', 'Inactive', 'Archived'].map(s => (
+            {['All', 'Active', 'Lead', 'At Risk', 'Disengaged', 'Inactive', 'Archived'].map(s => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
           </SelectContent>
