@@ -243,13 +243,13 @@ export default function ShopPage() {
                       <img
                         src={product.image_url}
                         alt={product.name}
-                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0"
+                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0 scale-[1.15]"
                       />
                       {product.image_urls && product.image_urls[1] && (
                         <img
                           src={product.image_urls[1]}
                           alt={`${product.name} back`}
-                          className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100 scale-[1.15]"
                         />
                       )}
                     </>
