@@ -20,41 +20,16 @@ interface SessionCardProps {
   className?: string
 }
 
-// Tailwind safelist — ensure these dynamic classes are compiled:
-// bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 text-blue-900 dark:text-blue-100 text-blue-700 dark:text-blue-300 bg-blue-500
-// bg-green-50 dark:bg-green-950/30 hover:bg-green-100 dark:hover:bg-green-950/50 text-green-900 dark:text-green-100 text-green-700 dark:text-green-300 bg-green-500
-// bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/50 text-orange-900 dark:text-orange-100 text-orange-700 dark:text-orange-300 bg-orange-500
-// bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-950/50 text-purple-900 dark:text-purple-100 text-purple-700 dark:text-purple-300 bg-purple-500
+// text-blue-900 dark:text-blue-100 text-blue-700 dark:text-blue-300 bg-blue-500
+// text-green-900 dark:text-green-100 text-green-700 dark:text-green-300 bg-green-500
+// text-orange-900 dark:text-orange-100 text-orange-700 dark:text-orange-300 bg-orange-500
+// text-purple-900 dark:text-purple-100 text-purple-700 dark:text-purple-300 bg-purple-500
 
 const typeConfig = {
-  appointment: {
-    bar: 'bg-blue-500',
-    bg: 'bg-blue-50 dark:bg-blue-950/30',
-    hoverBg: 'hover:bg-blue-100 dark:hover:bg-blue-950/50',
-    titleColor: 'text-blue-900 dark:text-blue-100',
-    subtitleColor: 'text-blue-700 dark:text-blue-300',
-  },
-  class: {
-    bar: 'bg-green-500',
-    bg: 'bg-green-50 dark:bg-green-950/30',
-    hoverBg: 'hover:bg-green-100 dark:hover:bg-green-950/50',
-    titleColor: 'text-green-900 dark:text-green-100',
-    subtitleColor: 'text-green-700 dark:text-green-300',
-  },
-  event: {
-    bar: 'bg-orange-500',
-    bg: 'bg-orange-50 dark:bg-orange-950/30',
-    hoverBg: 'hover:bg-orange-100 dark:hover:bg-orange-950/50',
-    titleColor: 'text-orange-900 dark:text-orange-100',
-    subtitleColor: 'text-orange-700 dark:text-orange-300',
-  },
-  challenge: {
-    bar: 'bg-purple-500',
-    bg: 'bg-purple-50 dark:bg-purple-950/30',
-    hoverBg: 'hover:bg-purple-100 dark:hover:bg-purple-950/50',
-    titleColor: 'text-purple-900 dark:text-purple-100',
-    subtitleColor: 'text-purple-700 dark:text-purple-300',
-  },
+  appointment: { bar: 'bg-blue-500',   bgVar: 'var(--session-appointment-bg)', titleVar: 'var(--session-appointment-title)', subVar: 'var(--session-appointment-sub)' },
+  class:       { bar: 'bg-green-500',  bgVar: 'var(--session-class-bg)',        titleVar: 'var(--session-class-title)',        subVar: 'var(--session-class-sub)' },
+  event:       { bar: 'bg-orange-500', bgVar: 'var(--session-event-bg)',         titleVar: 'var(--session-event-title)',        subVar: 'var(--session-event-sub)' },
+  challenge:   { bar: 'bg-purple-500', bgVar: 'var(--session-challenge-bg)',     titleVar: 'var(--session-challenge-title)',    subVar: 'var(--session-challenge-sub)' },
 }
 
 export function SessionCard({
@@ -84,12 +59,10 @@ export function SessionCard({
     <div
       className={cn(
         'rounded-sm overflow-hidden cursor-pointer transition-colors text-xs flex',
-        config.bg,
-        config.hoverBg,
         isTiny ? 'p-0.5' : 'p-1',
         className,
       )}
-      style={style}
+      style={{ backgroundColor: config.bgVar, ...style }}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       draggable={draggable}
@@ -99,21 +72,21 @@ export function SessionCard({
       {/* Content */}
       {isTiny ? (
         // Tiny: one line only — title + time inline, no subtitle
-        <div className={cn('flex items-center gap-1 min-w-0 flex-1 overflow-hidden')}>
-          <span className={cn('font-medium truncate leading-none', config.titleColor)}>{title}</span>
-          <span className={cn('text-[0.6rem] shrink-0 leading-none opacity-80', config.subtitleColor)}>{timeDisplay}</span>
+        <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
+          <span className="font-medium truncate leading-none" style={{ color: config.titleVar }}>{title}</span>
+          <span className="text-[0.6rem] shrink-0 leading-none opacity-80" style={{ color: config.subVar }}>{timeDisplay}</span>
         </div>
       ) : (
         // Normal + compact: title row + optional time row
         <div className="flex items-start justify-between min-w-0 flex-1 gap-1 overflow-hidden">
           <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
-            <div className={cn('font-medium truncate leading-tight', config.titleColor)}>{title}</div>
+            <div className="font-medium truncate leading-tight" style={{ color: config.titleVar }}>{title}</div>
             {!isCompact && (
-              <div className={cn('truncate leading-tight text-[0.65rem]', config.subtitleColor)}>{timeDisplay}</div>
+              <div className="truncate leading-tight text-[0.65rem]" style={{ color: config.subVar }}>{timeDisplay}</div>
             )}
           </div>
           {!isTiny && subtitle && (
-            <span className={cn('text-[0.65rem] font-semibold shrink-0 leading-tight mt-0.5', config.subtitleColor)}>{subtitle}</span>
+            <span className="text-[0.65rem] font-semibold shrink-0 leading-tight mt-0.5" style={{ color: config.subVar }}>{subtitle}</span>
           )}
         </div>
       )}

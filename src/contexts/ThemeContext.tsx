@@ -315,6 +315,35 @@ function applyTheme(s: ThemeSettings) {
   const charts = chartPalette(primary)
   charts.forEach((c, i) => root.setProperty(`--chart-${i + 1}`, c))
 
+  // Schedule session card colours
+  if (isDark) {
+    root.setProperty('--session-class-bg',          '#25a244')
+    root.setProperty('--session-class-title',        '#ffffff')
+    root.setProperty('--session-class-sub',          '#d1fae5')
+    root.setProperty('--session-appointment-bg',     '#0a7ff5')
+    root.setProperty('--session-appointment-title',  '#ffffff')
+    root.setProperty('--session-appointment-sub',    '#dbeafe')
+    root.setProperty('--session-event-bg',           '#e8650a')
+    root.setProperty('--session-event-title',        '#ffffff')
+    root.setProperty('--session-event-sub',          '#ffedd5')
+    root.setProperty('--session-challenge-bg',       '#9333ea')
+    root.setProperty('--session-challenge-title',    '#ffffff')
+    root.setProperty('--session-challenge-sub',      '#f3e8ff')
+  } else {
+    root.setProperty('--session-class-bg',           '#dcfce7')
+    root.setProperty('--session-class-title',        '#14532d')
+    root.setProperty('--session-class-sub',          '#15803d')
+    root.setProperty('--session-appointment-bg',     '#dbeafe')
+    root.setProperty('--session-appointment-title',  '#1e3a5f')
+    root.setProperty('--session-appointment-sub',    '#1d4ed8')
+    root.setProperty('--session-event-bg',           '#ffedd5')
+    root.setProperty('--session-event-title',        '#7c2d12')
+    root.setProperty('--session-event-sub',          '#c2410c')
+    root.setProperty('--session-challenge-bg',       '#f3e8ff')
+    root.setProperty('--session-challenge-title',    '#3b0764')
+    root.setProperty('--session-challenge-sub',      '#7e22ce')
+  }
+
   // ── Shadow scale ─────────────────────────────────────────────────────────
   const shadowTokens: Record<ShadowIntensity, { sm: string; md: string; lg: string; xl: string }> = {
     none: {

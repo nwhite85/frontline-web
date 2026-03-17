@@ -1,6 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '@/lib/supabase'
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext'
 import { usePageActions } from '@/contexts/PageActionsContext'
@@ -32,7 +35,7 @@ import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
   Search, Plus, MoreHorizontal, Clock, Users, Trophy, Star, Flame, Zap, Rocket,
-  Timer, Dumbbell, RefreshCw, Flag, Bike, Trash2,
+  Timer, Dumbbell, RefreshCw, Flag, Bike, Trash2, X, GripVertical,
 } from 'lucide-react'
 import { SortButton } from '@/components/ui/sort-button'
 import { toast } from 'sonner'
@@ -40,8 +43,9 @@ import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
 
 interface ResultField {
   name: string
-  type: 'number' | 'time' | 'text'
+  type: 'number' | 'time' | 'text' | 'dropdown'
   unit?: string
+  options?: string[]
   isPrimary?: boolean
 }
 
@@ -65,6 +69,29 @@ const ICON_MAP: Record<string, React.ElementType> = {
 }
 
 const ICON_OPTIONS = Object.keys(ICON_MAP)
+
+function SortableFieldRow({ id, children }: { id: string; children: (handle: React.ReactNode) => React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const handle = (
+    <button
+      type="button"
+      ref={setActivatorNodeRef}
+      {...listeners}
+      className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0 touch-none"
+    >
+      <GripVertical className="h-4 w-4" />
+    </button>
+  )
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      {...attributes}
+    >
+      {children(handle)}
+    </div>
+  )
+}
 
 function ChallengeIcon({ name }: { name?: string }) {
   const Icon = (name && ICON_MAP[name]) ? ICON_MAP[name] : Trophy
@@ -97,7 +124,24 @@ function ChallengeSheet({
   const [location, setLocation] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [resultFields, setResultFields] = useState<ResultField[]>([])
+  const [optionInputs, setOptionInputs] = useState<Record<number, string>>({})
   const [saving, setSaving] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handleFieldDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setResultFields(prev => {
+        const oldIndex = prev.findIndex((_, i) => `field-${i}` === active.id)
+        const newIndex = prev.findIndex((_, i) => `field-${i}` === over.id)
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    }
+  }, [])
   const [formError, setFormError] = useState('')
 
   useEffect(() => {
@@ -254,9 +298,14 @@ function ChallengeSheet({
             {resultFields.length === 0 && (
               <p className="text-xs text-muted-foreground">No result fields yet. Add fields clients will fill in when logging results.</p>
             )}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleFieldDragEnd}>
+              <SortableContext items={resultFields.map((_, i) => `field-${i}`)} strategy={verticalListSortingStrategy}>
             {resultFields.map((field, index) => (
-              <div key={index} className="flex flex-col gap-2 rounded-md border border-border p-3 bg-muted/20">
+              <SortableFieldRow key={`field-${index}`} id={`field-${index}`}>
+                {handle => (
+                <div className="flex flex-col gap-2 rounded-md border border-border p-3 bg-muted/20">
                 <div className="flex items-center gap-2">
+                  {handle}
                   <Input
                     value={field.name}
                     onChange={e => updateResultField(index, { name: e.target.value })}
@@ -268,20 +317,23 @@ function ChallengeSheet({
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Select value={field.type} onValueChange={(v) => updateResultField(index, { type: v as ResultField['type'] })}>
+                  <Select value={field.type} onValueChange={(v) => updateResultField(index, { type: v as ResultField['type'], options: v === 'dropdown' ? (field.options || []) : undefined })}>
                     <SelectTrigger className="h-8 text-xs flex-1"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="number">Number</SelectItem>
                       <SelectItem value="time">Time</SelectItem>
                       <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="dropdown">Dropdown</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input
-                    value={field.unit || ''}
-                    onChange={e => updateResultField(index, { unit: e.target.value })}
-                    placeholder="Unit (e.g. kg)"
-                    className="flex-1 text-xs h-8"
-                  />
+                  {field.type !== 'dropdown' ? (
+                    <Input
+                      value={field.unit || ''}
+                      onChange={e => updateResultField(index, { unit: e.target.value })}
+                      placeholder="Unit (e.g. kg)"
+                      className="flex-1 text-xs h-8"
+                    />
+                  ) : null}
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Checkbox
                       id={`primary-${index}`}
@@ -292,8 +344,65 @@ function ChallengeSheet({
                     <label htmlFor={`primary-${index}`} className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">Primary</label>
                   </div>
                 </div>
+                {field.type === 'dropdown' && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex gap-2">
+                      <Input
+                        value={optionInputs[index] || ''}
+                        onChange={e => setOptionInputs(prev => ({ ...prev, [index]: e.target.value }))}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && optionInputs[index]?.trim()) {
+                            e.preventDefault()
+                            const val = optionInputs[index].trim()
+                            if (!field.options?.includes(val)) {
+                              updateResultField(index, { options: [...(field.options || []), val] })
+                            }
+                            setOptionInputs(prev => ({ ...prev, [index]: '' }))
+                          }
+                        }}
+                        placeholder="Type an option, press Enter"
+                        className="flex-1 text-xs h-8"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => {
+                          const val = optionInputs[index]?.trim()
+                          if (val && !field.options?.includes(val)) {
+                            updateResultField(index, { options: [...(field.options || []), val] })
+                            setOptionInputs(prev => ({ ...prev, [index]: '' }))
+                          }
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {(field.options || []).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {(field.options || []).map((opt, oi) => (
+                          <span key={oi} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs">
+                            {opt}
+                            <button
+                              type="button"
+                              onClick={() => updateResultField(index, { options: field.options?.filter((_, i) => i !== oi) })}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+                )}
+              </SortableFieldRow>
             ))}
+              </SortableContext>
+            </DndContext>
           </div>
         </div>
         <SheetFooter>

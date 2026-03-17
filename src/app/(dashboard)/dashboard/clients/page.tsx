@@ -20,7 +20,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -29,7 +29,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Search, Plus, MoreHorizontal, Archive, Trash2, Users } from 'lucide-react'
+import { Search, Plus, MoreHorizontal, Archive, Trash2, Users, SlidersHorizontal, Check } from 'lucide-react'
 import { SortButton } from '@/components/ui/sort-button'
 import { toast } from 'sonner'
 import type { Database } from '@/types/supabase'
@@ -42,16 +42,37 @@ interface Client {
   first_name?: string
   email: string
   programs: string
-  status: 'Active' | 'At Risk' | 'Disengaged' | 'Inactive' | 'Archived' | 'Lead'
+  status: 'Active' | 'Inactive' | 'Archived' | 'Lead'
+  clientType: 'classes' | 'pt' | 'both' | 'none'
   last_activity_date?: string | null
 }
 
 const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   Active: 'default',
-  'At Risk': 'outline',
-  Disengaged: 'secondary',
   Inactive: 'secondary',
   Archived: 'outline',
+  Lead: 'outline',
+}
+
+const STATUS_COLOURS: Record<string, string> = {
+  Active: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-transparent',
+  Lead: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-transparent',
+  Inactive: 'bg-red-500/15 text-red-700 dark:text-red-400 border-transparent',
+  Archived: 'bg-muted text-muted-foreground border-transparent',
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  classes: 'Classes',
+  pt: 'Personal Training',
+  both: 'Full',
+  none: 'None',
+}
+
+const TYPE_COLOURS: Record<string, string> = {
+  classes: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-transparent',
+  pt: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-transparent',
+  both: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-transparent',
+  none: 'bg-muted text-muted-foreground border-transparent',
 }
 
 export default function ClientsPage() {
@@ -64,6 +85,7 @@ export default function ClientsPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
+  const [typeFilter, setTypeFilter] = useState('All')
   const [sortConfig, setSortConfig] = useState<SortConfig<Client> | null>({ key: 'first_name', direction: 'asc' })
 
   // Add client modal
@@ -95,7 +117,7 @@ export default function ClientsPage() {
     try {
       const { data: profilesRaw, error: profilesError } = await supabase
         .from('user_profiles')
-        .select('id, name, first_name, email, created_at, status, is_active')
+        .select('id, name, first_name, email, created_at, status, is_active, client_type')
         .eq('user_type', 'client')
 
       if (profilesError) throw profilesError
@@ -121,6 +143,15 @@ export default function ClientsPage() {
         client_id: string; status: string; programs: { title: string } | null
       }> | null
 
+      const { data: membershipsRaw } = await supabase
+        .from('client_memberships')
+        .select('client_id')
+        .in('client_id', clientIds)
+        .eq('status', 'active')
+      const membershipSet = new Set<string>(
+        (membershipsRaw as Array<{ client_id: string }> | null)?.map(m => m.client_id) ?? []
+      )
+
       const { data: activityDataRaw } = await supabase
         .from('activity_log')
         .select('client_id, created_at')
@@ -128,6 +159,18 @@ export default function ClientsPage() {
         .in('client_id', clientIds)
         .order('created_at', { ascending: false })
       const activityData = activityDataRaw as Array<{ client_id: string; created_at: string }> | null
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: trainerClientRaw } = await (supabase as any)
+        .from('trainer_client')
+        .select('client_id, appointment_status')
+        .eq('trainer_id', user.id)
+        .in('client_id', clientIds)
+      const ptEnabledSet = new Set<string>(
+        (trainerClientRaw as Array<{ client_id: string; appointment_status: string }> | null)
+          ?.filter(r => r.appointment_status === 'active')
+          .map(r => r.client_id) ?? []
+      )
 
       const lastActivityMap: Record<string, string> = {}
       activityData?.forEach(log => {
@@ -153,8 +196,14 @@ export default function ClientsPage() {
         if (isArchived) status = 'Archived'
         else if (isLead) status = 'Lead'
         else if (daysInactive >= 30) status = 'Inactive'
-        else if (daysInactive >= 14) status = 'Disengaged'
-        else if (daysInactive >= 7) status = 'At Risk'
+
+        const hasPT = ptEnabledSet.has(profile.id)
+        const hasClasses = membershipSet.has(profile.id)
+        let clientType: Client['clientType']
+        if (hasPT && hasClasses) clientType = 'both'
+        else if (hasPT) clientType = 'pt'
+        else if (hasClasses) clientType = 'classes'
+        else clientType = 'none'
 
         return {
           id: profile.id,
@@ -163,6 +212,7 @@ export default function ClientsPage() {
           email: profile.email || '',
           programs,
           status,
+          clientType,
           last_activity_date: lastActivity,
         }
       })
@@ -203,23 +253,43 @@ export default function ClientsPage() {
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32 h-8 text-sm bg-card">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {['All', 'Active', 'Lead', 'At Risk', 'Disengaged', 'Inactive', 'Archived'].map(s => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="h-8 text-sm bg-card gap-1.5 px-3 relative">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filters
+              {(statusFilter !== 'All' || typeFilter !== 'All') && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-medium">
+                  {(statusFilter !== 'All' ? 1 : 0) + (typeFilter !== 'All' ? 1 : 0)}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Status</div>
+            {['All', 'Active', 'Lead', 'Inactive', 'Archived'].map(s => (
+              <DropdownMenuItem key={s} onClick={() => setStatusFilter(s)} className="flex items-center justify-between">
+                {s}
+                {statusFilter === s && <Check className="h-3.5 w-3.5 text-primary" />}
+              </DropdownMenuItem>
             ))}
-          </SelectContent>
-        </Select>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Type</div>
+            {['All', 'Classes', 'Personal Training', 'Full', 'None'].map(t => (
+              <DropdownMenuItem key={t} onClick={() => setTypeFilter(t)} className="flex items-center justify-between">
+                {t}
+                {typeFilter === t && <Check className="h-3.5 w-3.5 text-primary" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     )
     return () => setHeaderSearch(null)
-  }, [searchQuery, statusFilter, setHeaderSearch])
+  }, [searchQuery, statusFilter, typeFilter, setHeaderSearch])
 
   // Reset page on filter change
-  useEffect(() => { setPage(1) }, [searchQuery, statusFilter])
+  useEffect(() => { setPage(1) }, [searchQuery, statusFilter, typeFilter])
 
   const handleAddClient = async () => {
     if (!user || !newFirstName.trim() || !newEmail.trim()) return
@@ -284,7 +354,9 @@ export default function ClientsPage() {
       c.email.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === 'All' || c.status === statusFilter
     const notArchived = statusFilter !== 'All' ? true : c.status !== 'Archived'
-    return matchesSearch && matchesStatus && notArchived
+    const typeLabel = TYPE_LABELS[c.clientType]
+    const matchesType = typeFilter === 'All' || typeLabel === typeFilter
+    return matchesSearch && matchesStatus && notArchived && matchesType
   })
 
   const sorted = sortData(filtered, sortConfig)
@@ -335,7 +407,8 @@ export default function ClientsPage() {
                     onClick={() => handleSort('first_name')}
                   />
                 </TableHead>
-                <TableHead className="text-xs font-medium">Programs</TableHead>
+                <TableHead className="text-xs font-medium">Type</TableHead>
+                <TableHead className="text-xs font-medium hidden md:table-cell">Programs</TableHead>
                 <TableHead className="text-xs font-medium">Status</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
@@ -361,12 +434,19 @@ export default function ClientsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
+                    <Badge variant="outline" className={`text-xs ${TYPE_COLOURS[client.clientType]}`}>
+                      {TYPE_LABELS[client.clientType]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="py-3 hidden md:table-cell">
                     <span className="text-sm text-muted-foreground truncate max-w-[200px] block">
-                      {client.programs}
+                      {(client.clientType === 'pt' || client.clientType === 'both')
+                        ? client.programs
+                        : client.programs !== 'No Programs' ? client.programs : ''}
                     </span>
                   </TableCell>
                   <TableCell className="py-3">
-                    <Badge variant={STATUS_VARIANTS[client.status] ?? 'outline'} className="text-xs">
+                    <Badge variant="outline" className={`text-xs ${STATUS_COLOURS[client.status] ?? ''}`}>
                       {client.status}
                     </Badge>
                   </TableCell>

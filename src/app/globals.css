@@ -97,6 +97,10 @@
   --foreground: var(--color-text);
   --card: #ffffff;
   --card-foreground: var(--color-text);
+  --session-class-bg: #dcfce7;
+  --session-appointment-bg: #dbeafe;
+  --session-event-bg: #ffedd5;
+  --session-challenge-bg: #f3e8ff;
   --popover: #ffffff;
   --popover-foreground: var(--color-text);
   --muted: #f1f5f9;
@@ -161,6 +165,7 @@ html, body {
     --card: #18181b;
     --card-foreground: #fafafa;
     --card-bg: #18181b;
+  
     --muted: #27272a;
     --muted-foreground: #a1a1aa;
     --border: #27272a;
@@ -168,6 +173,38 @@ html, body {
     --color-text: #fafafa;
     --color-background: #09090b;
   }
+}
+
+/* Session card colours — light mode */
+:root {
+  --session-class-bg: #dcfce7;
+  --session-class-title: #14532d;
+  --session-class-sub: #15803d;
+  --session-appointment-bg: #dbeafe;
+  --session-appointment-title: #1e3a5f;
+  --session-appointment-sub: #1d4ed8;
+  --session-event-bg: #ffedd5;
+  --session-event-title: #7c2d12;
+  --session-event-sub: #c2410c;
+  --session-challenge-bg: #f3e8ff;
+  --session-challenge-title: #3b0764;
+  --session-challenge-sub: #7e22ce;
+}
+
+/* Session card colours — dark mode */
+html.dark {
+  --session-class-bg: rgba(5, 46, 22, 0.3);
+  --session-class-title: #bbf7d0;
+  --session-class-sub: #86efac;
+  --session-appointment-bg: rgba(23, 37, 84, 0.3);
+  --session-appointment-title: #bfdbfe;
+  --session-appointment-sub: #93c5fd;
+  --session-event-bg: rgba(67, 20, 7, 0.3);
+  --session-event-title: #fed7aa;
+  --session-event-sub: #fdba74;
+  --session-challenge-bg: rgba(46, 16, 101, 0.3);
+  --session-challenge-title: #e9d5ff;
+  --session-challenge-sub: #d8b4fe;
 }
 
 /* Container — matches Tailwind v3 centered+padded behaviour that source blocks expect.

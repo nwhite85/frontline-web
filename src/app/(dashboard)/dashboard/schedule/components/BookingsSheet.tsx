@@ -260,7 +260,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, title,
         <Separator />
 
         {/* Bookings list */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-4 pb-2">
           {loading ? (
             <div className="flex flex-col gap-2 p-1">
               {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}

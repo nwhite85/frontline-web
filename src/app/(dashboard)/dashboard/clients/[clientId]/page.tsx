@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -50,18 +51,28 @@ interface ClientProfile {
 // ─── Edit Sheet ───────────────────────────────────────────────────────────────
 
 function EditClientSheet({
-  open, onOpenChange, client, onSaved,
-}: { open: boolean; onOpenChange: (v: boolean) => void; client: ClientProfile; onSaved: (c: ClientProfile) => void }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', date_of_birth: '', bio: '', status: 'Active' })
+  open, onOpenChange, client, onSaved, trainerId,
+}: { open: boolean; onOpenChange: (v: boolean) => void; client: ClientProfile; onSaved: (c: ClientProfile) => void; trainerId: string }) {
+  const [form, setForm] = useState({ name: '', email: '', phone: '', date_of_birth: '', bio: '', status: 'Active', client_type: 'classes' })
+  const [ptEnabled, setPtEnabled] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
-      setForm({ name: client.name ?? '', email: client.email ?? '', phone: client.phone ?? '', date_of_birth: client.date_of_birth ?? '', bio: client.bio ?? '', status: client.status ?? 'Active' })
+      setForm({ name: client.name ?? '', email: client.email ?? '', phone: client.phone ?? '', date_of_birth: client.date_of_birth ?? '', bio: client.bio ?? '', status: client.status ?? 'Active', client_type: (client as unknown as Record<string, unknown>).client_type as string ?? 'classes' })
       setError(null)
+      // Load PT status from trainer_client
+      supabase
+        .from('trainer_client')
+        .select('appointment_status')
+        .eq('trainer_id', trainerId)
+        .eq('client_id', client.id)
+        .maybeSingle()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .then(({ data }) => setPtEnabled((data as any)?.appointment_status === 'active'))
     }
-  }, [open, client])
+  }, [open, client, trainerId])
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
@@ -72,9 +83,18 @@ function EditClientSheet({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error: err } = await (supabase as any)
         .from('user_profiles')
-        .update({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() || null, date_of_birth: form.date_of_birth || null, bio: form.bio.trim() || null, status: form.status || null })
+        .update({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() || null, date_of_birth: form.date_of_birth || null, bio: form.bio.trim() || null, status: form.status || null, client_type: form.client_type })
         .eq('id', client.id).select().single()
       if (err) throw err
+
+      // Save PT status to trainer_client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('trainer_client')
+        .update({ appointment_status: ptEnabled ? 'active' : 'inactive' })
+        .eq('trainer_id', trainerId)
+        .eq('client_id', client.id)
+
       onSaved(data as ClientProfile)
       onOpenChange(false)
     } catch (err) { setError(getErrorMessage(err)) }
@@ -99,6 +119,28 @@ function EditClientSheet({
             </Select>
           </div>
           <div className="grid gap-1.5"><Label>Notes / Bio</Label><Textarea value={form.bio} onChange={e => set('bio', e.target.value)} rows={3} placeholder="Optional notes…" /></div>
+          <div className="grid gap-1.5">
+            <Label>Membership Type</Label>
+            <Select value={form.client_type} onValueChange={v => set('client_type', v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="classes">Classes</SelectItem>
+                <SelectItem value="pt">Personal Training</SelectItem>
+                <SelectItem value="both">PT + Classes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+            <div>
+              <p className="text-sm font-medium">Personal Training</p>
+              <p className="text-xs text-muted-foreground">Shows PT tab in client app</p>
+            </div>
+            <Switch checked={ptEnabled} onCheckedChange={v => {
+              setPtEnabled(v)
+              if (v && form.client_type === 'classes') set('client_type', 'pt')
+              if (!v && form.client_type === 'pt') set('client_type', 'classes')
+            }} />
+          </div>
         </SheetBody>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -1680,7 +1722,7 @@ export default function ClientDetailPage() {
         )}
       </div>
 
-      {client && <EditClientSheet open={editOpen} onOpenChange={setEditOpen} client={client} onSaved={setClient} />}
+      {client && user && <EditClientSheet open={editOpen} onOpenChange={setEditOpen} client={client} onSaved={setClient} trainerId={user.id} />}
     </div>
   )
 }

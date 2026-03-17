@@ -336,7 +336,7 @@ export function SessionDetailSheet({
           <SheetTitle className="text-lg font-semibold mt-2">{getTitle()}</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+        <div className="flex-1 overflow-y-auto space-y-4 px-4 pb-2">
           {/* Date & Time */}
           <div className="space-y-2">
             {formattedDate && (

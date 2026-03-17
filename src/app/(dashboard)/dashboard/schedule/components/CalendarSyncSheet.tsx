@@ -126,7 +126,7 @@ export function CalendarSyncSheet({ open, onClose, userId }: CalendarSyncSheetPr
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-5 flex-1 overflow-y-auto py-2 px-1">
+        <div className="flex flex-col gap-5 flex-1 overflow-y-auto py-2 px-4">
           {loading ? (
             <div className="flex flex-col gap-3">
               <Skeleton className="h-10 w-full" />
