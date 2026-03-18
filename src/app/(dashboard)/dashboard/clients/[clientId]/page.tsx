@@ -617,6 +617,7 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
   const assignProgram = async (program: any) => {
     setAssigning(true)
     try {
+      // 1. Insert client_programs row
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('client_programs').insert({
         client_id: clientId,
@@ -625,10 +626,58 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
         status: 'active',
         assigned_at: new Date().toISOString(),
       })
+
+      // 2. Copy program_workouts → workout_instances + workout_instance_exercises
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: programWorkouts } = await (supabase as any)
+        .from('program_workouts')
+        .select('id, workout_id, week_number, day_number, workout_type')
+        .eq('program_id', program.id)
+
+      if (programWorkouts && programWorkouts.length > 0) {
+        for (const pw of programWorkouts) {
+          // Create workout instance
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: instance } = await (supabase as any)
+            .from('workout_instances')
+            .insert({
+              program_id: program.id,
+              week_number: pw.week_number,
+              day_number: pw.day_number,
+              workout_type: pw.workout_type ?? 'strength',
+            })
+            .select('id')
+            .single()
+
+          if (!instance?.id) continue
+
+          // Fetch exercises from the source workout
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: exercises } = await (supabase as any)
+            .from('workout_exercises')
+            .select('exercise_id, position, set_count, reps, weight, rest_seconds, notes, time, distance, calories, superset_id, is_dropset, dropset_weights, dropset_application, dropset_reps, dropset_notes, dropset_time, dropset_distance, dropset_calories, measurement_type')
+            .eq('workout_id', pw.workout_id)
+
+          if (exercises && exercises.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (supabase as any).from('workout_instance_exercises').insert(
+              exercises.map((ex: any) => ({
+                ...ex,
+                workout_instance_id: instance.id,
+                set_count: String(ex.set_count ?? '3'),
+                dropset_weights: ex.dropset_weights ?? '[]',
+              }))
+            )
+          }
+        }
+      }
+
       setShowAssignProgram(false)
       setProgramSearch('')
       await loadAssigned()
-    } catch {} finally { setAssigning(false) }
+    } catch (err) {
+      logger.error('Error assigning program:', err)
+    } finally { setAssigning(false) }
   }
 
   const assignWorkout = async (workout: any) => {

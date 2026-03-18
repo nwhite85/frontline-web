@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Plus, Settings, MoreHorizontal, Copy, Trash2, Moon, ChevronDown, Dumbbell } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -224,7 +225,7 @@ export default function ProgramBuilderPage() {
   const [copiedSlot, setCopiedSlot] = useState<{ week: number; day: number } | null>(null)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsForm, setSettingsForm] = useState({ weeks: '4', days: '3', type: 'strength' })
+  const [settingsForm, setSettingsForm] = useState({ weeks: '4', days: '3', type: 'strength', showAllWorkouts: false })
   const titleSaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // ── Fetch ──
@@ -267,6 +268,7 @@ export default function ProgramBuilderPage() {
           weeks: String(p.duration_weeks ?? 4),
           days: String(p.training_days_per_week ?? 3),
           type: p.program_type ?? 'strength',
+          showAllWorkouts: (p as unknown as Record<string, unknown>).show_all_workouts === true,
         })
 
         const slotMap: Record<SlotKey, Slot> = {}
@@ -423,7 +425,7 @@ export default function ProgramBuilderPage() {
     const days = parseInt(settingsForm.days, 10) || 3
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).from('programs').update({
-      duration_weeks: weeks, training_days_per_week: days, program_type: settingsForm.type,
+      duration_weeks: weeks, training_days_per_week: days, program_type: settingsForm.type, show_all_workouts: settingsForm.showAllWorkouts,
     }).eq('id', programId)
     if (error) { toast.error('Failed to save settings'); return }
     setWeeksCount(weeks)
@@ -617,6 +619,16 @@ export default function ProgramBuilderPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 mt-1">
+              <div>
+                <p className="text-sm font-medium">Show all workouts</p>
+                <p className="text-xs text-muted-foreground">Client app shows every workout, not just the current week. Assigned week is highlighted in green.</p>
+              </div>
+              <Switch
+                checked={settingsForm.showAllWorkouts}
+                onCheckedChange={v => setSettingsForm(f => ({ ...f, showAllWorkouts: v }))}
+              />
             </div>
           </SheetBody>
           <SheetFooter>
