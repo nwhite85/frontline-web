@@ -216,10 +216,12 @@ export default function ProgramBuilderPage() {
             .eq('id', programId)
             .eq('trainer_id', user.id)
             .maybeSingle(),
-          supabase
-            .from('workout_instances')
-            .select('week_number, day_number, workout_template_id, title')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any)
+            .from('program_workouts')
+            .select('week_number, day_number, workout_id, workouts(id, title)')
             .eq('program_id', programId)
+            .not('workout_id', 'is', null)
             .order('week_number')
             .order('day_number'),
           supabase
@@ -246,13 +248,13 @@ export default function ProgramBuilderPage() {
         })
 
         const slotMap: Record<SlotKey, Slot> = {}
-        // Real workout instances — title stored directly on the row
-        type WIRow = { week_number: number; day_number: number; workout_template_id: string | null; title: string | null }
+        // Workouts from program_workouts joined to workouts table
+        type PWWorkoutRow = { week_number: number; day_number: number; workout_id: string; workouts: { id: string; title: string } | null }
         type PWRow = { week_number: number; day_number: number }
-        for (const wi of (wiRes.data as unknown as WIRow[]) || []) {
-          slotMap[`${wi.week_number}-${wi.day_number}`] = {
-            workoutId: wi.workout_template_id,
-            workoutTitle: wi.title,
+        for (const pw of (wiRes.data as unknown as PWWorkoutRow[]) || []) {
+          slotMap[`${pw.week_number}-${pw.day_number}`] = {
+            workoutId: pw.workout_id,
+            workoutTitle: pw.workouts?.title ?? null,
             isRest: false,
           }
         }
@@ -318,27 +320,16 @@ export default function ProgramBuilderPage() {
     } else {
       setSlots(prev => { const n = { ...prev }; delete n[key]; return n })
     }
-    // Always clear both tables for this slot first
-    await Promise.all([
-      supabase.from('workout_instances').delete().eq('program_id', programId).eq('week_number', week).eq('day_number', day),
-      supabase.from('program_workouts').delete().eq('program_id', programId).eq('week_number', week).eq('day_number', day),
-    ])
+    // Clear this slot from program_workouts
+    await supabase.from('program_workouts').delete().eq('program_id', programId).eq('week_number', week).eq('day_number', day)
     if (slot) {
-      if (slot.isRest) {
-        // Rest days stored in program_workouts with workout_id null
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase as any).from('program_workouts').insert({
-          program_id: programId, week_number: week, day_number: day, workout_id: null,
-        })
-        if (error) toast.error('Failed to save')
-      } else {
-        // Real workouts stored in workout_instances
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase as any).from('workout_instances').insert({
-          program_id: programId, workout_template_id: slot.workoutId, title: slot.workoutTitle, week_number: week, day_number: day,
-        })
-        if (error) toast.error('Failed to save')
-      }
+      // All slots stored in program_workouts — workout_id null = rest day
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from('program_workouts').insert({
+        program_id: programId, week_number: week, day_number: day,
+        workout_id: slot.isRest ? null : slot.workoutId,
+      })
+      if (error) toast.error('Failed to save')
     }
   }, [programId])
 
@@ -377,19 +368,15 @@ export default function ProgramBuilderPage() {
       fromEntries.forEach(([k, s]) => { n[`${toWeek}-${parseInt(k.split('-')[1], 10)}`] = { ...s } })
       return n
     })
-    const restInserts = fromEntries.filter(([, s]) => s.isRest).map(([k]) => ({
-      program_id: programId, week_number: toWeek, day_number: parseInt(k.split('-')[1], 10), workout_id: null,
-    }))
-    const wiInserts = fromEntries.filter(([, s]) => !s.isRest && s.workoutId).map(([k, s]) => ({
-      program_id: programId, workout_template_id: s.workoutId, title: s.workoutTitle, week_number: toWeek, day_number: parseInt(k.split('-')[1], 10),
+    const allInserts = fromEntries.map(([k, s]) => ({
+      program_id: programId,
+      week_number: toWeek,
+      day_number: parseInt(k.split('-')[1], 10),
+      workout_id: s.isRest ? null : s.workoutId,
     }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any
-    const [r1, r2] = await Promise.all([
-      restInserts.length ? db.from('program_workouts').insert(restInserts) : Promise.resolve({ error: null }),
-      wiInserts.length ? db.from('workout_instances').insert(wiInserts) : Promise.resolve({ error: null }),
-    ])
-    if (r1.error || r2.error) toast.error('Copy failed')
+    const { error } = await (supabase as any).from('program_workouts').insert(allInserts)
+    if (error) toast.error('Copy failed')
     else toast.success(`Week ${fromWeek} → Week ${toWeek}`)
   }, [programId, slots])
 
