@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { Plus, Settings, MoreHorizontal, Copy, Trash2, Moon, ChevronDown, Dumbbell } from 'lucide-react'
+import { Plus, Settings, MoreHorizontal, Copy, Trash2, Moon, ChevronDown, Dumbbell, ClipboardPaste } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 
@@ -64,143 +64,117 @@ function DayCell({ slot, week, day, workouts, onAssign, onRest, onClear, onCopy,
   const isRest = slot?.isRest ?? false
   const hasWorkout = !!slot?.workoutId && !isRest
 
-  return (
-    <div
-      className={cn(
-        'relative group/cell border-r border-b border-border min-h-[90px] transition-colors select-none',
-        isEmpty && 'hover:bg-muted/30 cursor-pointer',
-        isRest && 'bg-muted/20',
-        hasWorkout && 'bg-primary/[0.04] hover:bg-primary/[0.08]',
-        isSource && 'ring-1 ring-inset ring-primary/50 bg-primary/[0.04]',
-      )}
-      onClick={isEmpty ? () => setPickerOpen(true) : undefined}
-    >
-      {/* Tiny invisible anchor for the popover — avoids click conflict with cell */}
-      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-        <PopoverTrigger asChild>
-          <span className="absolute top-0 left-0 w-px h-px pointer-events-none" aria-hidden />
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-0" align="start" sideOffset={4}>
-          <Command>
-            <CommandInput placeholder="Search workouts…" className="h-8" />
-            <CommandList className="max-h-56">
-              <CommandEmpty>No workouts found</CommandEmpty>
-              <CommandGroup>
-                {workouts.map(w => (
-                  <CommandItem
-                    key={w.id}
-                    value={w.title}
-                    onSelect={async () => { await onAssign(week, day, w.id, w.title); setPickerOpen(false) }}
-                  >
-                    <Dumbbell className="h-3.5 w-3.5 mr-2 text-muted-foreground shrink-0" />
-                    <span className="text-sm truncate">{w.title}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-              <CommandGroup heading="Options">
-                <CommandItem value="__rest" onSelect={async () => { await onRest(week, day); setPickerOpen(false) }}>
-                  <Moon className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                  <span className="text-sm">Rest / Recovery</span>
+  const WorkoutPicker = (
+    <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+      <PopoverTrigger asChild>
+        <span className="absolute top-0 left-0 w-px h-px pointer-events-none" aria-hidden />
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start" sideOffset={4}>
+        <Command>
+          <CommandInput placeholder="Search workouts…" className="h-8" />
+          <CommandList className="max-h-56">
+            <CommandEmpty>No workouts found</CommandEmpty>
+            <CommandGroup>
+              {workouts.map(w => (
+                <CommandItem key={w.id} value={w.title} onSelect={async () => { await onAssign(week, day, w.id, w.title); setPickerOpen(false) }}>
+                  <Dumbbell className="h-3.5 w-3.5 mr-2 text-muted-foreground shrink-0" />
+                  <span className="text-sm truncate">{w.title}</span>
                 </CommandItem>
-                {slot && (
-                  <CommandItem
-                    value="__clear"
-                    className="text-destructive data-[selected=true]:text-destructive"
-                    onSelect={async () => { await onClear(week, day); setPickerOpen(false) }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-2" />
-                    <span className="text-sm">Clear slot</span>
-                  </CommandItem>
-                )}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+              ))}
+            </CommandGroup>
+            <CommandGroup heading="Options">
+              <CommandItem value="__rest" onSelect={async () => { await onRest(week, day); setPickerOpen(false) }}>
+                <Moon className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                <span className="text-sm">Rest / Recovery</span>
+              </CommandItem>
+              {slot && (
+                <CommandItem value="__clear" className="text-destructive data-[selected=true]:text-destructive" onSelect={async () => { await onClear(week, day); setPickerOpen(false) }}>
+                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                  <span className="text-sm">Clear slot</span>
+                </CommandItem>
+              )}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
 
-      {/* ── Empty ── */}
+  return (
+    <div className={cn('relative group/cell border-r border-b border-border p-1.5 min-h-[44px] flex items-center', isSource && 'bg-primary/5')}>
+      {WorkoutPicker}
+
+      {/* ── Empty cell ── */}
       {isEmpty && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <Plus className="h-4 w-4 text-muted-foreground opacity-0 group-hover/cell:opacity-100 transition-opacity" />
+        <div className="w-full h-full flex items-center justify-center">
+          {hasCopied ? (
+            <button
+              onClick={async e => { e.stopPropagation(); await onPaste(week, day) }}
+              className="flex items-center gap-1 px-2 py-1 rounded border border-dashed border-primary/40 text-primary hover:bg-primary/10 transition-colors text-[11px] font-medium"
+              title="Paste"
+            >
+              <ClipboardPaste className="h-3 w-3" />
+              Paste
+            </button>
+          ) : (
+            <button
+              onClick={() => setPickerOpen(true)}
+              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors opacity-0 group-hover/cell:opacity-100"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
 
-      {/* ── Rest day ── */}
+      {/* ── Rest chip ── */}
       {isRest && (
-        <div className="flex items-start justify-between p-2.5">
-          <div className="flex items-center gap-1.5 pt-0.5">
-            <Moon className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">Rest</span>
-          </div>
+        <div className="flex items-center gap-1.5 w-full">
+          <span className="flex-1 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-muted-foreground text-[11px] font-medium cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => setPickerOpen(true)}>
+            <Moon className="h-3 w-3 shrink-0" />
+            Rest
+          </span>
+          <button onClick={async e => { e.stopPropagation(); await onClear(week, day) }} className="h-5 w-5 shrink-0 flex items-center justify-center rounded hover:bg-muted text-muted-foreground opacity-0 group-hover/cell:opacity-100 transition-opacity">
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Workout chip ── */}
+      {hasWorkout && (
+        <div className="flex items-center gap-1 w-full min-w-0">
+          <button
+            className={cn('flex-1 min-w-0 px-2 py-1 rounded-md text-[11px] font-semibold text-left truncate transition-colors',
+              isSource ? 'bg-primary text-primary-foreground' : 'bg-primary/15 text-primary hover:bg-primary/25'
+            )}
+            onClick={() => router.push(`/dashboard/workouts/${slot!.workoutId}`)}
+            title={slot!.workoutTitle ?? ''}
+          >
+            {slot!.workoutTitle}
+          </button>
+          {/* Copy icon — always visible */}
+          <button
+            onClick={e => { e.stopPropagation(); onCopy(week, day); toast.success('Copied — click a cell to paste') }}
+            className="shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-muted text-muted-foreground transition-colors"
+            title="Copy"
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+          {/* Change / remove menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-              <button className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-muted/60 opacity-0 group-hover/cell:opacity-100 transition-opacity">
-                <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+              <button className="shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-muted text-muted-foreground opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                <MoreHorizontal className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={e => { e.stopPropagation(); setPickerOpen(true) }}>Change</DropdownMenuItem>
-              <DropdownMenuItem onClick={e => { e.stopPropagation(); onCopy(week, day); toast.success('Slot copied') }}>Copy slot</DropdownMenuItem>
+              <DropdownMenuItem onClick={e => { e.stopPropagation(); setPickerOpen(true) }}>Change workout</DropdownMenuItem>
+              <DropdownMenuItem onClick={async e => { e.stopPropagation(); await onRest(week, day) }}>Mark as rest</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={async e => { e.stopPropagation(); await onClear(week, day) }}
-              >Clear</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={async e => { e.stopPropagation(); await onClear(week, day) }}>Remove</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      )}
-
-      {/* ── Workout ── */}
-      {hasWorkout && (
-        <div
-          className="flex flex-col p-2.5 min-h-[90px] cursor-pointer"
-          onClick={() => router.push(`/dashboard/workouts/${slot!.workoutId}`)}
-        >
-          <div className="flex items-start justify-between gap-1">
-            <span className="text-xs font-semibold leading-snug line-clamp-3 flex-1">
-              {slot!.workoutTitle}
-            </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-                <button className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded hover:bg-muted/60 opacity-0 group-hover/cell:opacity-100 transition-opacity -mt-0.5 -mr-0.5">
-                  <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/workouts/${slot!.workoutId}`) }}>
-                  Open workout
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={e => { e.stopPropagation(); setPickerOpen(true) }}>
-                  Change workout
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={e => { e.stopPropagation(); onCopy(week, day); toast.success('Slot copied') }}>
-                  Copy slot
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={async e => { e.stopPropagation(); await onRest(week, day) }}>
-                  Mark as rest
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={async e => { e.stopPropagation(); await onClear(week, day) }}
-                >Remove</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      )}
-
-      {/* ── Paste button — only when clipboard is set and this isn't the source ── */}
-      {hasCopied && (
-        <button
-          className="absolute bottom-1.5 right-1.5 h-5 w-5 rounded border border-border bg-background hover:bg-muted inline-flex items-center justify-center opacity-0 group-hover/cell:opacity-100 transition-opacity z-10"
-          onClick={async e => { e.stopPropagation(); await onPaste(week, day) }}
-          title="Paste copied session"
-        >
-          <Copy className="h-3 w-3 text-muted-foreground" />
-        </button>
       )}
     </div>
   )
@@ -506,17 +480,19 @@ export default function ProgramBuilderPage() {
       <div className="overflow-x-auto">
         <div style={{
           display: 'grid',
-          gridTemplateColumns: `72px repeat(${daysPerWeek}, minmax(140px, 1fr))`,
-          minWidth: `${72 + daysPerWeek * 140}px`,
+          gridTemplateColumns: `52px repeat(${daysPerWeek}, minmax(100px, 160px)) 36px`,
+          width: 'fit-content',
+          maxWidth: '100%',
         }}>
 
           {/* Header row */}
-          <div className="h-9 border-r border-b border-border bg-muted/30" />
+          <div className="h-8 border-r border-b border-border bg-muted/30" />
           {Array.from({ length: daysPerWeek }, (_, i) => (
-            <div key={i} className="h-9 flex items-center justify-center border-r border-b border-border bg-muted/30">
-              <span className="text-xs font-medium text-muted-foreground">Day {i + 1}</span>
+            <div key={i} className="h-8 flex items-center justify-center border-r border-b border-border bg-muted/30">
+              <span className="text-[11px] font-medium text-muted-foreground">Day {i + 1}</span>
             </div>
           ))}
+          <div className="h-8 border-b border-border bg-muted/30" />
 
           {/* Week rows */}
           {Array.from({ length: weeksCount }, (_, weekIdx) => {
@@ -528,28 +504,8 @@ export default function ProgramBuilderPage() {
             return (
               <React.Fragment key={week}>
                 {/* Week label */}
-                <div className="relative flex flex-col items-center justify-center border-r border-b border-border bg-muted/20 min-h-[90px] gap-0.5 group/week px-1 py-2">
-                  <span className="text-xs font-semibold">Wk {week}</span>
-                  {(workoutCount > 0 || restCount > 0) && (
-                    <div className="flex flex-col items-center gap-0">
-                      {workoutCount > 0 && (
-                        <span className="text-[10px] text-muted-foreground leading-tight">{workoutCount}s</span>
-                      )}
-                      {restCount > 0 && (
-                        <span className="text-[10px] text-muted-foreground leading-tight">{restCount}r</span>
-                      )}
-                    </div>
-                  )}
-                  {/* Copy to next week */}
-                  {week < weeksCount && (
-                    <button
-                      className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover/week:opacity-100 transition-opacity h-5 w-5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center shadow-sm border border-primary/20"
-                      onClick={() => copyWeekToNext(week)}
-                      title={`Copy to Wk ${week + 1}`}
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                  )}
+                <div className="flex flex-col items-center justify-center border-r border-b border-border bg-muted/20 min-h-[44px] gap-1 px-1">
+                  <span className="text-[11px] font-semibold text-muted-foreground">W{week}</span>
                 </div>
 
                 {/* Day cells */}
@@ -572,6 +528,19 @@ export default function ProgramBuilderPage() {
                     />
                   )
                 })}
+
+                {/* Duplicate week button */}
+                <div className="border-b border-border flex items-center justify-center min-h-[44px]">
+                  {week < weeksCount && (
+                    <button
+                      onClick={() => copyWeekToNext(week)}
+                      title={`Duplicate week ${week} → week ${week + 1}`}
+                      className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-primary transition-colors"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </React.Fragment>
             )
           })}
