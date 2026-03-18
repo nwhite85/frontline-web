@@ -607,8 +607,9 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
     loadAssigned()
     // Fetch all trainer programs/workouts for assign sheets
     if (trainerId) {
-      supabase.from('programs').select('id, title, subtitle, program_type, duration_weeks, training_days_per_week').eq('trainer_id', trainerId)
-        .then(({ data }) => setAllPrograms(data || []))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(supabase as any).from('programs').select('id, title, subtitle, program_type, duration_weeks, training_days_per_week, program_workouts(count)').eq('trainer_id', trainerId)
+        .then(({ data }: any) => setAllPrograms(data || []))
       supabase.from('workouts').select('id, title, estimated_duration').eq('trainer_id', trainerId).eq('is_template', false)
         .then(({ data }) => setAllWorkouts(data || []))
     }
@@ -842,11 +843,12 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium leading-snug">{p.title}</p>
-                      {(p.subtitle || meta) && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {p.subtitle || meta}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {[p.subtitle, meta].filter(Boolean).join(' · ')}
+                        {(p as any).program_workouts?.[0]?.count > 0
+                          ? ` · ${(p as any).program_workouts[0].count} workouts`
+                          : ' · No workouts'}
+                      </p>
                     </div>
                     {p.duration_weeks && <span className="text-xs text-muted-foreground ml-3 shrink-0 mt-0.5">{p.duration_weeks}w</span>}
                   </button>
