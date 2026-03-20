@@ -1401,9 +1401,9 @@ export default function WorkoutBuilderPage() {
   return (
     <>
     {isInstance && (
-      <div className="mx-6 mt-4 flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+      <div className="mx-6 mt-4 flex items-center gap-2 rounded-md bg-blue-500/10 border border-blue-500/20 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
         <span className="font-medium">Program instance</span>
-        <span className="text-amber-600/70 dark:text-amber-400/70">— Changes here only affect this program. The original template is unchanged.</span>
+        <span className="text-blue-600/70 dark:text-blue-300/70">— Changes here only affect this program. The original template is unchanged.</span>
       </div>
     )}
     <div data-ui-exempt className="flex flex-col overflow-hidden m-6" style={{ borderRadius: 'var(--table-radius)', background: 'var(--card-bg)', boxShadow: 'var(--card-box-shadow)' }}>
