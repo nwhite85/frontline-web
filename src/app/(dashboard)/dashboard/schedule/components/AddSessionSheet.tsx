@@ -179,10 +179,16 @@ export function AddSessionSheet({
       if (activeTab === 'appointment') {
         const template = appointmentTemplates.find(t => t.id === aptTemplate)
         const status = aptBookingType === 'available' ? 'available' : 'scheduled'
+        const calcEndTime = (start: string, mins: number) => {
+          const [h, m] = start.split(':').map(Number)
+          const total = h * 60 + m + mins
+          return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+        }
         const insertData: any = {
           trainer_id: trainerId,
           appointment_date: selectedSlot.date,
           start_time: aptTime,
+          end_time: calcEndTime(aptTime, aptDuration),
           duration_minutes: aptDuration,
           location: aptLocation || null,
           notes: aptNotes || null,
