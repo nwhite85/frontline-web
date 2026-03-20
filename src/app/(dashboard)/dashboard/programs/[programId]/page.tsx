@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -188,7 +189,7 @@ export default function ProgramBuilderPage() {
   const router = useRouter()
   const programId = params.programId as string
   const { user } = useSimpleAuth()
-  const { setActions } = usePageActions()
+  const { setActions, setHeaderSearch } = usePageActions()
 
   const [program, setProgram] = useState<Program | null>(null)
   const [title, setTitle] = useState('')
@@ -280,9 +281,30 @@ export default function ProgramBuilderPage() {
   useEffect(() => {
     if (!program && !loading) return
     setActions(
-      <div className="flex items-center gap-3 min-w-0">
-        {/* Title + subtitle in top bar */}
-        <div className="flex flex-col min-w-0 flex-1 hidden sm:flex">
+      <div className="flex items-center gap-2">
+        <span className={cn(
+          'text-xs transition-opacity duration-200',
+          saveStatus === 'idle' ? 'opacity-0' : 'opacity-100',
+          saveStatus === 'error' ? 'text-destructive' : 'text-muted-foreground',
+        )}>
+          {saveStatus === 'saving' && 'Saving…'}
+          {saveStatus === 'saved' && 'Saved'}
+          {saveStatus === 'error' && 'Save failed'}
+        </span>
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-card" onClick={() => setSettingsOpen(true)}>
+          <Settings className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="outline" className="bg-card h-8" onClick={() => router.push('/dashboard/programs')}>Done</Button>
+      </div>
+    )
+    return () => setActions(null)
+  }, [setActions, saveStatus, router])
+
+  useEffect(() => {
+    if (loading) return
+    setHeaderSearch(
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex flex-col min-w-0 flex-1">
           <input
             className="text-sm font-semibold bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-muted-foreground leading-tight"
             value={title}
@@ -296,33 +318,19 @@ export default function ProgramBuilderPage() {
             placeholder="Client name…"
           />
         </div>
-        {/* Metadata pills */}
         <div className="flex items-center gap-1.5 shrink-0">
           {program?.program_type && (
             <Badge variant="outline" className="bg-card text-xs capitalize hidden md:flex">
               {program.program_type.replace(/_/g, ' ')}
             </Badge>
           )}
-          <Badge variant="outline" className="bg-card text-xs">{weeksCount}wk · {daysPerWeek}d/wk</Badge>
+          <Badge variant="outline" className="bg-card text-xs shrink-0">{weeksCount}wk · {daysPerWeek}d/wk</Badge>
         </div>
-        <span className={cn(
-          'text-xs transition-opacity duration-200 shrink-0',
-          saveStatus === 'idle' ? 'opacity-0' : 'opacity-100',
-          saveStatus === 'error' ? 'text-destructive' : 'text-muted-foreground',
-        )}>
-          {saveStatus === 'saving' && 'Saving…'}
-          {saveStatus === 'saved' && 'Saved'}
-          {saveStatus === 'error' && 'Save failed'}
-        </span>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-card shrink-0" onClick={() => setSettingsOpen(true)}>
-          <Settings className="h-3.5 w-3.5" />
-        </Button>
-        <Button variant="outline" className="bg-card h-8 shrink-0" onClick={() => router.push('/dashboard/programs')}>Done</Button>
       </div>
     )
-    return () => setActions(null)
+    return () => setHeaderSearch(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setActions, program, saveStatus, loading, router, title, subtitle, weeksCount, daysPerWeek])
+  }, [setHeaderSearch, loading, title, subtitle, program, weeksCount, daysPerWeek])
 
   useEffect(() => () => clearTimeout(titleSaveTimer.current), [])
 
@@ -550,7 +558,10 @@ export default function ProgramBuilderPage() {
       )}
 
       {/* Calendar grid */}
-      <div className="overflow-x-auto p-4">
+      <div className="p-4">
+      <Card data-table-card className="py-0 overflow-hidden" style={{ borderRadius: 'var(--table-radius)' }}>
+      <CardContent className="p-0">
+      <div className="overflow-x-auto">
         <div style={{
           display: 'grid',
           gridTemplateColumns: `52px repeat(${daysPerWeek}, minmax(100px, 160px)) 36px`,
@@ -619,6 +630,9 @@ export default function ProgramBuilderPage() {
             )
           })}
         </div>
+      </div>
+      </CardContent>
+      </Card>
       </div>
 
       {/* Settings Sheet */}
