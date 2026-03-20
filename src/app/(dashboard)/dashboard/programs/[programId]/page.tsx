@@ -280,9 +280,33 @@ export default function ProgramBuilderPage() {
   useEffect(() => {
     if (!program && !loading) return
     setActions(
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        {/* Title + subtitle in top bar */}
+        <div className="flex flex-col min-w-0 flex-1 hidden sm:flex">
+          <input
+            className="text-sm font-semibold bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-muted-foreground leading-tight"
+            value={title}
+            onChange={e => handleTitleChange(e.target.value)}
+            placeholder="Program title…"
+          />
+          <input
+            className="text-xs text-muted-foreground bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-muted-foreground/60 leading-tight"
+            value={subtitle}
+            onChange={e => handleSubtitleChange(e.target.value)}
+            placeholder="Client name…"
+          />
+        </div>
+        {/* Metadata pills */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {program?.program_type && (
+            <Badge variant="outline" className="bg-card text-xs capitalize hidden md:flex">
+              {program.program_type.replace(/_/g, ' ')}
+            </Badge>
+          )}
+          <Badge variant="outline" className="bg-card text-xs">{weeksCount}wk · {daysPerWeek}d/wk</Badge>
+        </div>
         <span className={cn(
-          'text-xs transition-opacity duration-200',
+          'text-xs transition-opacity duration-200 shrink-0',
           saveStatus === 'idle' ? 'opacity-0' : 'opacity-100',
           saveStatus === 'error' ? 'text-destructive' : 'text-muted-foreground',
         )}>
@@ -290,14 +314,15 @@ export default function ProgramBuilderPage() {
           {saveStatus === 'saved' && 'Saved'}
           {saveStatus === 'error' && 'Save failed'}
         </span>
-        <Button variant="outline" className="h-8" onClick={() => setSettingsOpen(true)}>
-          <Settings className="h-3.5 w-3.5 mr-1.5" />Settings
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-card shrink-0" onClick={() => setSettingsOpen(true)}>
+          <Settings className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="outline" className="bg-card h-8" onClick={() => router.push('/dashboard/programs')}>Done</Button>
+        <Button variant="outline" className="bg-card h-8 shrink-0" onClick={() => router.push('/dashboard/programs')}>Done</Button>
       </div>
     )
     return () => setActions(null)
-  }, [setActions, program, saveStatus, loading, router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setActions, program, saveStatus, loading, router, title, subtitle, weeksCount, daysPerWeek])
 
   useEffect(() => () => clearTimeout(titleSaveTimer.current), [])
 
@@ -516,41 +541,16 @@ export default function ProgramBuilderPage() {
   return (
     <div className="flex flex-col">
 
-      {/* Subheader: editable title + metadata */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background/80">
-        <div className="flex flex-col min-w-0 flex-1">
-          <input
-            className="text-sm font-semibold bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-muted-foreground"
-            value={title}
-            onChange={e => handleTitleChange(e.target.value)}
-            placeholder="Program title…"
-          />
-          <input
-            className="text-xs text-muted-foreground bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-muted-foreground/60"
-            value={subtitle}
-            onChange={e => handleSubtitleChange(e.target.value)}
-            placeholder="Subtitle (e.g. client name)…"
-          />
+      {/* Copied slot indicator */}
+      {copiedSlot && (
+        <div className="px-4 py-1.5 border-b border-border bg-primary/5 flex items-center justify-between">
+          <span className="text-xs text-primary">Wk{copiedSlot.week} D{copiedSlot.day} copied — click an empty cell to paste</span>
+          <button className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2" onClick={() => setCopiedSlot(null)}>Clear</button>
         </div>
-        {program?.program_type && (
-          <Badge variant="outline" className="bg-card text-xs capitalize shrink-0">
-            {program.program_type.replace(/_/g, ' ')}
-          </Badge>
-        )}
-        <span className="text-xs text-muted-foreground shrink-0">{weeksCount}wk · {daysPerWeek}d/wk</span>
-        {copiedSlot && (
-          <button
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0 underline underline-offset-2"
-            onClick={() => setCopiedSlot(null)}
-            title="Clear clipboard"
-          >
-            Wk{copiedSlot.week} D{copiedSlot.day} copied · clear
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Calendar grid */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto p-4">
         <div style={{
           display: 'grid',
           gridTemplateColumns: `52px repeat(${daysPerWeek}, minmax(100px, 160px)) 36px`,
