@@ -29,6 +29,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Switch } from '@/components/ui/switch'
 import { Search, Plus, MoreHorizontal, Archive, Trash2, Users, SlidersHorizontal, Check } from 'lucide-react'
 import { SortButton } from '@/components/ui/sort-button'
 import { toast } from 'sonner'
@@ -93,6 +94,7 @@ export default function ClientsPage() {
   const [newFirstName, setNewFirstName] = useState('')
   const [newLastName, setNewLastName] = useState('')
   const [newEmail, setNewEmail] = useState('')
+  const [newIsPT, setNewIsPT] = useState(false)
   const [addingClient, setAddingClient] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
@@ -300,13 +302,14 @@ export default function ClientsPage() {
       const response = await fetch('/api/signup-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newEmail.trim(), name: fullName, trainerId: user.id, fromDashboard: true }),
+        body: JSON.stringify({ email: newEmail.trim(), name: fullName, trainerId: user.id, fromDashboard: true, clientType: newIsPT ? 'pt' : 'classes' }),
       })
       const result = await response.json()
       if (!result.success) throw new Error(result.error || 'Failed to add client')
 
       toast.success('Client added successfully')
       setShowAddClient(false)
+      setNewIsPT(false)
       setNewFirstName(''); setNewLastName(''); setNewEmail('')
       await fetchClients()
     } catch (err) {
@@ -525,6 +528,13 @@ export default function ClientsPage() {
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="em">Email Address *</Label>
               <Input id="em" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="client@example.com" disabled={addingClient} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+              <div>
+                <p className="text-sm font-medium">Personal Training client</p>
+                <p className="text-xs text-muted-foreground">Can be booked for PT appointments</p>
+              </div>
+              <Switch checked={newIsPT} onCheckedChange={setNewIsPT} disabled={addingClient} />
             </div>
             <p className="text-xs text-muted-foreground">The client will receive an email invitation to create their account.</p>
           </div>
