@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
         break;
+      case 'invoice.paid':
+        await handleInvoicePaid(event.data.object as Stripe.Invoice);
+        break;
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
         break;
@@ -101,6 +104,24 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 
   logger.log(`Subscription updated for user ${userId}: ${status}`);
+}
+
+async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  const supabase = getAdminClient()
+  const invoiceId = invoice.id
+  const clientId = invoice.metadata?.client_id
+
+  // Mark all appointments on this invoice as paid
+  const { error } = await supabase
+    .from('appointments')
+    .update({ payment_status: 'paid' })
+    .eq('stripe_invoice_id', invoiceId)
+
+  if (error) {
+    logger.error('Error marking appointments paid:', error)
+  } else {
+    logger.log(`Invoice ${invoiceId} paid — appointments marked paid for client ${clientId}`)
+  }
 }
 
 async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {

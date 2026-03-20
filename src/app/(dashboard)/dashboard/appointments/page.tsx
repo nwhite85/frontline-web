@@ -75,6 +75,7 @@ function AppointmentTypeSheet({
   const [maxCapacity, setMaxCapacity] = useState('1')
   const [color, setColor] = useState('#6366f1')
   const [minAdvanceHours, setMinAdvanceHours] = useState('0')
+  const [price, setPrice] = useState('0')
   const [isActive, setIsActive] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
@@ -89,10 +90,11 @@ function AppointmentTypeSheet({
         setMaxCapacity(String(editTarget.max_capacity))
         setColor(editTarget.color || '#6366f1')
         setMinAdvanceHours(String(editTarget.min_advance_hours ?? 0))
+        setPrice(String((editTarget as any).price ?? 0))
         setIsActive(editTarget.is_active)
       } else {
         setName(''); setDescription(''); setDuration('60'); setLocation('')
-        setMaxCapacity('1'); setColor('#6366f1'); setMinAdvanceHours('0'); setIsActive(true)
+        setMaxCapacity('1'); setColor('#6366f1'); setMinAdvanceHours('0'); setPrice('0'); setIsActive(true)
       }
       setFormError('')
     }
@@ -111,6 +113,7 @@ function AppointmentTypeSheet({
         max_capacity: parseInt(maxCapacity) || 1,
         color: color || null,
         min_advance_hours: parseInt(minAdvanceHours) || 0,
+        price: parseFloat(price) || 0,
         is_active: isActive,
       }
       if (editTarget) {
@@ -158,6 +161,10 @@ function AppointmentTypeSheet({
             <div className="flex flex-col gap-1.5">
               <Label>Max Capacity</Label>
               <Input type="number" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)} min={1} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Price per session (£)</Label>
+              <Input type="number" value={price} onChange={e => setPrice(e.target.value)} min={0} step={0.01} placeholder="0.00" />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -381,7 +388,7 @@ export default function AppointmentsPage() {
       const [templatesRes, packagesRes] = await Promise.all([
         supabase
           .from('appointment_templates')
-          .select('id, name, description, duration_minutes, location, max_capacity, color, is_active, min_advance_hours')
+          .select('id, name, description, duration_minutes, location, max_capacity, color, is_active, min_advance_hours, price')
           .eq('trainer_id', user.id)
           .order('name'),
         supabase

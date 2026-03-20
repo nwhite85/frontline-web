@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import { Checkbox } from '@/components/ui/checkbox'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { User, Dumbbell, Calendar, Trophy } from 'lucide-react'
@@ -19,6 +20,7 @@ interface AppointmentTemplate {
   name: string
   duration_minutes: number
   description?: string
+  price?: number
 }
 
 interface ClassItem {
@@ -97,6 +99,7 @@ export function AddSessionSheet({
   const [aptDuration, setAptDuration] = useState(60)
   const [aptLocation, setAptLocation] = useState('')
   const [aptNotes, setAptNotes] = useState('')
+  const [aptComp, setAptComp] = useState(false)
   const [aptRepeat, setAptRepeat] = useState(false)
   const [aptRepeatFreq, setAptRepeatFreq] = useState<'daily' | 'weekly' | 'biweekly' | 'monthly'>('weekly')
   const [aptRepeatDur, setAptRepeatDur] = useState<'month' | 'year' | 'end-of-year'>('month')
@@ -174,6 +177,7 @@ export function AddSessionSheet({
           status,
           client_id: aptBookingType === 'booked' ? aptClient || null : null,
           appointment_type: template?.name || 'personal_training',
+          payment_status: aptBookingType === 'booked' ? (aptComp ? 'comped' : 'unbilled') : null,
         }
         const { error } = await supabase.from('appointments').insert(insertData)
         if (error) throw error
@@ -370,9 +374,15 @@ export function AddSessionSheet({
                 <Label className="text-xs">Notes (optional)</Label>
                 <Textarea value={aptNotes} onChange={(e) => setAptNotes(e.target.value)} rows={2} className="text-sm resize-none" />
               </div>
+              {aptBookingType === 'booked' && (
+                <div className="flex items-center gap-2 py-1">
+                  <Checkbox id="apt-comp" checked={aptComp} onCheckedChange={(v) => setAptComp(!!v)} />
+                  <Label htmlFor="apt-comp" className="text-xs cursor-pointer">Comp this session (no invoice)</Label>
+                </div>
+              )}
               <Separator />
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="apt-repeat" checked={aptRepeat} onChange={(e) => setAptRepeat(e.target.checked)} className="h-4 w-4 rounded" />
+                <Checkbox id="apt-repeat" checked={aptRepeat} onCheckedChange={(v) => setAptRepeat(!!v)} />
                 <Label htmlFor="apt-repeat" className="text-xs cursor-pointer">Repeat this appointment</Label>
               </div>
               {aptRepeat && (
@@ -428,7 +438,7 @@ export function AddSessionSheet({
               </div>
               <Separator />
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="class-repeat" checked={classRepeat} onChange={(e) => setClassRepeat(e.target.checked)} className="h-4 w-4 rounded" />
+                <Checkbox id="class-repeat" checked={classRepeat} onCheckedChange={(v) => setClassRepeat(!!v)} />
                 <Label htmlFor="class-repeat" className="text-xs cursor-pointer">Repeat this class</Label>
               </div>
               {classRepeat && (

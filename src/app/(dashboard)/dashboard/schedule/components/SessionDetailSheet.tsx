@@ -128,6 +128,7 @@ export function SessionDetailSheet({
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteMode, setDeleteMode] = useState<'single' | 'future'>('single')
   const [showBookings, setShowBookings] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -229,21 +230,31 @@ export function SessionDetailSheet({
     }
   }
 
-  const handleDelete = async () => {
+  const handleDelete = async (mode: 'single' | 'future' = 'single') => {
     setDeleting(true)
     try {
       let error = null
-      if (type === 'appointment') {
-        ;({ error } = await supabase.from('appointments').delete().eq('id', session.id))
-      } else if (type === 'class') {
-        ;({ error } = await supabase.from('class_schedules').delete().eq('id', session.id))
-      } else if (type === 'event') {
-        ;({ error } = await supabase.from('events').delete().eq('id', session.id))
-      } else if (type === 'challenge') {
-        ;({ error } = await supabase.from('challenge_schedules').delete().eq('id', session.id))
+      const repeatGroupId = (session as any).repeat_group_id
+      const scheduledDate = (session as any).scheduled_date
+
+      if (mode === 'future' && repeatGroupId && type === 'class') {
+        // Delete this + all future sessions in the same series
+        ;({ error } = await (supabase as any).from('class_schedules').delete()
+          .eq('repeat_group_id', repeatGroupId)
+          .gte('scheduled_date', scheduledDate))
+      } else {
+        if (type === 'appointment') {
+          ;({ error } = await supabase.from('appointments').delete().eq('id', session.id))
+        } else if (type === 'class') {
+          ;({ error } = await supabase.from('class_schedules').delete().eq('id', session.id))
+        } else if (type === 'event') {
+          ;({ error } = await supabase.from('events').delete().eq('id', session.id))
+        } else if (type === 'challenge') {
+          ;({ error } = await supabase.from('challenge_schedules').delete().eq('id', session.id))
+        }
       }
       if (error) throw error
-      toast.success('Session deleted')
+      toast.success(mode === 'future' ? 'This and all future sessions deleted' : 'Session deleted')
       setConfirmDelete(false)
       onClose()
       onRefresh()
@@ -460,24 +471,29 @@ export function SessionDetailSheet({
               <Separator />
               <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 space-y-3">
                 <p className="text-sm text-destructive font-medium">
-                  Are you sure you want to delete this {typeLabels[type].toLowerCase()}?
+                  Delete this {typeLabels[type].toLowerCase()}?
                 </p>
+                {(session as any).repeat_group_id && type === 'class' && (
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      className={`text-left text-sm px-3 py-2 rounded-md border transition-colors ${deleteMode === 'single' ? 'border-destructive bg-destructive/10 text-destructive font-medium' : 'border-border hover:bg-muted'}`}
+                      onClick={() => setDeleteMode('single')}
+                    >
+                      This session only
+                    </button>
+                    <button
+                      className={`text-left text-sm px-3 py-2 rounded-md border transition-colors ${deleteMode === 'future' ? 'border-destructive bg-destructive/10 text-destructive font-medium' : 'border-border hover:bg-muted'}`}
+                      onClick={() => setDeleteMode('future')}
+                    >
+                      This and all future sessions in this series
+                    </button>
+                  </div>
+                )}
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                   
-                    className="flex-1"
-                    onClick={() => setConfirmDelete(false)}
-                  >
+                  <Button variant="outline" className="flex-1" onClick={() => setConfirmDelete(false)}>
                     Cancel
                   </Button>
-                  <Button
-                    variant="destructive"
-                   
-                    className="flex-1"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                  >
+                  <Button variant="destructive" className="flex-1" onClick={() => handleDelete(deleteMode)} disabled={deleting}>
                     {deleting ? 'Deleting…' : 'Delete'}
                   </Button>
                 </div>

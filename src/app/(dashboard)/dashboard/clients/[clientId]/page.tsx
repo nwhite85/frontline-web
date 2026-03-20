@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { getClientRiskLevel } from '@/utils/clientCompliance'
+import { toast } from 'sonner'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1440,6 +1441,8 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [packages, setPackages] = useState<any[]>([])
   const [activeMembership, setActiveMembership] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [unbilledApts, setUnbilledApts] = useState<any[]>([])
+  const [sendingInvoice, setSendingInvoice] = useState(false)
 
   // Add membership sheet
   const [membershipPlans, setMembershipPlans] = useState<any[]>([])
@@ -1488,10 +1491,17 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
       supabase.from('client_payments').select('id, amount, status, payment_date, description').eq('client_id', clientId).order('payment_date', { ascending: false }).limit(30),
       supabase.from('client_package_purchases').select('*, session_packages(name, total_sessions, is_unlimited)').eq('client_id', clientId).eq('status', 'active'),
       supabase.from('client_memberships').select('*, membership_plans(name, price, billing_period)').eq('client_id', clientId).eq('status', 'active').maybeSingle(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('appointments').select('id, appointment_date, start_time, appointment_type, payment_status')
+        .eq('client_id', clientId)
+        .in('payment_status', ['unbilled', null])
+        .gte('appointment_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
+        .order('appointment_date', { ascending: true }),
     ])
     if (results[0].status === 'fulfilled') setPayments(results[0].value.data || [])
     if (results[1].status === 'fulfilled') setPackages(results[1].value.data || [])
     if (results[2].status === 'fulfilled') setActiveMembership(results[2].value.data || null)
+    if (results[3].status === 'fulfilled') setUnbilledApts((results[3] as any).value.data || [])
     setLoading(false)
   }, [clientId])
 
@@ -1551,6 +1561,51 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                   )}
                 </CardContent>
               </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── PT Invoice ── */}
+      {unbilledApts.length > 0 && (
+        <div className="rounded-lg border border-border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Unbilled PT Sessions</p>
+              <p className="text-xs text-muted-foreground">{unbilledApts.length} session{unbilledApts.length !== 1 ? 's' : ''} this month not yet invoiced</p>
+            </div>
+            <Button
+              size="sm"
+              className="h-8"
+              disabled={sendingInvoice}
+              onClick={async () => {
+                setSendingInvoice(true)
+                try {
+                  const res = await fetch('/api/send-pt-invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId, appointmentIds: unbilledApts.map((a: any) => a.id) }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) throw new Error(data.error)
+                  toast.success(`Invoice sent for ${data.sessionCount} session${data.sessionCount !== 1 ? 's' : ''}`)
+                  await loadBilling()
+                } catch (err: any) {
+                  toast.error(err.message || 'Failed to send invoice')
+                } finally {
+                  setSendingInvoice(false)
+                }
+              }}
+            >
+              {sendingInvoice ? 'Sending…' : 'Send Invoice'}
+            </Button>
+          </div>
+          <div className="space-y-1">
+            {unbilledApts.map((a: any) => (
+              <div key={a.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{new Date(a.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · {a.appointment_type || 'PT Session'}</span>
+                <span className="rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-0.5">Unbilled</span>
+              </div>
             ))}
           </div>
         </div>

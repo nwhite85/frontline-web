@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext'
 import { usePageActions } from '@/contexts/PageActionsContext'
 import { useDashboardData } from './components/useDashboardData'
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
 function StatCard({ name, stat, icon: Icon, loading, accent = false }: {
   name: string
@@ -319,6 +320,56 @@ function AtRiskCard({ atRiskMembers, loadingAtRisk }: { atRiskMembers: ReturnTyp
   )
 }
 
+function UnpaidInvoicesAlert({ trainerId }: { trainerId: string }) {
+  const [unpaid, setUnpaid] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!trainerId) return
+    const daysUntilMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate()
+    if (daysUntilMonthEnd > 7) return // Only show within 7 days of month end
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(supabase as any)
+      .from('appointments')
+      .select('id, client_id, appointment_date, user_profiles!client_id(name)')
+      .eq('trainer_id', trainerId)
+      .eq('payment_status', 'invoiced')
+      .then(({ data }: any) => setUnpaid(data || []))
+  }, [trainerId])
+
+  if (!unpaid.length) return null
+
+  const daysLeft = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() - new Date().getDate()
+
+  // Group by client
+  const byClient = unpaid.reduce((acc: Record<string, any>, apt: any) => {
+    const name = apt.user_profiles?.name || 'Unknown'
+    if (!acc[apt.client_id]) acc[apt.client_id] = { name, count: 0, clientId: apt.client_id }
+    acc[apt.client_id].count++
+    return acc
+  }, {})
+
+  return (
+    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+          Unpaid invoices — {daysLeft} day{daysLeft !== 1 ? 's' : ''} left this month
+        </p>
+      </div>
+      <div className="flex flex-col gap-1">
+        {Object.values(byClient).map((c: any) => (
+          <div key={c.clientId} className="flex items-center justify-between">
+            <span className="text-xs text-amber-700/80 dark:text-amber-400/80">{c.name} — {c.count} session{c.count !== 1 ? 's' : ''}</span>
+            <Link href={`/dashboard/clients/${c.clientId}?tab=billing`}>
+              <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-amber-700 dark:text-amber-400">View</Button>
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { user } = useSimpleAuth()
   const { setActions } = usePageActions()
@@ -350,6 +401,8 @@ export default function DashboardPage() {
       {error && (
         <div className="rounded-md bg-destructive/10 px-3 py-2.5 text-sm text-destructive">{error}</div>
       )}
+
+      {user?.id && <UnpaidInvoicesAlert trainerId={user.id} />}
 
       {/* Top stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
