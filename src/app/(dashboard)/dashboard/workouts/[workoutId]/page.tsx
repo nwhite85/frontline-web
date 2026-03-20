@@ -822,6 +822,7 @@ export default function WorkoutBuilderPage() {
     sets: true, reps: true, weight: true, rest: true, distance: false, notes: true,
   })
   const [loading, setLoading] = useState(true)
+  const [isInstance, setIsInstance] = useState(false)
   const [workoutNotFound, setWorkoutNotFound] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [dragIndex, setDragIndex] = useState<number | null>(null)
@@ -944,20 +945,22 @@ export default function WorkoutBuilderPage() {
 
     Promise.all([
       supabase.from('exercises').select('*').or(`trainer_id.eq.${user.id},trainer_id.is.null`),
-      supabase.from('workouts').select(`
-        title, weight_unit, workout_type,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('workouts').select(`
+        title, weight_unit, workout_type, is_template, template_id,
         workout_exercises(exercise_id,set_count,reps,rest_seconds,notes,time,distance,calories,weight,superset_id,position,is_dropset,dropset_weights,dropset_application,dropset_reps,dropset_notes,dropset_time,dropset_distance,dropset_calories,hidden_fields,measurement_type,show_reps,show_weight,show_time,show_distance,exercises(id,name,equipment)),
         workout_notes(id,note_text,position)
       `).eq('id', workoutId).eq('trainer_id', user.id).maybeSingle(),
     ]).then(([exRes, wRes]) => {
       if (exRes.data) setAllExercises(exRes.data as unknown as Exercise[])
-      type WdType = { title: string | null; weight_unit: string | null; workout_type: string | null; workout_exercises: unknown[]; workout_notes: unknown[] }
+      type WdType = { title: string | null; weight_unit: string | null; workout_type: string | null; is_template: boolean | null; template_id: string | null; workout_exercises: unknown[]; workout_notes: unknown[] }
       const wd = wRes.data as unknown as WdType | null
       if (!wd) { setWorkoutNotFound(true); setLoading(false); return }
 
       setTitle(wd.title ?? 'Untitled Workout')
       setWeightUnit((wd.weight_unit ?? 'kg') as 'lbs' | 'kg')
       setWorkoutType((wd.workout_type ?? 'strength') as 'strength' | 'circuit')
+      setIsInstance(wd.is_template === false)
 
       const exItems: ExerciseItem[] = (wd.workout_exercises || []).map((we: any) => {
         const { minutes, seconds } = we.time ? secsToMM(we.time) : { minutes: '', seconds: '' }
@@ -1394,6 +1397,13 @@ export default function WorkoutBuilderPage() {
   if (workoutNotFound) notFound()
 
   return (
+    <>
+    {isInstance && (
+      <div className="mx-6 mt-4 flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+        <span className="font-medium">Program instance</span>
+        <span className="text-amber-600/70 dark:text-amber-400/70">— Changes here only affect this program. The original template is unchanged.</span>
+      </div>
+    )}
     <div data-ui-exempt className="flex flex-col overflow-hidden m-6" style={{ borderRadius: 'var(--table-radius)', background: 'var(--card-bg)', boxShadow: 'var(--card-box-shadow)' }}>
       {/* Column headers */}
       <TableHeader cols={cols} onToggle={k => setCols(c => ({ ...c, [k]: !c[k] }))} />
@@ -1519,5 +1529,6 @@ export default function WorkoutBuilderPage() {
         onEnterMode={enterMode}
       />
     </div>
+    </>
   )
 }

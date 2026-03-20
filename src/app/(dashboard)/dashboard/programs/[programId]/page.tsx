@@ -232,7 +232,8 @@ export default function ProgramBuilderPage() {
             .is('workout_id', null)
             .order('week_number')
             .order('day_number'),
-          supabase.from('workouts').select('id, title').eq('trainer_id', user.id).order('title'),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).from('workouts').select('id, title').eq('trainer_id', user.id).neq('is_template', false).order('title'),
         ])
 
         if (!pRes.data) { setLoading(false); return }
@@ -326,6 +327,29 @@ export default function ProgramBuilderPage() {
   }
 
   // ── Slot mutations ──
+  // Copy a workout (template or instance) into a new instance row for this program
+  const copyWorkoutAsInstance = useCallback(async (sourceWorkoutId: string): Promise<string | null> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    // Fetch source workout
+    const { data: src } = await db.from('workouts').select('title, weight_unit, workout_type, trainer_id').eq('id', sourceWorkoutId).single()
+    if (!src) return null
+    // Create new instance workout
+    const { data: newWorkout } = await db.from('workouts').insert({
+      title: src.title, weight_unit: src.weight_unit, workout_type: src.workout_type,
+      trainer_id: src.trainer_id, is_template: false, template_id: sourceWorkoutId,
+    }).select('id').single()
+    if (!newWorkout?.id) return null
+    // Copy exercises
+    const { data: exercises } = await db.from('workout_exercises')
+      .select('exercise_id,set_count,reps,rest_seconds,notes,time,distance,calories,weight,superset_id,position,is_dropset,dropset_weights,dropset_application,dropset_reps,dropset_notes,dropset_time,dropset_distance,dropset_calories,hidden_fields,measurement_type,show_reps,show_weight,show_time,show_distance')
+      .eq('workout_id', sourceWorkoutId)
+    if (exercises?.length) {
+      await db.from('workout_exercises').insert(exercises.map((ex: Record<string, unknown>) => ({ ...ex, workout_id: newWorkout.id })))
+    }
+    return newWorkout.id
+  }, [])
+
   const setSlotAndSave = useCallback(async (week: number, day: number, slot: Slot | null) => {
     const key = `${week}-${day}`
     // Optimistic update
@@ -337,15 +361,28 @@ export default function ProgramBuilderPage() {
     // Clear this slot from program_workouts
     await supabase.from('program_workouts').delete().eq('program_id', programId).eq('week_number', week).eq('day_number', day)
     if (slot) {
-      // All slots stored in program_workouts — workout_id null = rest day
+      let workoutId = slot.isRest ? null : slot.workoutId
+      if (workoutId) {
+        // Check if this workout is a template — if so, copy it first
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: wo } = await (supabase as any).from('workouts').select('is_template').eq('id', workoutId).single()
+        if (wo?.is_template !== false) {
+          // It's a template (or unknown) — create an instance
+          const instanceId = await copyWorkoutAsInstance(workoutId)
+          if (instanceId) workoutId = instanceId
+        }
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any).from('program_workouts').insert({
-        program_id: programId, week_number: week, day_number: day,
-        workout_id: slot.isRest ? null : slot.workoutId,
+        program_id: programId, week_number: week, day_number: day, workout_id: workoutId,
       })
       if (error) toast.error('Failed to save')
+      // Update slot with the actual workout ID (instance)
+      if (workoutId && workoutId !== slot.workoutId) {
+        setSlots(prev => ({ ...prev, [key]: { ...slot, workoutId } }))
+      }
     }
-  }, [programId])
+  }, [programId, copyWorkoutAsInstance])
 
   const assignWorkout = useCallback(async (week: number, day: number, workoutId: string, workoutTitle: string) => {
     await setSlotAndSave(week, day, { workoutId, workoutTitle, isRest: false })
@@ -382,17 +419,23 @@ export default function ProgramBuilderPage() {
       fromEntries.forEach(([k, s]) => { n[`${toWeek}-${parseInt(k.split('-')[1], 10)}`] = { ...s } })
       return n
     })
-    const allInserts = fromEntries.map(([k, s]) => ({
-      program_id: programId,
-      week_number: toWeek,
-      day_number: parseInt(k.split('-')[1], 10),
-      workout_id: s.isRest ? null : s.workoutId,
-    }))
+    // Copy each slot — create new instances for workout slots
+    const allInserts: Array<Record<string, unknown>> = []
+    for (const [k, s] of fromEntries) {
+      const day = parseInt(k.split('-')[1], 10)
+      let workoutId = s.isRest ? null : s.workoutId
+      if (workoutId) {
+        // Always create a fresh instance so weeks can diverge independently
+        const instanceId = await copyWorkoutAsInstance(workoutId)
+        if (instanceId) workoutId = instanceId
+      }
+      allInserts.push({ program_id: programId, week_number: toWeek, day_number: day, workout_id: workoutId })
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).from('program_workouts').insert(allInserts)
     if (error) toast.error('Copy failed')
     else toast.success(`Week ${fromWeek} → Week ${toWeek}`)
-  }, [programId, slots])
+  }, [programId, slots, copyWorkoutAsInstance])
 
   // ── Settings ──
   const saveSettings = useCallback(async () => {

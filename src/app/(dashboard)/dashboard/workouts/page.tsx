@@ -303,6 +303,7 @@ export default function WorkoutsPage() {
         .from('workouts')
         .select('id, title, workout_type, est_duration, weight_unit, created_at')
         .eq('trainer_id', user.id)
+        .neq('is_template', false)
         .order('created_at', { ascending: false })
       if (err1) {
         logger.error('Workouts query error', err1?.message, err1?.code, err1?.details)
