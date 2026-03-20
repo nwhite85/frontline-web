@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useParams, useRouter, notFound } from 'next/navigation'
+import { useParams, useRouter, useSearchParams, notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext'
 import { usePageActions } from '@/contexts/PageActionsContext'
@@ -811,6 +811,8 @@ export default function WorkoutBuilderPage() {
   const { user } = useSimpleAuth()
   const { setActions, setHeaderTabs } = usePageActions()
   const workoutId = params?.workoutId as string
+  const searchParams = useSearchParams()
+  const returnTo = searchParams?.get('returnTo')
 
   // ── Core state ──
   const [title, setTitle] = useState('Untitled Workout')
@@ -1038,7 +1040,7 @@ export default function WorkoutBuilderPage() {
     const handleDone = async () => {
       clearTimeout(saveTimer.current)
       await doSave(title, items)
-      router.push('/dashboard/workouts')
+      router.push(returnTo ?? '/dashboard/workouts')
     }
     setActions(
       <div className="flex items-center gap-2">

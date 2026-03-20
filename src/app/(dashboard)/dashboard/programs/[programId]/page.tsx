@@ -51,11 +51,12 @@ interface DayCellProps {
   onPaste: (week: number, day: number) => Promise<void>
   copiedSlot: { week: number; day: number } | null
   router: ReturnType<typeof useRouter>
+  programId: string
 }
 
 // ─── Day Cell ─────────────────────────────────────────────────────────────────
 
-function DayCell({ slot, week, day, workouts, onAssign, onRest, onClear, onCopy, onPaste, copiedSlot, router }: DayCellProps) {
+function DayCell({ slot, week, day, workouts, onAssign, onRest, onClear, onCopy, onPaste, copiedSlot, router, programId }: DayCellProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
 
   const isSource = copiedSlot?.week === week && copiedSlot?.day === day
@@ -67,7 +68,7 @@ function DayCell({ slot, week, day, workouts, onAssign, onRest, onClear, onCopy,
   const WorkoutPicker = (
     <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
       <PopoverTrigger asChild>
-        <span className="absolute top-0 left-0 w-px h-px pointer-events-none" aria-hidden />
+        <button className="absolute inset-0 w-full h-full pointer-events-none opacity-0" aria-hidden tabIndex={-1} />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start" sideOffset={4}>
         <Command>
@@ -147,7 +148,7 @@ function DayCell({ slot, week, day, workouts, onAssign, onRest, onClear, onCopy,
             className={cn('flex-1 min-w-0 px-2 py-1 rounded-md text-[11px] font-semibold text-left truncate transition-colors',
               isSource ? 'bg-primary text-primary-foreground' : 'bg-primary/15 text-primary hover:bg-primary/25'
             )}
-            onClick={() => router.push(`/dashboard/workouts/${slot!.workoutId}`)}
+            onClick={() => router.push(`/dashboard/workouts/${slot!.workoutId}?returnTo=/dashboard/programs/${programId}`)}
             title={slot!.workoutTitle ?? ''}
           >
             {slot!.workoutTitle}
@@ -442,16 +443,36 @@ export default function ProgramBuilderPage() {
     const weeks = parseInt(settingsForm.weeks, 10) || 4
     const days = parseInt(settingsForm.days, 10) || 3
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from('programs').update({
+    const db = supabase as any
+    const { error } = await db.from('programs').update({
       duration_weeks: weeks, training_days_per_week: days, program_type: settingsForm.type, show_all_workouts: settingsForm.showAllWorkouts,
     }).eq('id', programId)
     if (error) { toast.error('Failed to save settings'); return }
+
+    // Clean up slots outside the new bounds
+    if (weeks < weeksCount) {
+      await db.from('program_workouts').delete().eq('program_id', programId).gt('week_number', weeks)
+    }
+    if (days < daysPerWeek) {
+      await db.from('program_workouts').delete().eq('program_id', programId).gt('day_number', days)
+    }
+
+    // Update local slot state to match
+    setSlots(prev => {
+      const n: Record<string, Slot> = {}
+      for (const [k, v] of Object.entries(prev)) {
+        const [w, d] = k.split('-').map(Number)
+        if (w <= weeks && d <= days) n[k] = v
+      }
+      return n
+    })
+
     setWeeksCount(weeks)
     setDaysPerWeek(days)
     setProgram(prev => prev ? { ...prev, duration_weeks: weeks, training_days_per_week: days, program_type: settingsForm.type } : prev)
     setSettingsOpen(false)
     toast.success('Settings saved')
-  }, [settingsForm, programId])
+  }, [settingsForm, programId, weeksCount, daysPerWeek])
 
   // ── Not found ──
   if (!loading && !program) notFound()
@@ -577,6 +598,7 @@ export default function ProgramBuilderPage() {
                       onPaste={pasteSlot}
                       copiedSlot={copiedSlot}
                       router={router}
+                      programId={programId}
                     />
                   )
                 })}

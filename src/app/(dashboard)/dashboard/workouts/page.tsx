@@ -390,7 +390,11 @@ export default function WorkoutsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await supabase.from('workouts').delete().eq('id', id)
+      // Delete child rows first to avoid constraint issues
+      await supabase.from('workout_exercises').delete().eq('workout_id', id)
+      await supabase.from('workout_notes').delete().eq('workout_id', id)
+      const { error } = await supabase.from('workouts').delete().eq('id', id)
+      if (error) { toast.error('Failed to delete: ' + error.message); return }
       setWorkouts(prev => prev.filter(w => w.id !== id))
       toast.success('Deleted')
     } catch (err) { toast.error(getErrorMessage(err)) }
