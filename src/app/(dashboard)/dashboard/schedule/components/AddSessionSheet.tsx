@@ -20,6 +20,7 @@ interface AppointmentTemplate {
   name: string
   duration_minutes: number
   description?: string
+  location?: string
   price?: number
 }
 
@@ -128,6 +129,15 @@ export function AddSessionSheet({
   const [challengeEndTime, setChallengeEndTime] = useState('10:00')
   const [challengeLocation, setChallengeLocation] = useState('')
   const [challengeCapacity, setChallengeCapacity] = useState(20)
+
+  // Auto-fill duration and location from selected template
+  useEffect(() => {
+    const template = appointmentTemplates.find(t => t.id === aptTemplate)
+    if (template) {
+      setAptDuration(template.duration_minutes)
+      if (template.location) setAptLocation(template.location)
+    }
+  }, [aptTemplate])
 
   // Sync time/date from selectedSlot whenever sheet opens with a new slot
   useEffect(() => {
