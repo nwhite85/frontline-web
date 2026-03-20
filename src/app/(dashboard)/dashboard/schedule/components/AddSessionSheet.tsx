@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -129,6 +129,18 @@ export function AddSessionSheet({
   const [challengeLocation, setChallengeLocation] = useState('')
   const [challengeCapacity, setChallengeCapacity] = useState(20)
 
+  // Sync time/date from selectedSlot whenever sheet opens with a new slot
+  useEffect(() => {
+    if (selectedSlot) {
+      setAptTime(selectedSlot.time || '09:00')
+      setClassTime(selectedSlot.time || '09:00')
+      setEventStartTime(selectedSlot.time || '09:00')
+      setChallengeTime(selectedSlot.time || '09:00')
+      setEventStartDate(selectedSlot.date || '')
+      setEventEndDate(selectedSlot.date || '')
+    }
+  }, [selectedSlot])
+
   const generateRepeatedDates = (startDate: string, freq: string, dur: string): string[] => {
     const dates: string[] = []
     const start = new Date(startDate + 'T00:00:00')
@@ -177,7 +189,7 @@ export function AddSessionSheet({
           status,
           client_id: aptBookingType === 'booked' ? aptClient || null : null,
           appointment_type: template?.name || 'personal_training',
-          payment_status: aptBookingType === 'booked' ? (aptComp ? 'comped' : 'unbilled') : null,
+          ...(aptBookingType === 'booked' ? { payment_status: aptComp ? 'comped' : 'unbilled' } : {}),
         }
         const { error } = await supabase.from('appointments').insert(insertData)
         if (error) throw error
