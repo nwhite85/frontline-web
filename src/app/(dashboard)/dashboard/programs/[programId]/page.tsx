@@ -213,7 +213,7 @@ export default function ProgramBuilderPage() {
         const [pRes, wiRes, restRes, wRes] = await Promise.all([
           supabase
             .from('programs')
-            .select('id, title, subtitle, duration_weeks, training_days_per_week, program_type')
+            .select('id, title, subtitle, duration_weeks, training_days_per_week, program_type, show_all_workouts')
             .eq('id', programId)
             .eq('trainer_id', user.id)
             .maybeSingle(),
