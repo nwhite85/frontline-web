@@ -191,6 +191,7 @@ export default function ProgramBuilderPage() {
 
   const [program, setProgram] = useState<Program | null>(null)
   const [title, setTitle] = useState('')
+  const [subtitle, setSubtitle] = useState('')
   const [weeksCount, setWeeksCount] = useState(4)
   const [daysPerWeek, setDaysPerWeek] = useState(3)
   const [loading, setLoading] = useState(true)
@@ -238,6 +239,7 @@ export default function ProgramBuilderPage() {
         const p = pRes.data as Program
         setProgram(p)
         setTitle(p.title ?? '')
+        setSubtitle(p.subtitle ?? '')
         setWeeksCount(p.duration_weeks ?? 4)
         setDaysPerWeek(p.training_days_per_week ?? 3)
         setSettingsForm({
@@ -308,6 +310,18 @@ export default function ProgramBuilderPage() {
       const { error } = await (supabase as any).from('programs').update({ title: val.trim() || 'Untitled' }).eq('id', programId)
       setSaveStatus(error ? 'error' : 'saved')
       setTimeout(() => setSaveStatus('idle'), 2000)
+    }, 1000)
+  }
+
+  // ── Subtitle auto-save ──
+  const subtitleSaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const handleSubtitleChange = (val: string) => {
+    setSubtitle(val)
+    clearTimeout(subtitleSaveTimer.current)
+    subtitleSaveTimer.current = setTimeout(async () => {
+      if (!programId) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('programs').update({ subtitle: val.trim() || null }).eq('id', programId)
     }, 1000)
   }
 
@@ -440,12 +454,20 @@ export default function ProgramBuilderPage() {
 
       {/* Subheader: editable title + metadata */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background/80">
-        <input
-          className="text-sm font-semibold bg-transparent border-none focus:outline-none focus:ring-0 flex-1 min-w-0 placeholder:text-muted-foreground"
-          value={title}
-          onChange={e => handleTitleChange(e.target.value)}
-          placeholder="Program title…"
-        />
+        <div className="flex flex-col min-w-0 flex-1">
+          <input
+            className="text-sm font-semibold bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-muted-foreground"
+            value={title}
+            onChange={e => handleTitleChange(e.target.value)}
+            placeholder="Program title…"
+          />
+          <input
+            className="text-xs text-muted-foreground bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-muted-foreground/60"
+            value={subtitle}
+            onChange={e => handleSubtitleChange(e.target.value)}
+            placeholder="Subtitle (e.g. client name)…"
+          />
+        </div>
         {program?.program_type && (
           <Badge variant="outline" className="bg-card text-xs capitalize shrink-0">
             {program.program_type.replace(/_/g, ' ')}
