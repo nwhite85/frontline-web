@@ -11,7 +11,8 @@ import { WeekGrid } from './components/WeekGrid'
 import { SessionDetailSheet } from './components/SessionDetailSheet'
 import { AddSessionSheet } from './components/AddSessionSheet'
 import { ScheduleSettingsSheet } from './components/ScheduleSettingsSheet'
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar } from 'lucide-react'
+import { InvoiceCartDrawer } from './components/InvoiceCartDrawer'
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Receipt } from 'lucide-react'
 import type { SessionType } from './components/SessionCard'
 import type { Database } from '@/types/supabase'
 
@@ -168,6 +169,8 @@ export default function SchedulePage() {
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null)
   const [detailSheet, setDetailSheet] = useState<{ session: any; type: SessionType } | null>(null)
   const [showSettingsSheet, setShowSettingsSheet] = useState(false)
+  const [showInvoiceCart, setShowInvoiceCart] = useState(false)
+  const [unbilledClientCount, setUnbilledClientCount] = useState(0)
 
   // Time range state with localStorage persistence
   // Initialise with defaults so SSR and client first-render match, then apply saved values
@@ -211,6 +214,22 @@ export default function SchedulePage() {
   const [dragOver, setDragOver] = useState<string | null>(null)
 
   const weekDays = useMemo(() => getWeekDays(selectedWeek), [selectedWeek])
+
+  // Unbilled count for invoice badge
+  const fetchUnbilledCount = useCallback(async () => {
+    if (!user) return
+    const { data } = await supabase
+      .from('appointments')
+      .select('client_id')
+      .eq('trainer_id', user.id)
+      .eq('status', 'scheduled')
+      .eq('payment_status', 'unbilled')
+    if (data) {
+      const rows = data as { client_id: string | null }[]
+      const distinct = new Set(rows.map(a => a.client_id).filter(Boolean))
+      setUnbilledClientCount(distinct.size)
+    }
+  }, [user])
 
   // Data fetching
   const refreshData = useCallback(async () => {
@@ -367,7 +386,7 @@ export default function SchedulePage() {
   }, [user, weekDays])
 
   useEffect(() => {
-    if (user) refreshData()
+    if (user) { refreshData(); fetchUnbilledCount() }
   }, [user, selectedWeek])
 
 
@@ -421,6 +440,18 @@ export default function SchedulePage() {
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
+          className="bg-card relative"
+          onClick={() => setShowInvoiceCart(true)}
+        >
+          <Receipt className="h-4 w-4" />
+          {unbilledClientCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              {unbilledClientCount}
+            </span>
+          )}
+        </Button>
+        <Button
+          variant="outline"
           className="bg-card"
           onClick={() => setShowSettingsSheet(true)}
         >
@@ -446,7 +477,7 @@ export default function SchedulePage() {
       setHeaderSearch(null)
       setActions(null)
     }
-  }, [weekDays, filter, setActions, setHeaderSearch])
+  }, [weekDays, filter, setActions, setHeaderSearch, unbilledClientCount, showInvoiceCart])
 
   // Drag handlers
   const handleDragStart = (type: string, data: any) => {
@@ -559,6 +590,14 @@ export default function SchedulePage() {
         challenges={challenges}
         clients={clients}
         onRefresh={refreshData}
+        onUnbilledChange={fetchUnbilledCount}
+      />
+
+      {/* Invoice cart drawer */}
+      <InvoiceCartDrawer
+        open={showInvoiceCart}
+        onClose={() => { setShowInvoiceCart(false); fetchUnbilledCount() }}
+        trainerId={user?.id || ''}
       />
 
       {/* Schedule settings sheet */}

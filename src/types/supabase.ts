@@ -113,6 +113,7 @@ export type Database = {
           duration_minutes: number | null
           end_time: string
           id: string
+          invoice_sent_at: string | null
           location: string | null
           location_type: string | null
           notes: string | null
@@ -122,6 +123,7 @@ export type Database = {
           repeat_group_id: string | null
           start_time: string
           status: string | null
+          stripe_invoice_id: string | null
           template_id: string | null
           trainer_id: string
           updated_at: string | null
@@ -134,6 +136,7 @@ export type Database = {
           duration_minutes?: number | null
           end_time: string
           id?: string
+          invoice_sent_at?: string | null
           location?: string | null
           location_type?: string | null
           notes?: string | null
@@ -143,6 +146,7 @@ export type Database = {
           repeat_group_id?: string | null
           start_time: string
           status?: string | null
+          stripe_invoice_id?: string | null
           template_id?: string | null
           trainer_id: string
           updated_at?: string | null
@@ -155,6 +159,7 @@ export type Database = {
           duration_minutes?: number | null
           end_time?: string
           id?: string
+          invoice_sent_at?: string | null
           location?: string | null
           location_type?: string | null
           notes?: string | null
@@ -164,6 +169,7 @@ export type Database = {
           repeat_group_id?: string | null
           start_time?: string
           status?: string | null
+          stripe_invoice_id?: string | null
           template_id?: string | null
           trainer_id?: string
           updated_at?: string | null

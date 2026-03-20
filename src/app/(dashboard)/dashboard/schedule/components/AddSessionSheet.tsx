@@ -66,6 +66,7 @@ interface AddSessionSheetProps {
   challenges: Challenge[]
   clients: Client[]
   onRefresh: () => void
+  onUnbilledChange?: () => void
 }
 
 type TabType = 'appointment' | 'class' | 'event' | 'challenge'
@@ -88,6 +89,7 @@ export function AddSessionSheet({
   challenges,
   clients,
   onRefresh,
+  onUnbilledChange,
 }: AddSessionSheetProps) {
   const [activeTab, setActiveTab] = useState<TabType>('appointment')
   const [saving, setSaving] = useState(false)
@@ -209,6 +211,7 @@ export function AddSessionSheet({
         }
         const { error } = await supabase.from('appointments').insert(insertData)
         if (error) throw error
+        if (aptBookingType === 'booked') onUnbilledChange?.()
 
         if (aptRepeat) {
           const dates = generateRepeatedDates(selectedSlot.date, aptRepeatFreq, aptRepeatDur)

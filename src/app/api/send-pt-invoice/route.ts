@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     // Mark appointments as invoiced
     await supabase
       .from('appointments')
-      .update({ payment_status: 'invoiced', stripe_invoice_id: invoiceId, invoice_sent_at: new Date().toISOString() } as any)
+      .update({ payment_status: 'invoiced', stripe_invoice_id: invoiceId, invoice_sent_at: new Date().toISOString() })
       .in('id', billable.map(a => a.id))
 
     logger.log(`Invoice ${invoiceId} sent to ${client.email} for ${billable.length} sessions`)
