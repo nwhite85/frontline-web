@@ -258,7 +258,6 @@ export default function SchedulePage() {
           .from('user_profiles')
           .select('id, name, client_type')
           .eq('user_type', 'client')
-          .in('client_type', ['pt', 'both'])
           .order('name'),
         supabase
           .from('appointment_templates')
