@@ -618,6 +618,12 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
   const assignProgram = async (program: any) => {
     setAssigning(true)
     try {
+      // Clean up any existing workout_instances for this client+program before re-assigning
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('workout_instances').delete()
+        .eq('program_id', program.id)
+        .eq('client_id', clientId)
+
       // 1. Insert client_programs row
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('client_programs').insert({
@@ -643,6 +649,7 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
             .from('workout_instances')
             .insert({
               program_id: program.id,
+              client_id: clientId,
               week_number: pw.week_number,
               day_number: pw.day_number,
               workout_type: pw.workout_type ?? 'strength',
@@ -698,8 +705,15 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
     } catch {} finally { setAssigning(false) }
   }
 
-  const removeProgram = async (id: string) => {
+  const removeProgram = async (id: string, programId?: string) => {
     await supabase.from('client_programs').delete().eq('id', id)
+    // Clean up workout_instances for this client+program
+    if (programId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('workout_instances').delete()
+        .eq('program_id', programId)
+        .eq('client_id', clientId)
+    }
     await loadAssigned()
   }
 
@@ -756,7 +770,7 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="text-destructive" onClick={() => removeProgram(cp.id)}>Remove</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => removeProgram(cp.id, cp.program_id)}>Remove</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
