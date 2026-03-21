@@ -200,13 +200,13 @@ export default function SchedulePage() {
   const [appointmentTemplates, setAppointmentTemplates] = useState<AppointmentTemplate[]>([])
   const [eventTemplates, setEventTemplates] = useState<EventTemplate[]>([])
 
-  // Scroll
-  const [hasInitiallyScrolled, setHasInitiallyScrolled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('schedule-has-scrolled') === 'true'
+  // Scroll — always start false on server, hydrate from sessionStorage on client
+  const [hasInitiallyScrolled, setHasInitiallyScrolled] = useState(false)
+  useEffect(() => {
+    if (sessionStorage.getItem('schedule-has-scrolled') === 'true') {
+      setHasInitiallyScrolled(true)
     }
-    return false
-  })
+  }, [])
 
   // Drag
   const [isDragging, setIsDragging] = useState(false)

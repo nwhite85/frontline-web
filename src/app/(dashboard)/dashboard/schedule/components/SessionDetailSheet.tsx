@@ -256,8 +256,8 @@ export function SessionDetailSheet({
       if (error) throw error
       toast.success(mode === 'future' ? 'This and all future sessions deleted' : 'Session deleted')
       setConfirmDelete(false)
-      onClose()
       onRefresh()
+      onClose()
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete')
     } finally {
