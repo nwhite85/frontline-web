@@ -103,10 +103,9 @@ export async function POST(request: NextRequest) {
       await stripe.invoiceItems.create({
         customer: stripeCustomerId,
         invoice: invoice.id,
-        amount: Math.round(price * 100), // pence
+        amount: Math.round(price * 100) * count, // total pence (unit × count)
         currency: 'gbp',
-        quantity: count,
-        description: `${sessionType} × ${count} (${dates.join(', ')})`,
+        description: `${sessionType} × ${count} @ £${price} (${dates.join(', ')})`,
       })
     }
 
