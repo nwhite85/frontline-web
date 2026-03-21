@@ -59,6 +59,9 @@ interface MembershipPlan {
   is_highlighted: boolean
   includes_personal_training: boolean
   includes_classes: boolean
+  classes_per_week: number | null
+  classes_per_month: number | null
+  is_comp: boolean | null
 }
 
 // ─────────────────────────────────────────────
@@ -247,6 +250,9 @@ function PlanSheet({
   const [includesPT, setIncludesPT] = useState(false)
   const [isActive, setIsActive] = useState(true)
   const [isHighlighted, setIsHighlighted] = useState(false)
+  const [classLimitType, setClassLimitType] = useState<'unlimited' | 'per_week' | 'per_month'>('unlimited')
+  const [classLimitCount, setClassLimitCount] = useState('')
+  const [isComp, setIsComp] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
 
@@ -262,12 +268,25 @@ function PlanSheet({
         setIncludesPT(editTarget.includes_personal_training)
         setIsActive(editTarget.is_active)
         setIsHighlighted(editTarget.is_highlighted)
+        if (editTarget.classes_per_week) {
+          setClassLimitType('per_week')
+          setClassLimitCount(String(editTarget.classes_per_week))
+        } else if (editTarget.classes_per_month) {
+          setClassLimitType('per_month')
+          setClassLimitCount(String(editTarget.classes_per_month))
+        } else {
+          setClassLimitType('unlimited')
+          setClassLimitCount('')
+        }
+        setIsComp(editTarget.is_comp ?? false)
       } else {
         setName(''); setDescription('')
         setPlanType(defaultPlanType || 'recurring')
         setBillingPeriod('monthly'); setPrice('0')
         setIncludesClasses(true); setIncludesPT(false)
         setIsActive(true); setIsHighlighted(false)
+        setClassLimitType('unlimited'); setClassLimitCount('')
+        setIsComp(false)
       }
       setFormError('')
     }
@@ -283,11 +302,14 @@ function PlanSheet({
         description: description || null,
         plan_type: planType,
         billing_period: planType === 'recurring' ? billingPeriod : null,
-        price: parseFloat(price) || 0,
+        price: isComp ? 0 : parseFloat(price) || 0,
         includes_classes: includesClasses,
         includes_personal_training: includesPT,
         is_active: isActive,
         is_highlighted: isHighlighted,
+        classes_per_week: classLimitType === 'per_week' ? parseInt(classLimitCount) || null : null,
+        classes_per_month: classLimitType === 'per_month' ? parseInt(classLimitCount) || null : null,
+        is_comp: isComp,
       }
       if (editTarget) {
         // @ts-ignore
@@ -359,6 +381,47 @@ function PlanSheet({
             <Label>Includes Classes</Label>
             <Switch checked={includesClasses} onCheckedChange={setIncludesClasses} />
           </div>
+          {includesClasses && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label>Class Limit</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['unlimited', 'per_week', 'per_month'] as const).map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setClassLimitType(opt)}
+                      className={cn(
+                        'rounded-md border p-2 text-xs font-medium transition-colors',
+                        classLimitType === opt
+                          ? 'border-primary bg-primary/5 text-primary'
+                          : 'border-border hover:bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {opt === 'unlimited' ? 'Unlimited' : opt === 'per_week' ? 'Per week' : 'Per month'}
+                    </button>
+                  ))}
+                </div>
+                {classLimitType !== 'unlimited' && (
+                  <Input
+                    type="number"
+                    min="1"
+                    value={classLimitCount}
+                    onChange={e => setClassLimitCount(e.target.value)}
+                    placeholder={classLimitType === 'per_week' ? 'Classes per week' : 'Classes per month'}
+                    className="mt-1"
+                  />
+                )}
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <div>
+                  <Label>Comp membership</Label>
+                  <p className="text-xs text-muted-foreground">No charge, manually assigned</p>
+                </div>
+                <Switch checked={isComp} onCheckedChange={setIsComp} />
+              </div>
+            </>
+          )}
           <div className="flex items-center justify-between py-1">
             <Label>Includes Personal Training</Label>
             <Switch checked={includesPT} onCheckedChange={setIncludesPT} />
@@ -423,11 +486,19 @@ function PlanCard({
         {plan.description && (
           <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{plan.description}</p>
         )}
+        {plan.includes_classes && (plan.classes_per_week || plan.classes_per_month) && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {plan.classes_per_week
+              ? `${plan.classes_per_week} class${plan.classes_per_week !== 1 ? 'es' : ''}/week`
+              : `${plan.classes_per_month} class${plan.classes_per_month !== 1 ? 'es' : ''}/month`}
+          </p>
+        )}
         <Separator className="my-3" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             {plan.includes_classes && <Badge variant="outline" className="text-xs">Classes</Badge>}
             {plan.includes_personal_training && <Badge variant="outline" className="text-xs">PT</Badge>}
+            {plan.is_comp && <Badge variant="secondary" className="text-xs">Comp</Badge>}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

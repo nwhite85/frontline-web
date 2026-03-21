@@ -2759,6 +2759,7 @@ export type Database = {
           includes_classes: boolean | null
           includes_personal_training: boolean | null
           is_active: boolean | null
+          is_comp: boolean | null
           is_highlighted: boolean | null
           max_classes_per_period: number | null
           name: string
@@ -2781,6 +2782,7 @@ export type Database = {
           includes_classes?: boolean | null
           includes_personal_training?: boolean | null
           is_active?: boolean | null
+          is_comp?: boolean | null
           is_highlighted?: boolean | null
           max_classes_per_period?: number | null
           name: string
@@ -2801,8 +2803,9 @@ export type Database = {
           display_order?: number | null
           id?: string
           includes_classes?: boolean | null
-          includes_personal_training?: boolean | null
+          includes_comp?: boolean | null
           is_active?: boolean | null
+          is_comp?: boolean | null
           is_highlighted?: boolean | null
           max_classes_per_period?: number | null
           name?: string
