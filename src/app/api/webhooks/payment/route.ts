@@ -65,28 +65,66 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const supabase = getAdminClient()
   const userId = session.metadata?.user_id;
   const planId = session.metadata?.plan_id;
-  const customer = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
 
-  logger.log('Checkout completed:', { userId, planId, customer });
+  logger.log('Checkout completed:', { userId, planId, customerId });
 
   if (!userId) {
     logger.error('No user_id in checkout session metadata');
     return;
   }
 
-  // Activate the user profile
+  // Activate the user profile and store stripe_customer_id
+  const profileUpdate: Record<string, unknown> = { status: 'active', is_active: true }
+  if (customerId) profileUpdate.stripe_customer_id = customerId
+
   const { error: profileError } = await supabase
     .from('user_profiles')
-    .update({
-      status: 'active',
-      is_active: true,
-    })
+    .update(profileUpdate)
     .eq('id', userId);
 
   if (profileError) {
     logger.error('Error activating user profile:', profileError);
   } else {
     logger.log(`Activated user ${userId}`);
+  }
+
+  // Assign membership plan if plan_id is in metadata
+  if (planId) {
+    // Fetch trainer_id from the plan
+    const { data: plan } = await supabase
+      .from('membership_plans')
+      .select('id, trainer_id')
+      .eq('id', planId)
+      .single()
+
+    if (plan) {
+      // Cancel any existing active memberships
+      await supabase
+        .from('client_memberships')
+        .update({ status: 'cancelled' })
+        .eq('client_id', userId)
+        .eq('status', 'active')
+
+      // Insert new membership
+      const { error: memError } = await supabase
+        .from('client_memberships')
+        .insert({
+          client_id: userId,
+          membership_plan_id: planId,
+          trainer_id: plan.trainer_id,
+          status: 'active',
+          start_date: new Date().toISOString().split('T')[0],
+        })
+
+      if (memError) {
+        logger.error('Error creating client_membership:', memError)
+      } else {
+        logger.log(`Membership plan ${planId} assigned to user ${userId}`)
+      }
+    } else {
+      logger.error(`Plan ${planId} not found — membership not assigned`)
+    }
   }
 }
 

@@ -1447,6 +1447,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   // Add membership sheet
   const [membershipPlans, setMembershipPlans] = useState<any[]>([])
   const [addingMembership, setAddingMembership] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<any>(null)
 
   // Add payment method form state
   const [pmCard, setPmCard] = useState('')
@@ -1508,29 +1509,33 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   useEffect(() => {
     loadBilling()
     if (trainerId) {
-      supabase.from('membership_plans').select('id, name, price, billing_period').eq('trainer_id', trainerId)
+      supabase.from('membership_plans').select('id, name, price, billing_period, is_comp, classes_per_week, classes_per_month').eq('trainer_id', trainerId).eq('is_active', true)
         .then(({ data }) => setMembershipPlans(data || []))
     }
   }, [clientId, trainerId, loadBilling])
 
-  const addMembership = async (plan: any) => {
+  const confirmAddMembership = async () => {
+    if (!selectedPlan) return
     setAddingMembership(true)
     try {
-      // Deactivate any existing active memberships first (prevents maybeSingle() error on plan change)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('client_memberships').update({ status: 'cancelled' }).eq('client_id', clientId).eq('status', 'active')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('client_memberships').insert({
         client_id: clientId,
-        membership_plan_id: plan.id,
+        membership_plan_id: selectedPlan.id,
         trainer_id: trainerId,
         status: 'active',
-        start_date: new Date().toISOString(),
+        start_date: new Date().toISOString().split('T')[0],
       })
       setShowAddMembership(false)
+      setSelectedPlan(null)
       await loadBilling()
       onMutated?.()
-    } catch {} finally { setAddingMembership(false) }
+      toast.success('Membership assigned')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to assign membership')
+    } finally { setAddingMembership(false) }
   }
 
   if (loading) return <div className="flex flex-col gap-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
@@ -1654,29 +1659,85 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
       </div>
 
       {/* ── Add Membership Sheet ── */}
-      <Sheet open={showAddMembership} onOpenChange={setShowAddMembership}>
+      <Sheet open={showAddMembership} onOpenChange={v => { setShowAddMembership(v); if (!v) setSelectedPlan(null) }}>
         <SheetContent className="w-full sm:max-w-md">
-          <SheetHeader><SheetTitle>Add Membership</SheetTitle></SheetHeader>
+          <SheetHeader>
+            <SheetTitle>{selectedPlan ? 'Confirm Membership' : 'Add Membership'}</SheetTitle>
+            {selectedPlan && (
+              <button className="text-xs text-muted-foreground hover:text-foreground text-left mt-1" onClick={() => setSelectedPlan(null)}>
+                ← Back to plans
+              </button>
+            )}
+          </SheetHeader>
           <SheetBody>
-            <div className="flex flex-col gap-1">
-              {membershipPlans.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-6">No membership plans found. Create plans in Settings.</p>
-              )}
-              {membershipPlans.map(plan => (
-                <button
-                  key={plan.id}
-                  disabled={addingMembership}
-                  onClick={() => addMembership(plan)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border hover:bg-muted text-left transition-colors"
-                >
-                  <span className="text-sm font-medium">{plan.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {plan.price ? `£${plan.price.toFixed(2)}` : '—'}
-                    {plan.billing_period ? ` / ${plan.billing_period}` : ''}
-                  </span>
-                </button>
-              ))}
-            </div>
+            {!selectedPlan ? (
+              // Step 1 — pick a plan
+              <div className="flex flex-col gap-1">
+                {membershipPlans.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">No membership plans found. Create plans in Dashboard → Classes.</p>
+                )}
+                {membershipPlans.map((plan: any) => (
+                  <button
+                    key={plan.id}
+                    onClick={() => setSelectedPlan(plan)}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border hover:bg-muted text-left transition-colors"
+                  >
+                    <div>
+                      <span className="text-sm font-medium">{plan.name}</span>
+                      {(plan.classes_per_week || plan.classes_per_month) && (
+                        <p className="text-xs text-muted-foreground">
+                          {plan.classes_per_week ? `${plan.classes_per_week}/week` : `${plan.classes_per_month}/month`}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      {plan.is_comp
+                        ? <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Comp</span>
+                        : <span className="text-xs text-muted-foreground">
+                            £{plan.price?.toFixed(2) ?? '0.00'}
+                            {plan.billing_period ? ` / ${plan.billing_period}` : ''}
+                          </span>
+                      }
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              // Step 2 — confirm + payment method
+              <div className="flex flex-col gap-4">
+                <div className="rounded-lg border border-border p-4 space-y-1">
+                  <p className="text-sm font-medium">{selectedPlan.name}</p>
+                  {selectedPlan.is_comp
+                    ? <p className="text-xs text-emerald-600 dark:text-emerald-400">Comp — no charge</p>
+                    : <p className="text-xs text-muted-foreground">
+                        £{selectedPlan.price?.toFixed(2)} / {selectedPlan.billing_period ?? 'one-time'}
+                      </p>
+                  }
+                  {selectedPlan.classes_per_week && (
+                    <p className="text-xs text-muted-foreground">{selectedPlan.classes_per_week} classes per week</p>
+                  )}
+                  {selectedPlan.classes_per_month && (
+                    <p className="text-xs text-muted-foreground">{selectedPlan.classes_per_month} classes per month</p>
+                  )}
+                </div>
+
+                {selectedPlan.is_comp ? (
+                  <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Comp membership</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">This membership is complimentary — no payment will be taken. You are manually assigning this to the client.</p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                    <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Manual assignment</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">This assigns the membership in the app without taking payment. For paid memberships, ensure the client is paying via PushPress or another method until Frontline billing is fully set up.</p>
+                  </div>
+                )}
+
+                <Button onClick={confirmAddMembership} disabled={addingMembership} className="w-full">
+                  {addingMembership ? 'Assigning…' : selectedPlan.is_comp ? 'Assign Comp Membership' : 'Assign Membership'}
+                </Button>
+              </div>
+            )}
           </SheetBody>
         </SheetContent>
       </Sheet>
