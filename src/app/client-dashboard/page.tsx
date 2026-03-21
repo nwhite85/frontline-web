@@ -39,6 +39,12 @@ function ClassBookingModal({ schedule, onClose, onBooked, userId }: ClassBooking
         .eq('status', 'active')
         .maybeSingle()
 
+      if (!membership) {
+        setBookingError('You need an active membership to book classes.')
+        setLoading(false)
+        return
+      }
+
       if (membership) {
         const plan = membership.membership_plans
         if (plan && !plan.includes_classes) {
