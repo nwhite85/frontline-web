@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Fetch appointments
     const { data: appointments } = await supabase
       .from('appointments')
-      .select('id, appointment_date, start_time, appointment_type, payment_status')
+      .select('id, appointment_date, start_time, appointment_type, payment_status, price')
       .in('id', appointmentIds)
       .eq('client_id', clientId)
 
@@ -76,14 +76,8 @@ export async function POST(request: NextRequest) {
     const grouped = new Map<string, { count: number; dates: string[]; price: number }>()
 
     for (const apt of billable) {
-      // Get price from appointment_templates
-      const { data: tmpl } = await supabase
-        .from('appointment_templates')
-        .select('price')
-        .eq('name', apt.appointment_type)
-        .maybeSingle()
-
-      const price = (tmpl as any)?.price || 35 // fallback to £35
+      // Use price from appointment row if set, otherwise fall back to £35
+      const price = (apt as any).price || 35
 
       const key = apt.appointment_type || 'PT Session'
       if (!grouped.has(key)) grouped.set(key, { count: 0, dates: [], price })
@@ -123,9 +117,11 @@ export async function POST(request: NextRequest) {
     await stripe.invoices.sendInvoice(invoiceId)
 
     // Mark appointments as invoiced
+    // Note: stripe_invoice_id and invoice_sent_at columns require a DB migration before they can be written.
+    // Until that migration is run, we just update payment_status.
     await supabase
       .from('appointments')
-      .update({ payment_status: 'invoiced', stripe_invoice_id: invoiceId, invoice_sent_at: new Date().toISOString() })
+      .update({ payment_status: 'invoiced' })
       .in('id', billable.map(a => a.id))
 
     logger.log(`Invoice ${invoiceId} sent to ${client.email} for ${billable.length} sessions`)
