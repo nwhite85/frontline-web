@@ -30,100 +30,15 @@ function ClassBookingModal({ schedule, onClose, onBooked, userId }: ClassBooking
     setLoading(true)
     setBookingError(null)
     try {
-      // ── Membership gate ──
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: membership } = await (supabase as any)
-        .from('client_memberships')
-        .select('*, membership_plans(classes_per_week, classes_per_month, includes_classes)')
-        .eq('client_id', userId)
-        .eq('status', 'active')
-        .maybeSingle()
-
-      if (!membership) {
-        setBookingError('You need an active membership to book classes.')
-        setLoading(false)
+      const res = await fetch('/api/book-class', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classScheduleId: schedule.id, clientId: userId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setBookingError(data.error || 'Failed to book class')
         return
-      }
-
-      if (membership) {
-        const plan = membership.membership_plans
-        if (plan && !plan.includes_classes) {
-          setBookingError('Your membership does not include classes.')
-          setLoading(false)
-          return
-        }
-        if (plan?.classes_per_week) {
-          // Count bookings this week (Mon–Sun)
-          const now = new Date()
-          const day = now.getDay() === 0 ? 6 : now.getDay() - 1 // Mon=0
-          const weekStart = new Date(now)
-          weekStart.setDate(now.getDate() - day)
-          weekStart.setHours(0, 0, 0, 0)
-          const weekEnd = new Date(weekStart)
-          weekEnd.setDate(weekStart.getDate() + 7)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { count } = await (supabase as any)
-            .from('class_bookings')
-            .select('id', { count: 'exact', head: true })
-            .eq('client_id', userId)
-            .neq('booking_status', 'cancelled')
-            .gte('booking_date', weekStart.toISOString())
-            .lt('booking_date', weekEnd.toISOString())
-          if ((count ?? 0) >= plan.classes_per_week) {
-            setBookingError(`You've used all ${plan.classes_per_week} classes for this week.`)
-            setLoading(false)
-            return
-          }
-        } else if (plan?.classes_per_month) {
-          // Count bookings this calendar month
-          const now = new Date()
-          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { count } = await (supabase as any)
-            .from('class_bookings')
-            .select('id', { count: 'exact', head: true })
-            .eq('client_id', userId)
-            .neq('booking_status', 'cancelled')
-            .gte('booking_date', monthStart.toISOString())
-            .lt('booking_date', monthEnd.toISOString())
-          if ((count ?? 0) >= plan.classes_per_month) {
-            setBookingError(`You've used all ${plan.classes_per_month} classes for this month.`)
-            setLoading(false)
-            return
-          }
-        }
-      }
-      // ── End membership gate ──
-
-      const { data: existing } = await supabase
-        .from('class_bookings')
-        .select('id')
-        .eq('client_id', userId)
-        .eq('class_schedule_id', schedule.id)
-        .eq('booking_status', 'cancelled')
-        .maybeSingle()
-
-      if (existing) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any)
-          .from('class_bookings')
-          .update({
-            booking_status: isFull ? 'waitlist' : 'confirmed',
-            booking_date: new Date().toISOString(),
-          })
-          .eq('id', (existing as { id: string }).id)
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from('class_bookings').insert({
-          client_id: userId,
-          class_schedule_id: schedule.id,
-          trainer_id: schedule.trainer_id ?? null,
-          booking_status: isFull ? 'waitlist' : 'confirmed',
-          payment_status: 'pending',
-          amount_paid: 0,
-          booking_date: new Date().toISOString(),
-        })
       }
       onBooked()
     } finally {
