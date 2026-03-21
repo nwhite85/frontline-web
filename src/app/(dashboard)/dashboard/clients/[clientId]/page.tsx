@@ -1817,6 +1817,21 @@ export default function ClientDetailPage() {
   const [statsRefreshKey, setStatsRefreshKey] = useState(0)
   const refreshStats = () => setStatsRefreshKey(k => k + 1)
 
+  const handleRemoveMembership = async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('client_memberships')
+        .update({ status: 'cancelled' })
+        .eq('client_id', clientId)
+        .eq('status', 'active')
+      toast.success('Membership removed')
+      refreshStats()
+    } catch {
+      toast.error('Failed to remove membership')
+    }
+  }
+
   useEffect(() => {
     setActions(null)
     return () => setActions(null)
@@ -1866,7 +1881,7 @@ export default function ClientDetailPage() {
         onEdit={() => setEditOpen(true)}
         onAddMembership={() => { setActiveTab('billing'); setShowAddMembership(true) }}
         onChangeMembership={() => { setActiveTab('billing'); setShowAddMembership(true) }}
-        onRemoveMembership={() => setActiveTab('billing')}
+        onRemoveMembership={handleRemoveMembership}
         onAddPayment={() => { setActiveTab('billing'); setShowAddMethod(true) }}
         onRemovePayment={() => setActiveTab('billing')}
         onGoToPrograms={() => setActiveTab('programs')}
