@@ -17,6 +17,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/bookings/trialist',
   '/api/calendar/',
   '/api/merch-order',
+  '/api/book-event',
 ]
 
 export async function middleware(req: NextRequest) {
