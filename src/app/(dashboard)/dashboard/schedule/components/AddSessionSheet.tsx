@@ -110,11 +110,13 @@ export function AddSessionSheet({
   // Class form
   const [classId, setClassId] = useState('')
   const [classTime, setClassTime] = useState(selectedSlot?.time || '09:00')
+  const [classLocation, setClassLocation] = useState('')
   const [classRepeat, setClassRepeat] = useState(false)
   const [classRepeatFreq, setClassRepeatFreq] = useState<'daily' | 'weekly' | 'biweekly' | 'monthly'>('weekly')
   const [classRepeatDur, setClassRepeatDur] = useState<'month' | 'year' | 'end-of-year'>('month')
 
   // Event form
+  const [eventTemplateId, setEventTemplateId] = useState('')
   const [eventName, setEventName] = useState('')
   const [eventDesc, setEventDesc] = useState('')
   const [eventStartDate, setEventStartDate] = useState(selectedSlot?.date || '')
@@ -132,7 +134,7 @@ export function AddSessionSheet({
   const [challengeLocation, setChallengeLocation] = useState('')
   const [challengeCapacity, setChallengeCapacity] = useState(20)
 
-  // Auto-fill duration and location from selected template
+  // Auto-fill from selected appointment template
   useEffect(() => {
     const template = appointmentTemplates.find(t => t.id === aptTemplate)
     if (template) {
@@ -140,6 +142,44 @@ export function AddSessionSheet({
       if (template.location) setAptLocation(template.location)
     }
   }, [aptTemplate])
+
+  // Auto-fill from selected class
+  useEffect(() => {
+    const cls = classes.find(c => c.id === classId)
+    if (cls) {
+      if (cls.location) setClassLocation(cls.location)
+    }
+  }, [classId])
+
+  // Auto-fill from selected event template
+  useEffect(() => {
+    const tmpl = eventTemplates.find(t => t.id === eventTemplateId)
+    if (tmpl) {
+      setEventName(tmpl.name)
+      if (tmpl.description) setEventDesc(tmpl.description)
+      if (tmpl.location) setEventLocation(tmpl.location)
+      if (tmpl.max_capacity) setEventCapacity(tmpl.max_capacity)
+      if (tmpl.duration_minutes) {
+        const [h, m] = (selectedSlot?.time || eventStartTime || '09:00').split(':').map(Number)
+        const total = h * 60 + m + tmpl.duration_minutes
+        setEventEndTime(`${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`)
+      }
+    }
+  }, [eventTemplateId])
+
+  // Auto-fill from selected challenge
+  useEffect(() => {
+    const ch = challenges.find(c => c.id === challengeId)
+    if (ch) {
+      if (ch.location) setChallengeLocation(ch.location)
+      if (ch.max_capacity) setChallengeCapacity(ch.max_capacity)
+      if (ch.duration_minutes) {
+        const [h, m] = (selectedSlot?.time || challengeTime || '09:00').split(':').map(Number)
+        const total = h * 60 + m + ch.duration_minutes
+        setChallengeEndTime(`${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`)
+      }
+    }
+  }, [challengeId])
 
   // Sync time/date from selectedSlot whenever sheet opens with a new slot
   useEffect(() => {
@@ -235,6 +275,7 @@ export function AddSessionSheet({
           start_time: classTime,
           end_time: calcEndTime(classTime, selectedClass?.duration_minutes || 60),
           max_capacity: selectedClass?.max_capacity || 20,
+          location: classLocation || selectedClass?.location || null,
           status: 'scheduled',
           current_bookings: 0,
         }
@@ -467,6 +508,10 @@ export function AddSessionSheet({
                 <Label className="text-xs">Start Time</Label>
                 <Input type="time" value={classTime} onChange={(e) => setClassTime(e.target.value)} className="h-9" />
               </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Location (optional)</Label>
+                <Input value={classLocation} onChange={(e) => setClassLocation(e.target.value)} placeholder="e.g. Lydiard Park" className="h-9" />
+              </div>
               <Separator />
               <div className="flex items-center gap-2">
                 <Checkbox id="class-repeat" checked={classRepeat} onCheckedChange={(v) => setClassRepeat(!!v)} />
@@ -499,6 +544,21 @@ export function AddSessionSheet({
           {/* Event form */}
           {activeTab === 'event' && (
             <div className="space-y-3">
+              {eventTemplates.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Event Template (optional)</Label>
+                  <select
+                    value={eventTemplateId}
+                    onChange={(e) => setEventTemplateId(e.target.value)}
+                    className="w-full h-9 rounded-md border border-input bg-background pl-3 pr-8 text-sm"
+                  >
+                    <option value="">Select a template…</option>
+                    {eventTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label className="text-xs">Event Name</Label>
                 <Input value={eventName} onChange={(e) => setEventName(e.target.value)} placeholder="e.g. Nutrition Workshop" className="h-9" />
