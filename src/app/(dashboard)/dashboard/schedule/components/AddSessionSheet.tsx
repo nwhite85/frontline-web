@@ -300,9 +300,11 @@ export function AddSessionSheet({
           start_time: eventStartTime,
           end_time: eventEndTime || null,
           location: eventLocation || null,
+          location_type: 'outdoor',
+          event_type: 'general',
           price: eventPrice || 0,
           max_capacity: eventCapacity || 50,
-          status: 'scheduled',
+          is_active: true,
           current_bookings: 0,
         })
         if (error) throw error
