@@ -275,6 +275,9 @@ export function AddSessionSheet({
           const total = h * 60 + m + mins
           return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
         }
+        const repeatGroupId = classRepeat
+          ? crypto.randomUUID()
+          : null
         const insertData: any = {
           trainer_id: trainerId,
           class_id: classId,
@@ -285,6 +288,7 @@ export function AddSessionSheet({
           location: classLocation || selectedClass?.location || null,
           status: 'scheduled',
           current_bookings: 0,
+          ...(repeatGroupId ? { repeat_group_id: repeatGroupId } : {}),
         }
         const { error } = await supabase.from('class_schedules').insert(insertData)
         if (error) throw error
