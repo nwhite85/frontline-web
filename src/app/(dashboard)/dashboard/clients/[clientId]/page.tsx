@@ -54,14 +54,17 @@ interface ClientProfile {
 function EditClientSheet({
   open, onOpenChange, client, onSaved, trainerId,
 }: { open: boolean; onOpenChange: (v: boolean) => void; client: ClientProfile; onSaved: (c: ClientProfile) => void; trainerId: string }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', date_of_birth: '', bio: '', status: 'Active', client_type: 'classes' })
+  const [form, setForm] = useState({ name: '', first_name: '', last_name: '', email: '', phone: '', date_of_birth: '', bio: '', status: 'Active', client_type: 'classes' })
   const [ptEnabled, setPtEnabled] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
-      setForm({ name: client.name ?? '', email: client.email ?? '', phone: client.phone ?? '', date_of_birth: client.date_of_birth ?? '', bio: client.bio ?? '', status: client.status ?? 'Active', client_type: (client as unknown as Record<string, unknown>).client_type as string ?? 'classes' })
+      const clientAny = client as unknown as Record<string, unknown>
+      const existingFirst = (clientAny.first_name as string) || client.name?.split(' ')[0] || ''
+      const existingLast = (clientAny.last_name as string) || client.name?.split(' ').slice(1).join(' ') || ''
+      setForm({ name: client.name ?? '', first_name: existingFirst, last_name: existingLast, email: client.email ?? '', phone: client.phone ?? '', date_of_birth: client.date_of_birth ?? '', bio: client.bio ?? '', status: client.status ?? 'Active', client_type: clientAny.client_type as string ?? 'classes' })
       setError(null)
       // Load PT status from trainer_client
       supabase
@@ -78,16 +81,16 @@ function EditClientSheet({
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = async () => {
-    if (!form.name.trim()) { setError('Name is required'); return }
+    if (!form.first_name.trim()) { setError('First name is required'); return }
     setSaving(true); setError(null)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error: err } = await (supabase as any)
         .from('user_profiles')
         .update({
-          name: form.name.trim(),
-          first_name: form.name.trim().split(/\s+/)[0] ?? '',
-          last_name: form.name.trim().split(/\s+/).slice(1).join(' ') || null,
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim() || null,
+          name: [form.first_name.trim(), form.last_name.trim()].filter(Boolean).join(' '),
           email: form.email.trim(),
           phone: form.phone.trim() || null,
           date_of_birth: form.date_of_birth || null,
@@ -118,7 +121,10 @@ function EditClientSheet({
         <SheetHeader><SheetTitle>Edit Client</SheetTitle></SheetHeader>
         <SheetBody>
           {error && <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
-          <div className="grid gap-1.5"><Label>Name</Label><Input value={form.name} onChange={e => set('name', e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5"><Label>First name</Label><Input value={form.first_name} onChange={e => set('first_name', e.target.value)} /></div>
+            <div className="grid gap-1.5"><Label>Last name</Label><Input value={form.last_name} onChange={e => set('last_name', e.target.value)} /></div>
+          </div>
           <div className="grid gap-1.5"><Label>Email</Label><Input type="email" value={form.email} onChange={e => set('email', e.target.value)} /></div>
           <div className="grid gap-1.5"><Label>Phone</Label><Input value={form.phone} onChange={e => set('phone', e.target.value)} /></div>
           <div className="grid gap-1.5"><Label>Date of Birth</Label><Input type="date" value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)} /></div>
