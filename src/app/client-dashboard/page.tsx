@@ -386,10 +386,11 @@ function ClientDashboardContent() {
     }).catch(() => { router.push('/login') })
   }, [router])
 
-  const firstName = profile?.first_name || profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || null
   const tabs: { id: Tab; label: string }[] = [{ id: 'classes', label: 'Classes' }, { id: 'appointments', label: 'Appointments' }, { id: 'events', label: 'Events & Challenges' }]
 
   if (loading) return <ClientShell user={user}><div className="flex items-center justify-center min-h-[60vh]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-blue border-t-transparent" /></div></ClientShell>
+
+  const firstName = profile?.first_name || profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || null
 
   if (setupComplete) return (
     <ClientShell user={user}>
