@@ -382,8 +382,7 @@ function ClientDashboardContent() {
     Promise.resolve(supabase.auth.getSession()).then(({ data: { session }, error }) => {
       if (error || !session) { router.push('/login'); return }
       setUser(session.user); setUserId(session.user.id)
-      Promise.resolve(supabase.from('user_profiles').select('id, first_name, last_name, name, email, phone, avatar_url, membership_status, membership_plan').eq('id', session.user.id).single()).then(({ data }) => { if (data) setProfile(data) }).catch(() => {})
-      setLoading(false)
+      Promise.resolve(supabase.from('user_profiles').select('id, first_name, last_name, name, email, phone, avatar_url, membership_status, membership_plan').eq('id', session.user.id).single()).then(({ data }) => { if (data) setProfile(data) }).catch(() => {}).finally(() => setLoading(false))
     }).catch(() => { router.push('/login') })
   }, [router])
 
