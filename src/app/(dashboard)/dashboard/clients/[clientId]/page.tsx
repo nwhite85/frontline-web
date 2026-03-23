@@ -84,7 +84,17 @@ function EditClientSheet({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error: err } = await (supabase as any)
         .from('user_profiles')
-        .update({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() || null, date_of_birth: form.date_of_birth || null, bio: form.bio.trim() || null, status: form.status || null, client_type: form.client_type })
+        .update({
+          name: form.name.trim(),
+          first_name: form.name.trim().split(/\s+/)[0] ?? '',
+          last_name: form.name.trim().split(/\s+/).slice(1).join(' ') || null,
+          email: form.email.trim(),
+          phone: form.phone.trim() || null,
+          date_of_birth: form.date_of_birth || null,
+          bio: form.bio.trim() || null,
+          status: form.status || null,
+          client_type: form.client_type,
+        })
         .eq('id', client.id).select().single()
       if (err) throw err
 
