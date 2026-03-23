@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, name, phone, dateOfBirth, gender, planId: _planId, trainerId: bodyTrainerId, acceptMarketing, fromDashboard, clientType } = parsed.data;
+    const nameParts = name.trim().split(/\s+/)
+    const firstName = nameParts[0] ?? ''
+    const lastName = nameParts.slice(1).join(' ') || null
     // Auto-generate a secure password if not provided (trainer-added clients reset via email)
     const password = parsed.data.password || Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!9';
 
@@ -116,6 +119,8 @@ export async function POST(req: NextRequest) {
         .upsert([{
           id: userId,
           name,
+          first_name: firstName,
+          last_name: lastName,
           email,
           phone,
           date_of_birth: dateOfBirth || null,

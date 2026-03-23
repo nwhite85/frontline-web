@@ -244,18 +244,18 @@ export function welcomeEmail(data: WelcomeEmailData): { subject: string; html: s
       </div>
       <p style="text-align:center;font-size:13px;color:${BRAND.textMuted}">This link expires in 24 hours</p>
       <div style="text-align:center;margin:20px 0 8px">
-        <a href="https://play.google.com/store/apps/details?id=com.frontline.client" style="color:${BRAND.primary};font-size:14px;font-weight:600;text-decoration:none">Download the App (Android)</a>
+        <a href="https://play.google.com/apps/testing/com.frontline.client" style="color:${BRAND.primary};font-size:14px;font-weight:600;text-decoration:none">Download the App (Android)</a>
       </div>` : `
       <div style="text-align:center;margin:28px 0 8px">
-        <a href="https://play.google.com/store/apps/details?id=com.frontline.client" class="btn" style="color:#ffffff">Download the App</a>
+        <a href="https://play.google.com/apps/testing/com.frontline.client" class="btn" style="color:#ffffff">Download the App</a>
       </div>
       <p style="text-align:center;font-size:13px;color:${BRAND.textMuted}">Available on Android</p>`}
     </div>
   `, subject);
 
   const steps = data.passwordSetupUrl
-    ? `1. Set your password: ${data.passwordSetupUrl}\n2. Book your first session\n3. Download the app: https://play.google.com/store/apps/details?id=com.frontline.client\n4. Show up and crush it!`
-    : `1. Book your first session\n2. Download the app: https://play.google.com/store/apps/details?id=com.frontline.client\n3. Show up and crush it!`
+    ? `1. Set your password: ${data.passwordSetupUrl}\n2. Book your first session\n3. Download the app: https://play.google.com/apps/testing/com.frontline.client\n4. Show up and crush it!`
+    : `1. Book your first session\n2. Download the app: https://play.google.com/apps/testing/com.frontline.client\n3. Show up and crush it!`
   const text = `${subject}\n\nHi ${data.clientName},\n\nWelcome to Frontline Fitness! We're thrilled to have you.\n\nWhat's next:\n${steps}\n\n${data.trainerName ? `${data.trainerName} is` : 'Your trainer is'} ready to help you smash your goals.\n\n— Frontline Fitness`;
 
   return { subject, html, text };
