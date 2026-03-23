@@ -1,13 +1,13 @@
 export default function PrivacyPage() {
   const sections = [
     { title: '1. Who we are', body: 'Frontline Fitness is operated by Nick White, a sole trader based in Swindon, UK. We are committed to protecting your personal data and acting in compliance with the UK GDPR and the Data Protection Act 2018.' },
-    { title: '2. What data we collect', body: 'We may collect your name, email address, phone number, date of birth, emergency contact details, fitness goals, and payment information when you register, book a class, or contact us.' },
+    { title: '2. What data we collect', body: 'We may collect your name, email address, phone number, date of birth, emergency contact details, fitness goals, and payment information when you register, book a class, or contact us. If you use our mobile app, we may also collect fitness and workout data, exercise history, body measurements, and progress photos that you choose to upload.' },
     { title: '3. How we use your data', body: 'Your data is used to manage your membership, process bookings and payments, communicate important updates, and improve our services. We do not sell your data to third parties.' },
     { title: '4. Legal basis for processing', body: 'We process your data on the basis of contract performance (to deliver services you have purchased), legitimate interests (to manage our business), and with your consent where required.' },
     { title: '5. Data retention', body: 'We retain your personal data for as long as your account is active and for a further period as required by law or our legitimate business interests, typically six years for financial records.' },
     { title: '6. Your rights', body: 'You have the right to access, correct, or delete your personal data. You may also object to processing or request a copy of your data. To exercise these rights, contact us at the address below.' },
     { title: '7. Cookies', body: 'We use essential cookies to keep you signed in and to maintain your session. We do not use tracking or advertising cookies without your explicit consent.' },
-    { title: '8. Third-party services', body: 'We use Supabase for authentication and data storage. These services are governed by their own privacy policies. We select providers who meet GDPR requirements.' },
+    { title: '8. Third-party services', body: 'We use Supabase for authentication and data storage, and Stripe for payment processing. Your payment data is handled directly by Stripe and is not stored on our servers. These services are governed by their own privacy policies, and we select providers who meet GDPR requirements. Please note that both Supabase and Stripe operate servers in the United States. Data transferred outside the UK is protected under appropriate safeguards in accordance with UK GDPR.' },
     { title: '9. Contact', body: 'For any privacy enquiries, please contact: privacy@frontlinefitness.co.uk' },
   ]
 
