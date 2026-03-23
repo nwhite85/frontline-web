@@ -59,7 +59,7 @@ export default function ProfilePage() {
     setSaving(true)
     await supabase
       .from('user_profiles')
-      .update({ first_name: firstName, last_name: lastName, phone } as never)
+      .update({ first_name: firstName, last_name: lastName, name: [firstName, lastName].filter(Boolean).join(' '), phone } as never)
       .eq('id', profile.id)
     setSaving(false)
     setSaved(true)
