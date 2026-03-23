@@ -215,9 +215,16 @@ export function AddSessionSheet({
       return r
     }
 
+    const toLocalDateStr = (d: Date) => {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    }
+
     current = addDays(current, freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 14 : 30)
     while (current <= end) {
-      dates.push(current.toISOString().split('T')[0])
+      dates.push(toLocalDateStr(current))
       current = addDays(current, freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 14 : 30)
     }
     return dates
