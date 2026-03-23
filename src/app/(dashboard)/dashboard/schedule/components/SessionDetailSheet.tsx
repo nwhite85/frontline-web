@@ -513,10 +513,9 @@ export function SessionDetailSheet({
         </div>
 
         <SheetFooter className="pt-4 border-t flex-col gap-2 sm:flex-col">
-          {!editing && !confirmDelete && (type === 'class' || type === 'event') && (
+          {!editing && !confirmDelete && (type === 'class' || type === 'event' || type === 'challenge') && (
             <Button
               variant="outline"
-             
               className="w-full"
               onClick={() => setShowBookings(true)}
             >
