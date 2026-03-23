@@ -198,6 +198,7 @@ export function paymentReceiptEmail(data: PaymentReceiptData): { subject: string
 export interface WelcomeEmailData {
   clientName: string;
   trainerName?: string;
+  passwordSetupUrl?: string;
 }
 
 export function welcomeEmail(data: WelcomeEmailData): { subject: string; html: string; text: string } {
@@ -211,33 +212,51 @@ export function welcomeEmail(data: WelcomeEmailData): { subject: string; html: s
     <div class="body" style="padding-top:0">
       <h3 style="margin:0 0 12px;font-size:16px">What's next?</h3>
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
+        ${data.passwordSetupUrl ? `
         <tr>
           <td style="padding:12px 0;border-bottom:1px solid ${BRAND.border}">
-            <strong style="color:${BRAND.primary}">1.</strong> <strong>Book your first session</strong><br>
+            <strong style="color:${BRAND.primary}">1.</strong> <strong>Set your password</strong><br>
+            <span style="color:${BRAND.textMuted}">Click the button below to create your password and activate your account. This link expires in 24 hours.</span>
+          </td>
+        </tr>` : ''}
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid ${BRAND.border}">
+            <strong style="color:${BRAND.primary}">${data.passwordSetupUrl ? '2' : '1'}.</strong> <strong>Book your first session</strong><br>
             <span style="color:${BRAND.textMuted}">Check the schedule and reserve your spot in a class or 1-to-1 session.</span>
           </td>
         </tr>
         <tr>
           <td style="padding:12px 0;border-bottom:1px solid ${BRAND.border}">
-            <strong style="color:${BRAND.primary}">2.</strong> <strong>Download the app</strong><br>
+            <strong style="color:${BRAND.primary}">${data.passwordSetupUrl ? '3' : '2'}.</strong> <strong>Download the app</strong><br>
             <span style="color:${BRAND.textMuted}">Track workouts, nutrition, and progress all in one place.</span>
           </td>
         </tr>
         <tr>
           <td style="padding:12px 0">
-            <strong style="color:${BRAND.primary}">3.</strong> <strong>Show up and crush it</strong><br>
+            <strong style="color:${BRAND.primary}">${data.passwordSetupUrl ? '4' : '3'}.</strong> <strong>Show up and crush it</strong><br>
             <span style="color:${BRAND.textMuted}">${data.trainerName ? `${data.trainerName} is` : 'Your trainer is'} ready to help you smash your goals.</span>
           </td>
         </tr>
       </table>
+      ${data.passwordSetupUrl ? `
+      <div style="text-align:center;margin:28px 0 8px">
+        <a href="${data.passwordSetupUrl}" class="btn" style="color:#ffffff">Set Your Password</a>
+      </div>
+      <p style="text-align:center;font-size:13px;color:${BRAND.textMuted}">This link expires in 24 hours</p>
+      <div style="text-align:center;margin:20px 0 8px">
+        <a href="https://play.google.com/store/apps/details?id=com.frontline.client" style="color:${BRAND.primary};font-size:14px;font-weight:600;text-decoration:none">Download the App (Android)</a>
+      </div>` : `
       <div style="text-align:center;margin:28px 0 8px">
         <a href="https://play.google.com/store/apps/details?id=com.frontline.client" class="btn" style="color:#ffffff">Download the App</a>
       </div>
-      <p style="text-align:center;font-size:13px;color:${BRAND.textMuted}">Available on Android</p>
+      <p style="text-align:center;font-size:13px;color:${BRAND.textMuted}">Available on Android</p>`}
     </div>
   `, subject);
 
-  const text = `${subject}\n\nHi ${data.clientName},\n\nWelcome to Frontline Fitness! We're thrilled to have you.\n\nWhat's next:\n1. Book your first session\n2. Download the app: https://play.google.com/store/apps/details?id=com.frontline.client\n3. Show up and crush it!\n\n${data.trainerName ? `${data.trainerName} is` : 'Your trainer is'} ready to help you smash your goals.\n\n— Frontline Fitness`;
+  const steps = data.passwordSetupUrl
+    ? `1. Set your password: ${data.passwordSetupUrl}\n2. Book your first session\n3. Download the app: https://play.google.com/store/apps/details?id=com.frontline.client\n4. Show up and crush it!`
+    : `1. Book your first session\n2. Download the app: https://play.google.com/store/apps/details?id=com.frontline.client\n3. Show up and crush it!`
+  const text = `${subject}\n\nHi ${data.clientName},\n\nWelcome to Frontline Fitness! We're thrilled to have you.\n\nWhat's next:\n${steps}\n\n${data.trainerName ? `${data.trainerName} is` : 'Your trainer is'} ready to help you smash your goals.\n\n— Frontline Fitness`;
 
   return { subject, html, text };
 }

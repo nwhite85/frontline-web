@@ -177,10 +177,22 @@ export async function POST(req: NextRequest) {
       logger.log('Step 3 SKIPPED: No DEFAULT_TRAINER_ID configured');
     }
 
-    // Send welcome email
+    // Send welcome email with password setup link
     try {
       if (email) {
-        const welcomeEmailContent = welcomeEmail({ clientName: name });
+        // Generate a one-time password setup link
+        let passwordSetupUrl: string | undefined
+        try {
+          const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'recovery',
+            email,
+          })
+          passwordSetupUrl = linkData?.properties?.action_link ?? undefined
+        } catch (linkErr) {
+          logger.error('[Signup Client] Failed to generate password setup link:', linkErr)
+        }
+
+        const welcomeEmailContent = welcomeEmail({ clientName: name, passwordSetupUrl });
         await sendTransactionalEmail({
           to: email,
           subject: welcomeEmailContent.subject,
