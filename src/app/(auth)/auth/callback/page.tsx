@@ -34,8 +34,7 @@ export default function AuthCallbackPage() {
         const errorDesc = urlParams.get('error_description') || hashParams.get('error_description')
         const type = urlParams.get('type') || hashParams.get('type')
 
-        if (type === 'recovery') { router.push('/client/setup'); return }
-        if (errorCode === 'otp_expired' || errorCode === 'access_denied') { router.push('/client/setup'); return }
+        if (errorCode === 'otp_expired' || errorCode === 'access_denied') { router.push('/login'); return }
         if (errorCode) { setError(`Authentication failed: ${errorDesc || errorCode}`); return }
 
         const { data: { session } } = await supabase.auth.getSession()

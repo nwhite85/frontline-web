@@ -184,8 +184,11 @@ export async function POST(req: NextRequest) {
         let passwordSetupUrl: string | undefined
         try {
           const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'recovery',
+            type: 'magiclink',
             email,
+            options: {
+              redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk'}/update-password`,
+            },
           })
           passwordSetupUrl = linkData?.properties?.action_link ?? undefined
         } catch (linkErr) {

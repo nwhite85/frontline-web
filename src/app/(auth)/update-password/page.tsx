@@ -34,10 +34,11 @@ export default function UpdatePasswordPage() {
       const refresh_token = params.get('refresh_token')
       const type = params.get('type')
 
-      if (access_token && refresh_token && type === 'recovery') {
+      // Handle both recovery and magiclink types (magiclink used for new client password setup)
+      if (access_token && refresh_token && (type === 'recovery' || type === 'magiclink')) {
         const { error } = await supabase.auth.setSession({ access_token, refresh_token })
         if (error) {
-          setError('Invalid or expired reset link. Please request a new one.')
+          setError('Invalid or expired link. Please request a new one.')
           return
         }
         setReady(true)
@@ -63,7 +64,7 @@ export default function UpdatePasswordPage() {
     setError(null)
     const { error } = await supabase.auth.updateUser({ password })
     if (error) { setError(error.message); setLoading(false) }
-    else { router.push('/login') }
+    else { router.push('/client-dashboard') }
   }
 
   return (
@@ -85,8 +86,8 @@ export default function UpdatePasswordPage() {
       <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm flex flex-col gap-5">
           <div>
-            <h2 className="text-2xl font-semibold text-white">Set new password</h2>
-            <p className="text-sm text-white/50 mt-1">Choose a new password for your account</p>
+            <h2 className="text-2xl font-semibold text-white">Set your password</h2>
+            <p className="text-sm text-white/50 mt-1">Create a password to activate your Frontline Fitness account</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-[#0a0f1a] p-6 flex flex-col gap-4">
             {error && (
