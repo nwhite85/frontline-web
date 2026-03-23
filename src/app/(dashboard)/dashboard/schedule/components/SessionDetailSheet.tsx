@@ -237,11 +237,21 @@ export function SessionDetailSheet({
       const repeatGroupId = (session as any).repeat_group_id
       const scheduledDate = (session as any).scheduled_date
 
-      if (mode === 'future' && repeatGroupId && type === 'class') {
-        // Delete this + all future sessions in the same series
-        ;({ error } = await (supabase as any).from('class_schedules').delete()
-          .eq('repeat_group_id', repeatGroupId)
-          .gte('scheduled_date', scheduledDate))
+      if (mode === 'future' && type === 'class') {
+        if (repeatGroupId) {
+          // Delete by repeat group ID (new sessions)
+          ;({ error } = await (supabase as any).from('class_schedules').delete()
+            .eq('repeat_group_id', repeatGroupId)
+            .gte('scheduled_date', scheduledDate))
+        } else {
+          // Fall back: delete by matching class_id + start_time (old sessions without group ID)
+          const classId = (session as any).class_id
+          const startTime = (session as any).start_time
+          ;({ error } = await (supabase as any).from('class_schedules').delete()
+            .eq('class_id', classId)
+            .eq('start_time', startTime)
+            .gte('scheduled_date', scheduledDate))
+        }
       } else {
         if (type === 'appointment') {
           ;({ error } = await supabase.from('appointments').delete().eq('id', session.id))
@@ -473,7 +483,7 @@ export function SessionDetailSheet({
                 <p className="text-sm text-destructive font-medium">
                   Delete this {typeLabels[type].toLowerCase()}?
                 </p>
-                {(session as any).repeat_group_id && type === 'class' && (
+                {type === 'class' && (
                   <div className="flex flex-col gap-1.5">
                     <button
                       className={`text-left text-sm px-3 py-2 rounded-md border transition-colors ${deleteMode === 'single' ? 'border-destructive bg-destructive/10 text-destructive font-medium' : 'border-border hover:bg-muted'}`}
