@@ -36,9 +36,10 @@ interface AvailableClient {
 interface BookingsSheetProps {
   open: boolean
   onClose: () => void
-  type: 'class' | 'event'
+  type: 'class' | 'event' | 'challenge'
   scheduleId?: string
   eventId?: string
+  challengeScheduleId?: string
   title: string
   subtitle?: string
   maxCapacity?: number
@@ -52,7 +53,7 @@ const STATUS_CONFIG = {
   no_show: { label: 'No show', variant: 'destructive' as const, icon: X },
 }
 
-export function BookingsSheet({ open, onClose, type, scheduleId, eventId, title, subtitle, maxCapacity }: BookingsSheetProps) {
+export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challengeScheduleId, title, subtitle, maxCapacity }: BookingsSheetProps) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(false)
   const [showAddClient, setShowAddClient] = useState(false)
@@ -62,7 +63,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, title,
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const fetchBookings = async () => {
-    if (!scheduleId && !eventId) return
+    if (!scheduleId && !eventId && !challengeScheduleId) return
     setLoading(true)
     try {
       let data: any[] = []
@@ -79,6 +80,14 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, title,
           .from('event_bookings')
           .select('*')
           .eq('event_id', eventId)
+          .order('booking_date', { ascending: false })
+        if (error) throw error
+        data = rows || []
+      } else if (type === 'challenge' && challengeScheduleId) {
+        const { data: rows, error } = await supabase
+          .from('challenge_bookings')
+          .select('*')
+          .eq('challenge_schedule_id', challengeScheduleId)
           .order('booking_date', { ascending: false })
         if (error) throw error
         data = rows || []
@@ -122,12 +131,12 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, title,
       fetchBookings()
       fetchClients()
     }
-  }, [open, scheduleId, eventId])
+  }, [open, scheduleId, eventId, challengeScheduleId])
 
   const updateStatus = async (bookingId: string, status: string) => {
     setUpdatingId(bookingId)
     try {
-      const table = type === 'class' ? 'class_bookings' : 'event_bookings'
+      const table = type === 'class' ? 'class_bookings' : type === 'challenge' ? 'challenge_bookings' : 'event_bookings'
       const update: any = { booking_status: status }
       if (status === 'attended') update.checked_in_at = new Date().toISOString()
       const { error } = await supabase.from(table).update(update).eq('id', bookingId)
@@ -160,6 +169,14 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, title,
           booking_status: 'confirmed',
           booking_date: new Date().toISOString().split('T')[0],
           payment_status: 'pending',
+        })
+        if (error) throw error
+      } else if (type === 'challenge' && challengeScheduleId) {
+        const { error } = await supabase.from('challenge_bookings').insert({
+          challenge_schedule_id: challengeScheduleId,
+          client_id: client.id,
+          booking_status: 'confirmed',
+          booking_date: new Date().toISOString().split('T')[0],
         })
         if (error) throw error
       }

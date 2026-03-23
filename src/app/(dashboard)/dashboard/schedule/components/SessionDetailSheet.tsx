@@ -572,18 +572,21 @@ export function SessionDetailSheet({
     </Sheet>
 
     {/* Bookings roster — nested sheet */}
-    {(type === 'class' || type === 'event') && (
+    {(type === 'class' || type === 'event' || type === 'challenge') && (
       <BookingsSheet
         open={showBookings}
         onClose={() => setShowBookings(false)}
-        type={type as 'class' | 'event'}
+        type={type as 'class' | 'event' | 'challenge'}
         scheduleId={type === 'class' ? (session as ClassSchedule)?.id : undefined}
         eventId={type === 'event' ? (session as Event)?.id : undefined}
+        challengeScheduleId={type === 'challenge' ? (session as any)?.id : undefined}
         title={(type === 'class'
           ? (session as ClassSchedule)?.class?.name || (session as ClassSchedule)?.class_name
+          : type === 'challenge'
+          ? (session as any)?.challenge?.name || (session as any)?.challenge_name
           : (session as Event)?.name) || ''}
         subtitle={`${getDate()} · ${formatTime(getStartTime())}`}
-        maxCapacity={(session as any)?.max_capacity || (session as ClassSchedule)?.class?.max_capacity}
+        maxCapacity={(session as any)?.max_capacity}
       />
     )}
   </>
