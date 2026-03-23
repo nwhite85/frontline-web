@@ -133,6 +133,26 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
     }
   }, [open, scheduleId, eventId, challengeScheduleId])
 
+  const syncBookingCount = async () => {
+    // Recount confirmed+attended bookings and update current_bookings on the schedule row
+    try {
+      const bookingTable = type === 'class' ? 'class_bookings' : type === 'challenge' ? 'challenge_bookings' : 'event_bookings'
+      const fkField = type === 'class' ? 'class_schedule_id' : type === 'challenge' ? 'challenge_schedule_id' : 'event_id'
+      const id = type === 'class' ? scheduleId : type === 'challenge' ? challengeScheduleId : eventId
+      if (!id) return
+
+      const { count } = await supabase
+        .from(bookingTable)
+        .select('id', { count: 'exact', head: true })
+        .eq(fkField, id)
+        .in('booking_status', ['confirmed', 'attended', 'waitlist'])
+
+      const scheduleTable = type === 'class' ? 'class_schedules' : type === 'challenge' ? 'challenge_schedules' : 'events'
+      const scheduleFk = type === 'event' ? 'id' : 'id'
+      await supabase.from(scheduleTable).update({ current_bookings: count ?? 0 }).eq(scheduleFk, id)
+    } catch {}
+  }
+
   const updateStatus = async (bookingId: string, status: string) => {
     setUpdatingId(bookingId)
     try {
@@ -142,6 +162,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
       const { error } = await supabase.from(table).update(update).eq('id', bookingId)
       if (error) throw error
       await fetchBookings()
+      await syncBookingCount()
       toast.success('Status updated')
     } catch (err) {
       toast.error('Failed to update status')
@@ -181,6 +202,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
         if (error) throw error
       }
       await fetchBookings()
+      await syncBookingCount()
       toast.success(`${client.name} added`)
       setClientSearch('')
     } catch (err) {
