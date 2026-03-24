@@ -55,7 +55,7 @@ ${preheader ? `<span style="display:none;font-size:1px;color:#f8f9fc;max-height:
 <div class="wrapper">
   <div class="container">
     <div class="header">
-      <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;font-style:italic;letter-spacing:0.08em;text-transform:uppercase;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">FRONTLINE FITNESS</h1>
+      <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;font-style:italic;letter-spacing:0.08em;text-transform:uppercase;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">FRONTLINE FITNESS</h1>
     </div>
     ${content}
     <div class="footer">
