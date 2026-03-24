@@ -132,6 +132,14 @@ export async function POST(request: NextRequest) {
         })
     }
 
+    // Increment current_bookings counter (only for confirmed, not waitlist)
+    if (!isFull) {
+      await supabase
+        .from('class_schedules')
+        .update({ current_bookings: (schedule.current_bookings ?? 0) + 1 })
+        .eq('id', classScheduleId)
+    }
+
     logger.log(`Class booked: ${clientId} → ${classScheduleId} (${isFull ? 'waitlist' : 'confirmed'})`)
     return NextResponse.json({
       success: true,
