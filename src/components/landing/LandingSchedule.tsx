@@ -73,17 +73,18 @@ function buildWeek(weekOffset: number, scheduleMap: Map<string, ClassItem[]>, us
   })
 }
 
-type RawSchedule = { scheduled_date: string; start_time: string; location?: string; class?: { name?: string; location?: string } }
+type RawSchedule = { scheduled_date: string; start_time: string; location?: string; class?: { name?: string; location?: string }; challenge?: { name?: string; location?: string } }
 
 function buildMapFromRaw(raw: RawSchedule[]): Map<string, ClassItem[]> {
   const map = new Map<string, ClassItem[]>()
   for (const s of raw) {
     // Supabase sometimes returns the joined relation as an array — handle both
     const cls = Array.isArray(s.class) ? s.class[0] : s.class
+    const chall = Array.isArray(s.challenge) ? s.challenge[0] : s.challenge
     const item: ClassItem = {
-      name: cls?.name || 'Class',
+      name: chall?.name || cls?.name || 'Class',
       time: formatTime(s.start_time),
-      location: s.location || cls?.location || '',
+      location: s.location || chall?.location || cls?.location || '',
     }
     const existing = map.get(s.scheduled_date) ?? []
     map.set(s.scheduled_date, [...existing, item])
@@ -107,19 +108,33 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
     start.setDate(start.getDate() + offset * 7)
     const end = new Date(start)
     end.setDate(end.getDate() + 6)
-    const { data, error } = await import('@/lib/supabase').then(m => 
-      m.supabase.from('class_schedules')
+    const supabase = (await import('@/lib/supabase')).supabase
+    const startStr = start.toISOString().split('T')[0]
+    const endStr = end.toISOString().split('T')[0]
+
+    const [classRes, challengeRes] = await Promise.all([
+      supabase.from('class_schedules')
         .select('scheduled_date, start_time, location, class:class_id(name, location)')
-        .gte('scheduled_date', start.toISOString().split('T')[0])
-        .lte('scheduled_date', end.toISOString().split('T')[0])
+        .gte('scheduled_date', startStr).lte('scheduled_date', endStr)
         .in('status', ['scheduled', 'active'])
-        .order('scheduled_date').order('start_time').limit(50)
-    )
-    if (!error && data && data.length > 0) {
+        .order('scheduled_date').order('start_time').limit(50),
+      supabase.from('challenge_schedules')
+        .select('scheduled_date, start_time, location, challenge:challenge_id(name, location)')
+        .gte('scheduled_date', startStr).lte('scheduled_date', endStr)
+        .in('status', ['scheduled', 'active'])
+        .order('scheduled_date').order('start_time').limit(50),
+    ])
+
+    const combined = [
+      ...((classRes.data ?? []) as unknown as RawSchedule[]),
+      ...((challengeRes.data ?? []) as unknown as RawSchedule[]),
+    ]
+
+    if (combined.length > 0) {
       setScheduleMap(prev => {
         const next = new Map(prev)
-        const newEntries = buildMapFromRaw(data as unknown as RawSchedule[])
-        newEntries.forEach((v, k) => next.set(k, v))
+        const newEntries = buildMapFromRaw(combined)
+        newEntries.forEach((v, k) => next.set(k, [...(next.get(k) ?? []), ...v]))
         return next
       })
       setUseFallback(false)

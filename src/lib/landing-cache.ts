@@ -36,16 +36,27 @@ export const getCachedClasses = unstable_cache(
 // Schedule for current week — revalidate every 5 minutes
 export const getCachedSchedule = unstable_cache(
   async (startDate: string, endDate: string) => {
-    const { data } = await supabase
-      .from('class_schedules')
-      .select('id, scheduled_date, start_time, end_time, location, max_capacity, current_bookings, status, class:class_id(name, description, skill_level, duration_minutes, location)')
-      .gte('scheduled_date', startDate)
-      .lte('scheduled_date', endDate)
-      .in('status', ['scheduled', 'active'])
-      .order('scheduled_date')
-      .order('start_time')
-      .limit(100)
-    return data ?? []
+    const [classRes, challengeRes] = await Promise.all([
+      supabase
+        .from('class_schedules')
+        .select('id, scheduled_date, start_time, end_time, location, max_capacity, current_bookings, status, class:class_id(name, description, skill_level, duration_minutes, location)')
+        .gte('scheduled_date', startDate)
+        .lte('scheduled_date', endDate)
+        .in('status', ['scheduled', 'active'])
+        .order('scheduled_date')
+        .order('start_time')
+        .limit(100),
+      supabase
+        .from('challenge_schedules')
+        .select('id, scheduled_date, start_time, end_time, location, max_capacity, current_bookings, status, challenge:challenge_id(name, description, location)')
+        .gte('scheduled_date', startDate)
+        .lte('scheduled_date', endDate)
+        .in('status', ['scheduled', 'active'])
+        .order('scheduled_date')
+        .order('start_time')
+        .limit(100),
+    ])
+    return [...(classRes.data ?? []), ...(challengeRes.data ?? [])]
   },
   ['schedule'],
   { revalidate: 300 }
