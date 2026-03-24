@@ -269,6 +269,17 @@ export function WeekGrid({
 
                   const hasContent = slotAppts.length > 0 || slotClass || slotEvent || slotChallenge
 
+                  // Calculate column layout for overlapping items (Apple Calendar style)
+                  const slotItems = [
+                    ...slotAppts.map((_, i) => `apt-${i}`),
+                    ...(slotClass ? ['class'] : []),
+                    ...(slotEvent ? ['event'] : []),
+                    ...(slotChallenge ? ['challenge'] : []),
+                  ]
+                  const totalCols = slotItems.length
+                  const colWidth = totalCols > 1 ? `${100 / totalCols}%` : '100%'
+                  const getColLeft = (colIndex: number) => totalCols > 1 ? `${(colIndex / totalCols) * 100}%` : '0'
+
                   return (
                     <div
                       key={slotId}
@@ -294,6 +305,7 @@ export function WeekGrid({
                         const dur = apt.duration_minutes || apt.duration || 60
                         const heightPx = durationToHeight(dur)
                         const timeRange = formatTime(apt.start_time || apt.time || '')
+                        const colIndex = idx
 
                         return (
                           <SessionCard
@@ -313,8 +325,8 @@ export function WeekGrid({
                             style={{
                               position: 'absolute',
                               top: `${topPx}px`,
-                              left: `${idx * 2}px`,
-                              right: `${idx * 2}px`,
+                              left: getColLeft(colIndex),
+                              width: colWidth,
                               height: `${heightPx}px`,
                               zIndex: 10 + idx,
                             }}
@@ -330,6 +342,7 @@ export function WeekGrid({
                         const heightPx = durationToHeight(dur)
                         const current = slotClass.current_bookings ?? 0
                         const max = slotClass.max_capacity || slotClass.class?.max_capacity || '?'
+                        const colIndex = slotAppts.length
                         return (
                           <SessionCard
                             key={slotClass.id}
@@ -348,8 +361,8 @@ export function WeekGrid({
                             style={{
                               position: 'absolute',
                               top: `${topPx}px`,
-                              left: 0,
-                              right: 0,
+                              left: getColLeft(colIndex),
+                              width: colWidth,
                               height: `${heightPx}px`,
                               zIndex: 15,
                             }}
@@ -368,6 +381,7 @@ export function WeekGrid({
                         const heightPx = durationToHeight(Math.max(dur, 30))
                         const current = slotEvent.current_bookings ?? 0
                         const max = slotEvent.max_capacity || '?'
+                        const colIndex = slotAppts.length + (slotClass ? 1 : 0)
                         return (
                           <SessionCard
                             key={slotEvent.id}
@@ -380,8 +394,8 @@ export function WeekGrid({
                             style={{
                               position: 'absolute',
                               top: `${topPx}px`,
-                              left: 0,
-                              right: 0,
+                              left: getColLeft(colIndex),
+                              width: colWidth,
                               height: `${heightPx}px`,
                               zIndex: 15,
                             }}
@@ -395,6 +409,7 @@ export function WeekGrid({
                         const topPx = ((startMin - slotMinutes) / 60) * SLOT_HEIGHT
                         const dur = slotChallenge.challenge?.duration_minutes || 60
                         const heightPx = durationToHeight(dur)
+                        const colIndex = slotAppts.length + (slotClass ? 1 : 0) + (slotEvent ? 1 : 0)
                         return (
                           <SessionCard
                             key={slotChallenge.id}
@@ -406,8 +421,8 @@ export function WeekGrid({
                             style={{
                               position: 'absolute',
                               top: `${topPx}px`,
-                              left: 0,
-                              right: 0,
+                              left: getColLeft(colIndex),
+                              width: colWidth,
                               height: `${heightPx}px`,
                               zIndex: 15,
                             }}
