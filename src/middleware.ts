@@ -19,6 +19,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/merch-order',
   '/api/book-event',
   '/api/book-class',
+  '/api/cancel-challenge-booking',
 ]
 
 export async function middleware(req: NextRequest) {
