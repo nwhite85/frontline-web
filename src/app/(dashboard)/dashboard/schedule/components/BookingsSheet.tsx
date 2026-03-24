@@ -25,6 +25,7 @@ interface Booking {
   checked_in_at?: string
   client_name?: string
   client_email?: string
+  ability_tier?: string | null
 }
 
 interface AvailableClient {
@@ -213,6 +214,11 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
   }
 
   const confirmedCount = bookings.filter(b => b.booking_status === 'confirmed' || b.booking_status === 'attended').length
+  const tierCounts = type === 'challenge' ? {
+    grey: bookings.filter(b => b.ability_tier === 'grey' && b.booking_status !== 'cancelled').length,
+    blue: bookings.filter(b => b.ability_tier === 'blue' && b.booking_status !== 'cancelled').length,
+    black: bookings.filter(b => b.ability_tier === 'black' && b.booking_status !== 'cancelled').length,
+  } : null
   const filteredClients = clients.filter(c =>
     c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
     c.email?.toLowerCase().includes(clientSearch.toLowerCase())
@@ -233,6 +239,21 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
             {subtitle && <span className="text-muted-foreground"> · {subtitle}</span>}
           </SheetDescription>
         </SheetHeader>
+
+        {/* Tier summary — challenges only */}
+        {tierCounts && (tierCounts.grey > 0 || tierCounts.blue > 0 || tierCounts.black > 0) && (
+          <div className="flex items-center gap-2 px-1 pb-1">
+            {tierCounts.grey > 0 && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400">Grey {tierCounts.grey}</span>
+            )}
+            {tierCounts.blue > 0 && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Blue {tierCounts.blue}</span>
+            )}
+            {tierCounts.black > 0 && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-900/60 text-zinc-300">Black {tierCounts.black}</span>
+            )}
+          </div>
+        )}
 
         {/* Summary bar */}
         <div className="flex items-center justify-between py-2 px-1">
@@ -319,7 +340,16 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
                       <AvatarFallback className="text-xs">{initials(booking.client_name || '')}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-none truncate">{booking.client_name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium leading-none truncate">{booking.client_name}</p>
+                        {booking.ability_tier && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
+                            booking.ability_tier === 'grey' ? 'bg-zinc-500/20 text-zinc-400' :
+                            booking.ability_tier === 'blue' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-zinc-900/40 text-zinc-300'
+                          }`}>{booking.ability_tier}</span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{booking.client_email}</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
