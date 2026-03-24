@@ -14,6 +14,84 @@ function getAdminClient() {
 const VALID_TIERS = ['grey', 'blue', 'black'] as const
 type Tier = typeof VALID_TIERS[number]
 
+// ─── Resource capacity checkers ──────────────────────────────────────────────
+
+function checkStrength(tc: any, tier: Tier, counts: Record<Tier, number>): string | null {
+  const kbs = tc.kettlebells as Record<string, number>
+  const tiers = tc.tiers as Record<Tier, { light: string; heavy: string }>
+
+  const newCounts = { ...counts, [tier]: counts[tier] + 1 }
+
+  // Check each KB weight pool
+  const weightUsage: Record<string, number> = {}
+  for (const t of VALID_TIERS) {
+    const cfg = tiers[t]
+    if (!cfg) continue
+    const n = newCounts[t]
+    weightUsage[cfg.light] = (weightUsage[cfg.light] || 0) + n
+    weightUsage[cfg.heavy] = (weightUsage[cfg.heavy] || 0) + n
+  }
+
+  for (const [weight, used] of Object.entries(weightUsage)) {
+    const stock = kbs[weight] ?? 0
+    if (used > stock) {
+      const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
+      return `${tierLabel} tier is full — not enough ${weight} kettlebells available (${stock} in stock, ${used} needed).`
+    }
+  }
+  return null
+}
+
+function checkSpeed(tc: any, totalCount: number): string | null {
+  const maxPeople = (tc.total_ropes as number) * (tc.people_per_rope as number)
+  if (totalCount + 1 > maxPeople) {
+    return `This session is full — all ${tc.total_ropes} battle ropes are taken.`
+  }
+  return null
+}
+
+function checkEndurance(tc: any, tier: Tier, tierCount: number): string | null {
+  const stock = tc.tiers?.[tier]?.stock as number
+  if (stock != null && tierCount + 1 > stock) {
+    const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
+    return `${tierLabel} tier is full — not enough ${tier === 'grey' ? '10kg' : tier === 'blue' ? '15kg' : '20kg'} power bags available.`
+  }
+  return null
+}
+
+function checkPower(tc: any, tier: Tier, counts: Record<Tier, number>): string | null {
+  const totalRisers = tc.total_risers as number
+  const balls = tc.balls as Record<Tier, { weight: string; stock: number }>
+  const tiers = tc.tiers as Record<Tier, { risers_per_group: number; group_size: number }>
+
+  const newCounts = { ...counts, [tier]: counts[tier] + 1 }
+
+  // Check riser usage across all tiers
+  let risersUsed = 0
+  for (const t of VALID_TIERS) {
+    const cfg = tiers[t]
+    if (!cfg) continue
+    risersUsed += Math.ceil(newCounts[t] / cfg.group_size) * cfg.risers_per_group
+  }
+  if (risersUsed > totalRisers) {
+    const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
+    return `${tierLabel} tier is full — not enough step risers available (${totalRisers} total, ${risersUsed} needed).`
+  }
+
+  // Check ball stock for this tier
+  const ballCfg = balls[tier]
+  if (ballCfg) {
+    const groupsNeeded = Math.ceil(newCounts[tier] / tiers[tier].group_size)
+    if (groupsNeeded > ballCfg.stock) {
+      const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
+      return `${tierLabel} tier is full — not enough ${ballCfg.weight} slam balls available.`
+    }
+  }
+  return null
+}
+
+// ─── Main handler ─────────────────────────────────────────────────────────────
+
 export async function POST(request: NextRequest) {
   try {
     const { challengeScheduleId, clientId, abilityTier } = await request.json()
@@ -26,20 +104,17 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getAdminClient()
+    const tier = abilityTier as Tier
 
-    // Fetch the challenge schedule + challenge details
+    // Fetch schedule + challenge config
     const { data: schedule } = await supabase
       .from('challenge_schedules')
       .select('id, trainer_id, max_capacity, current_bookings, status, challenge:challenge_id(id, tier_capacity)')
       .eq('id', challengeScheduleId)
       .single()
 
-    if (!schedule) {
-      return NextResponse.json({ error: 'Challenge session not found.' }, { status: 404 })
-    }
-    if (schedule.status === 'cancelled') {
-      return NextResponse.json({ error: 'This session has been cancelled.' }, { status: 400 })
-    }
+    if (!schedule) return NextResponse.json({ error: 'Challenge session not found.' }, { status: 404 })
+    if (schedule.status === 'cancelled') return NextResponse.json({ error: 'This session has been cancelled.' }, { status: 400 })
 
     // Check not already booked
     const { data: existing } = await supabase
@@ -53,41 +128,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You are already booked for this session.' }, { status: 400 })
     }
 
-    // Tier capacity check
-    const challenge = (schedule as any).challenge
-    const tierCapacity = challenge?.tier_capacity as Record<string, number | null> | null
+    // Get current booking counts per tier
+    const { data: existingBookings } = await supabase
+      .from('challenge_bookings')
+      .select('ability_tier')
+      .eq('challenge_schedule_id', challengeScheduleId)
+      .neq('booking_status', 'cancelled')
 
-    if (abilityTier && tierCapacity) {
-      const tierMax = tierCapacity[abilityTier as Tier]
-      if (tierMax != null) {
-        // Count existing confirmed bookings for this tier
-        const { count: tierCount } = await supabase
-          .from('challenge_bookings')
-          .select('id', { count: 'exact', head: true })
-          .eq('challenge_schedule_id', challengeScheduleId)
-          .eq('ability_tier', abilityTier)
-          .neq('booking_status', 'cancelled')
-
-        if ((tierCount ?? 0) >= tierMax) {
-          const tierLabel = abilityTier.charAt(0).toUpperCase() + abilityTier.slice(1)
-          return NextResponse.json(
-            { error: `${tierLabel} tier is full for this session.` },
-            { status: 403 }
-          )
-        }
+    const counts: Record<Tier, number> = { grey: 0, blue: 0, black: 0 }
+    let totalCount = 0
+    for (const b of existingBookings || []) {
+      if (b.ability_tier && VALID_TIERS.includes(b.ability_tier as Tier)) {
+        counts[b.ability_tier as Tier]++
       }
+      totalCount++
     }
 
-    // Overall capacity check (fallback)
-    const maxCap = schedule.max_capacity ?? 0
-    if (maxCap > 0) {
-      const { count: totalCount } = await supabase
-        .from('challenge_bookings')
-        .select('id', { count: 'exact', head: true })
-        .eq('challenge_schedule_id', challengeScheduleId)
-        .neq('booking_status', 'cancelled')
+    // Run resource capacity check
+    const challenge = (schedule as any).challenge
+    const tc = challenge?.tier_capacity as any
 
-      if ((totalCount ?? 0) >= maxCap) {
+    if (tc?.mode === 'resource' && tier) {
+      let blockMsg: string | null = null
+
+      // Determine which challenge type based on config shape
+      if (tc.kettlebells) {
+        blockMsg = checkStrength(tc, tier, counts)
+      } else if (tc.total_ropes != null) {
+        blockMsg = checkSpeed(tc, totalCount)
+      } else if (tc.total_risers != null) {
+        blockMsg = checkPower(tc, tier, counts)
+      } else if (tc.tiers?.[tier]?.stock != null) {
+        blockMsg = checkEndurance(tc, tier, counts[tier])
+      }
+
+      if (blockMsg) return NextResponse.json({ error: blockMsg }, { status: 403 })
+
+    } else if (tc && !tc.mode && tier) {
+      // Legacy simple per-tier cap
+      const tierMax = tc[tier] as number | null
+      if (tierMax != null && counts[tier] >= tierMax) {
+        const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
+        return NextResponse.json({ error: `${tierLabel} tier is full for this session.` }, { status: 403 })
+      }
+    } else {
+      // Fallback: overall capacity check
+      const maxCap = schedule.max_capacity ?? 0
+      if (maxCap > 0 && totalCount >= maxCap) {
         return NextResponse.json({ error: 'This session is full.' }, { status: 403 })
       }
     }
@@ -96,11 +183,7 @@ export async function POST(request: NextRequest) {
     if (existing && existing.booking_status === 'cancelled') {
       await supabase
         .from('challenge_bookings')
-        .update({
-          booking_status: 'confirmed',
-          booking_date: new Date().toISOString(),
-          ability_tier: abilityTier || null,
-        })
+        .update({ booking_status: 'confirmed', booking_date: new Date().toISOString(), ability_tier: tier || null })
         .eq('id', existing.id)
     } else {
       await supabase.from('challenge_bookings').insert({
@@ -109,7 +192,7 @@ export async function POST(request: NextRequest) {
         trainer_id: schedule.trainer_id,
         booking_status: 'confirmed',
         booking_date: new Date().toISOString(),
-        ability_tier: abilityTier || null,
+        ability_tier: tier || null,
       })
     }
 
@@ -125,8 +208,9 @@ export async function POST(request: NextRequest) {
       .update({ current_bookings: newTotal ?? 0 })
       .eq('id', challengeScheduleId)
 
-    logger.log(`Challenge booked: ${clientId} → ${challengeScheduleId} (tier: ${abilityTier ?? 'none'})`)
+    logger.log(`Challenge booked: ${clientId} → ${challengeScheduleId} (tier: ${tier ?? 'none'})`)
     return NextResponse.json({ success: true, status: 'confirmed' })
+
   } catch (error: any) {
     logger.error('book-challenge error:', error)
     return NextResponse.json({ error: error.message || 'Failed to book session' }, { status: 500 })
