@@ -16,22 +16,34 @@ type Tier = typeof VALID_TIERS[number]
 
 // ─── Resource capacity checkers ──────────────────────────────────────────────
 
-function checkStrength(tc: any, tier: Tier, counts: Record<Tier, number>): string | null {
+function checkStrength(
+  tc: any,
+  tier: Tier,
+  gender: string | null,
+  bookings: Array<{ ability_tier: string | null; gender: string | null }>
+): string | null {
   const kbs = tc.kettlebells as Record<string, number>
-  const tiers = tc.tiers as Record<Tier, { light: string; heavy: string }>
+  const tiers = tc.tiers as Record<Tier, { female: string; male: string }>
+  const kbsPerPerson = tc.kbs_per_person as number ?? 2
 
-  const newCounts = { ...counts, [tier]: counts[tier] + 1 }
-
-  // Check each KB weight pool
+  // Calculate current KB usage from existing bookings
   const weightUsage: Record<string, number> = {}
-  for (const t of VALID_TIERS) {
-    const cfg = tiers[t]
-    if (!cfg) continue
-    const n = newCounts[t]
-    weightUsage[cfg.light] = (weightUsage[cfg.light] || 0) + n
-    weightUsage[cfg.heavy] = (weightUsage[cfg.heavy] || 0) + n
+  for (const b of bookings) {
+    const t = b.ability_tier as Tier | null
+    if (!t || !tiers[t]) continue
+    const g = b.gender === 'male' ? 'male' : 'female'
+    const weight = tiers[t][g]
+    weightUsage[weight] = (weightUsage[weight] || 0) + kbsPerPerson
   }
 
+  // Add the new booking
+  const newTierCfg = tiers[tier]
+  if (!newTierCfg) return null
+  const newGender = gender === 'male' ? 'male' : 'female'
+  const newWeight = newTierCfg[newGender]
+  weightUsage[newWeight] = (weightUsage[newWeight] || 0) + kbsPerPerson
+
+  // Check all pools
   for (const [weight, used] of Object.entries(weightUsage)) {
     const stock = kbs[weight] ?? 0
     if (used > stock) {
@@ -128,10 +140,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You are already booked for this session.' }, { status: 400 })
     }
 
-    // Get current booking counts per tier
+    // Fetch client gender for KB allocation
+    const { data: clientData } = await supabase
+      .from('clients')
+      .select('gender')
+      .eq('id', clientId)
+      .single()
+    const clientGender = clientData?.gender ?? null
+
+    // Get current booking counts per tier (include gender for KB checks)
     const { data: existingBookings } = await supabase
       .from('challenge_bookings')
-      .select('ability_tier')
+      .select('ability_tier, client:client_id(gender)')
       .eq('challenge_schedule_id', challengeScheduleId)
       .neq('booking_status', 'cancelled')
 
@@ -144,6 +164,12 @@ export async function POST(request: NextRequest) {
       totalCount++
     }
 
+    // Flatten bookings to { ability_tier, gender } for checkStrength
+    const bookingsForCheck = (existingBookings || []).map((b: any) => ({
+      ability_tier: b.ability_tier ?? null,
+      gender: b.client?.gender ?? null,
+    }))
+
     // Run resource capacity check
     const challenge = (schedule as any).challenge
     const tc = challenge?.tier_capacity as any
@@ -153,7 +179,7 @@ export async function POST(request: NextRequest) {
 
       // Determine which challenge type based on config shape
       if (tc.kettlebells) {
-        blockMsg = checkStrength(tc, tier, counts)
+        blockMsg = checkStrength(tc, tier, clientGender, bookingsForCheck)
       } else if (tc.total_ropes != null) {
         blockMsg = checkSpeed(tc, totalCount)
       } else if (tc.total_risers != null) {
