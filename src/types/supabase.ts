@@ -295,6 +295,7 @@ export type Database = {
       }
       challenge_bookings: {
         Row: {
+          ability_tier: string | null
           booking_date: string | null
           booking_status: string | null
           challenge_schedule_id: string
@@ -306,6 +307,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ability_tier?: string | null
           booking_date?: string | null
           booking_status?: string | null
           challenge_schedule_id: string
@@ -317,6 +319,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ability_tier?: string | null
           booking_date?: string | null
           booking_status?: string | null
           challenge_schedule_id?: string
@@ -461,6 +464,7 @@ export type Database = {
           max_capacity: number | null
           name: string
           result_fields: Json | null
+          tier_capacity: Json | null
           trainer_id: string
           updated_at: string | null
         }
@@ -477,6 +481,7 @@ export type Database = {
           max_capacity?: number | null
           name: string
           result_fields?: Json | null
+          tier_capacity?: Json | null
           trainer_id: string
           updated_at?: string | null
         }
@@ -493,6 +498,7 @@ export type Database = {
           max_capacity?: number | null
           name?: string
           result_fields?: Json | null
+          tier_capacity?: Json | null
           trainer_id?: string
           updated_at?: string | null
         }
