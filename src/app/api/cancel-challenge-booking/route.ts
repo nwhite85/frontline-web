@@ -51,6 +51,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: updateError.message }, { status: 500 })
       }
 
+      // Decrement current_bookings
+      const { data: sched } = await supabase
+        .from('challenge_schedules')
+        .select('current_bookings')
+        .eq('id', challengeScheduleId)
+        .single()
+      if (sched && sched.current_bookings > 0) {
+        await supabase
+          .from('challenge_schedules')
+          .update({ current_bookings: sched.current_bookings - 1 })
+          .eq('id', challengeScheduleId)
+      }
+
       return NextResponse.json({ success: true })
     }
 
@@ -94,6 +107,21 @@ export async function POST(request: NextRequest) {
 
       if (insertError) {
         return NextResponse.json({ error: insertError.message }, { status: 500 })
+      }
+    }
+
+    // Increment current_bookings for confirmed bookings
+    if (bookingStatus === 'confirmed') {
+      const { data: sched } = await supabase
+        .from('challenge_schedules')
+        .select('current_bookings')
+        .eq('id', challengeScheduleId)
+        .single()
+      if (sched) {
+        await supabase
+          .from('challenge_schedules')
+          .update({ current_bookings: (sched.current_bookings ?? 0) + 1 })
+          .eq('id', challengeScheduleId)
       }
     }
 
