@@ -94,7 +94,7 @@ function ProgramSheet({
         description: description || null,
         duration_weeks: durationWeeks ? parseInt(durationWeeks) : null,
         training_days_per_week: trainingDays ? parseInt(trainingDays) : null,
-        program_type: programType,
+        program_type: 'flexible',
       }
       if (editTarget) {
         // @ts-ignore
@@ -144,22 +144,7 @@ function ProgramSheet({
               <Input type="number" value={trainingDays} onChange={e => setTrainingDays(e.target.value)} min={1} max={7} placeholder="e.g. 3" />
             </div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Program Type</Label>
-            <Select value={programType} onValueChange={setProgramType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="strength">Strength</SelectItem>
-                <SelectItem value="cardio">Cardio</SelectItem>
-                <SelectItem value="hiit">HIIT</SelectItem>
-                <SelectItem value="flexibility">Flexibility</SelectItem>
-                <SelectItem value="weight_loss">Weight Loss</SelectItem>
-                <SelectItem value="muscle_gain">Muscle Gain</SelectItem>
-                <SelectItem value="sport_specific">Sport Specific</SelectItem>
-                <SelectItem value="general_fitness">General Fitness</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
         </SheetBody>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
