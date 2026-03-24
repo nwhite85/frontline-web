@@ -94,6 +94,7 @@ export default function ClientsPage() {
   const [newFirstName, setNewFirstName] = useState('')
   const [newLastName, setNewLastName] = useState('')
   const [newEmail, setNewEmail] = useState('')
+  const [newGender, setNewGender] = useState('')
   const [newIsPT, setNewIsPT] = useState(false)
   const [addingClient, setAddingClient] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
@@ -302,7 +303,7 @@ export default function ClientsPage() {
       const response = await fetch('/api/signup-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newEmail.trim(), name: fullName, trainerId: user.id, fromDashboard: true, clientType: newIsPT ? 'pt' : 'classes' }),
+        body: JSON.stringify({ email: newEmail.trim(), name: fullName, trainerId: user.id, fromDashboard: true, clientType: newIsPT ? 'pt' : 'classes', gender: newGender || undefined }),
       })
       const result = await response.json()
       if (!result.success) throw new Error(result.error || 'Failed to add client')
@@ -310,7 +311,7 @@ export default function ClientsPage() {
       toast.success('Client added successfully')
       setShowAddClient(false)
       setNewIsPT(false)
-      setNewFirstName(''); setNewLastName(''); setNewEmail('')
+      setNewFirstName(''); setNewLastName(''); setNewEmail(''); setNewGender('')
       await fetchClients()
     } catch (err) {
       setAddError(getErrorMessage(err))
@@ -528,6 +529,17 @@ export default function ClientsPage() {
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="em">Email Address *</Label>
               <Input id="em" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="client@example.com" disabled={addingClient} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Gender</Label>
+              <Select value={newGender} onValueChange={setNewGender} disabled={addingClient}>
+                <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other / Prefer not to say</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
               <div>
