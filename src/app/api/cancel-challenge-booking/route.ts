@@ -12,7 +12,7 @@ function getAdminClient() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { challengeScheduleId, clientId } = await request.json()
+    const { challengeScheduleId, clientId, action, trainerId, status } = await request.json()
 
     if (!challengeScheduleId || !clientId) {
       return NextResponse.json(
@@ -23,38 +23,83 @@ export async function POST(request: NextRequest) {
 
     const supabase = getAdminClient()
 
-    // Look up the confirmed booking
-    const { data: booking, error: lookupError } = await supabase
+    // action=cancel: set confirmed booking to cancelled
+    // action=book (default): upsert — update cancelled row or insert new
+    if (action === 'cancel') {
+      const { data: booking, error: lookupError } = await supabase
+        .from('challenge_bookings')
+        .select('id')
+        .eq('challenge_schedule_id', challengeScheduleId)
+        .eq('client_id', clientId)
+        .eq('booking_status', 'confirmed')
+        .maybeSingle()
+
+      if (lookupError) {
+        return NextResponse.json({ error: lookupError.message }, { status: 500 })
+      }
+
+      if (!booking) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+
+      const { error: updateError } = await supabase
+        .from('challenge_bookings')
+        .update({ booking_status: 'cancelled' })
+        .eq('id', booking.id)
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true })
+    }
+
+    // action=book: upsert — re-activate cancelled or insert new
+    const bookingStatus = status || 'confirmed'
+    const { data: existing, error: existingError } = await supabase
       .from('challenge_bookings')
       .select('id')
       .eq('challenge_schedule_id', challengeScheduleId)
       .eq('client_id', clientId)
-      .eq('booking_status', 'confirmed')
+      .eq('booking_status', 'cancelled')
       .maybeSingle()
 
-    if (lookupError) {
-      return NextResponse.json({ error: lookupError.message }, { status: 500 })
+    if (existingError) {
+      return NextResponse.json({ error: existingError.message }, { status: 500 })
     }
 
-    if (!booking) {
-      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    if (existing) {
+      const { error: updateError } = await supabase
+        .from('challenge_bookings')
+        .update({ booking_status: bookingStatus, booking_date: new Date().toISOString() })
+        .eq('id', existing.id)
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 })
+      }
+    } else {
+      if (!trainerId) {
+        return NextResponse.json({ error: 'trainerId is required for new bookings' }, { status: 400 })
+      }
+
+      const { error: insertError } = await supabase
+        .from('challenge_bookings')
+        .insert({
+          challenge_schedule_id: challengeScheduleId,
+          client_id: clientId,
+          trainer_id: trainerId,
+          booking_status: bookingStatus,
+          booking_date: new Date().toISOString(),
+        })
+
+      if (insertError) {
+        return NextResponse.json({ error: insertError.message }, { status: 500 })
+      }
     }
 
-    // Cancel the booking
-    const { error: updateError } = await supabase
-      .from('challenge_bookings')
-      .update({ booking_status: 'cancelled' })
-      .eq('id', booking.id)
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to cancel booking' },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: true, status: bookingStatus })
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to process booking'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
