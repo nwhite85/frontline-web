@@ -125,9 +125,7 @@ function ChallengeSheet({
   const [isActive, setIsActive] = useState(true)
   const [resultFields, setResultFields] = useState<ResultField[]>([])
   const [optionInputs, setOptionInputs] = useState<Record<number, string>>({})
-  const [tierGrey, setTierGrey] = useState('')
-  const [tierBlue, setTierBlue] = useState('')
-  const [tierBlack, setTierBlack] = useState('')
+
   const [saving, setSaving] = useState(false)
 
   const sensors = useSensors(
@@ -160,15 +158,12 @@ function ChallengeSheet({
         setLocation(editTarget.location || '')
         setIsActive(editTarget.is_active)
         setResultFields(editTarget.result_fields || [])
-        const tc = (editTarget as any).tier_capacity || {}
-        setTierGrey(tc.grey != null ? String(tc.grey) : '')
-        setTierBlue(tc.blue != null ? String(tc.blue) : '')
-        setTierBlack(tc.black != null ? String(tc.black) : '')
+
       } else {
         setName(''); setDescription(''); setInstructions(''); setIcon('trophy')
         setDuration('30'); setMaxCapacity('20'); setExpirationDays('30')
         setLocation(''); setIsActive(true); setResultFields([])
-        setTierGrey(''); setTierBlue(''); setTierBlack('')
+
       }
       setFormError('')
     }
@@ -191,24 +186,17 @@ function ChallengeSheet({
     setSaving(true)
     setFormError('')
     try {
-      const grey = tierGrey ? parseInt(tierGrey) : null
-      const blue = tierBlue ? parseInt(tierBlue) : null
-      const black = tierBlack ? parseInt(tierBlack) : null
-      const tierCapacity = { grey, blue, black }
-      const totalFromTiers = (grey ?? 0) + (blue ?? 0) + (black ?? 0)
-
       const payload = {
         name: name.trim(),
         description: description || null,
         instructions: instructions || null,
         icon,
         duration_minutes: parseInt(duration) || 30,
-        max_capacity: totalFromTiers > 0 ? totalFromTiers : (parseInt(maxCapacity) || 20),
+        max_capacity: parseInt(maxCapacity) || 20,
         expiration_days: parseInt(expirationDays) || 30,
         location: location || null,
         is_active: isActive,
         result_fields: resultFields,
-        tier_capacity: tierCapacity,
       }
       if (editTarget) {
         // @ts-ignore
@@ -284,35 +272,12 @@ function ChallengeSheet({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Max Capacity</Label>
-              <Input type="number" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)} min={1} placeholder="Auto-calculated from tiers" />
+              <Input type="number" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)} min={1} placeholder="e.g. 20" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Expires (days)</Label>
               <Input type="number" value={expirationDays} onChange={e => setExpirationDays(e.target.value)} min={1} />
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label>Tier Capacity (Grey / Blue / Black)</Label>
-            <p className="text-xs text-muted-foreground -mt-1">Set max spots per ability tier. Total auto-updates Max Capacity above.</p>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">Grey</label>
-                <Input type="number" value={tierGrey} onChange={e => setTierGrey(e.target.value)} min={0} placeholder="—" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">Blue</label>
-                <Input type="number" value={tierBlue} onChange={e => setTierBlue(e.target.value)} min={0} placeholder="—" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">Black</label>
-                <Input type="number" value={tierBlack} onChange={e => setTierBlack(e.target.value)} min={0} placeholder="—" />
-              </div>
-            </div>
-            {(tierGrey || tierBlue || tierBlack) && (
-              <p className="text-xs text-muted-foreground">
-                Total: {(parseInt(tierGrey) || 0) + (parseInt(tierBlue) || 0) + (parseInt(tierBlack) || 0)} spots
-              </p>
-            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Location</Label>
