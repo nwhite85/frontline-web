@@ -34,8 +34,9 @@ export default function AuthCallbackPage() {
         const errorDesc = urlParams.get('error_description') || hashParams.get('error_description')
         const type = urlParams.get('type') || hashParams.get('type')
 
-        if (errorCode === 'otp_expired' || errorCode === 'access_denied') { router.push('/login?error=link_expired'); return }
-        if (errorCode) { setError(`Authentication failed: ${errorDesc || errorCode}`); return }
+        const isExpired = errorCode === 'otp_expired' || errorCode === 'access_denied' || errorDesc?.includes('expired')
+        if (isExpired) { router.push('/login?error=link_expired'); return }
+        if (errorCode) { router.push('/login?error=link_expired'); return }
 
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) { await redirectByUserType(session.user.id, router); return }
@@ -48,8 +49,8 @@ export default function AuthCallbackPage() {
         })
 
         setTimeout(() => {
-          setError('Authentication timed out. Please try again.')
           authListener.subscription.unsubscribe()
+          router.push('/login?error=link_expired')
         }, 10000)
       } catch (err) {
         console.error('Auth callback error:', err)
