@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,8 +11,16 @@ export default function ClientLoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'link_expired') {
+      setNotice('Your setup link has expired. Please sign in below or use the Forgot password link to set your password.')
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +70,11 @@ export default function ClientLoginPage() {
             <h2 className="text-2xl font-semibold text-white">Sign in</h2>
             <p className="text-sm text-white/50 mt-1">Sign in to your membership account</p>
           </div>
+          {notice && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+              <p className="text-sm text-amber-300">{notice}</p>
+            </div>
+          )}
           <div className="rounded-xl border border-white/10 bg-[#0a0f1a] p-6 flex flex-col gap-4">
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
