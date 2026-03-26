@@ -35,7 +35,7 @@ import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
   Search, Plus, MoreHorizontal, Clock, Users, Trophy, Star, Flame, Zap, Rocket,
-  Timer, Dumbbell, RefreshCw, Flag, Bike, Trash2, X, GripVertical,
+  Timer, Dumbbell, RefreshCw, Flag, Bike, Trash2, X, GripVertical, Settings,
 } from 'lucide-react'
 import { SortButton } from '@/components/ui/sort-button'
 import { toast } from 'sonner'
@@ -480,6 +480,115 @@ function ChallengeSheet({
 }
 
 // ─────────────────────────────────────────────
+// Challenge Settings Sheet
+// ─────────────────────────────────────────────
+function ChallengeSettingsSheet({
+  open, onOpenChange, trainerId,
+}: { open: boolean; onOpenChange: (v: boolean) => void; trainerId: string }) {
+  const [requiredPasses, setRequiredPasses] = useState('3')
+  const [totalChallenges, setTotalChallenges] = useState('4')
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open || !trainerId) return
+    setLoading(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(supabase as any)
+      .from('user_profiles')
+      .select('challenge_settings')
+      .eq('id', trainerId)
+      .single()
+      .then(({ data }: { data: any }) => {
+        const cs = data?.challenge_settings?.tier_progression
+        if (cs) {
+          setRequiredPasses(String(cs.required_passes ?? 3))
+          setTotalChallenges(String(cs.total_challenges ?? 4))
+        } else {
+          setRequiredPasses('3')
+          setTotalChallenges('4')
+        }
+        setLoading(false)
+      })
+  }, [open, trainerId])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('user_profiles')
+        .update({
+          challenge_settings: {
+            tier_progression: {
+              required_passes: parseInt(requiredPasses) || 3,
+              total_challenges: parseInt(totalChallenges) || 4,
+            },
+          },
+        })
+        .eq('id', trainerId)
+      if (error) throw error
+      toast.success('Settings saved')
+      onOpenChange(false)
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-sm">
+        <SheetHeader>
+          <SheetTitle>Challenge Settings</SheetTitle>
+          <SheetDescription>Configure how tier progression works.</SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          {loading ? (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label>Challenges required to progress</Label>
+                <p className="text-xs text-muted-foreground -mt-0.5">How many checkpoints a client must pass at their current tier to be eligible for promotion.</p>
+                <Select value={requiredPasses} onValueChange={setRequiredPasses}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: parseInt(totalChallenges) || 4 }, (_, i) => i + 1).map(n => (
+                      <SelectItem key={n} value={String(n)}>{n} of {totalChallenges}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Total checkpoints</Label>
+                <p className="text-xs text-muted-foreground -mt-0.5">Total number of checkpoints in the programme (used to calculate the ratio above).</p>
+                <Select value={totalChallenges} onValueChange={setTotalChallenges}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[2,3,4,5,6].map(n => (
+                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+        </SheetBody>
+        <SheetFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving || loading}>{saving ? 'Saving…' : 'Save'}</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+// ─────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────
 export default function ChallengesPage() {
@@ -494,6 +603,7 @@ export default function ChallengesPage() {
 
   const [showSheet, setShowSheet] = useState(false)
   const [editTarget, setEditTarget] = useState<Challenge | null>(null)
+  const [showSettingsSheet, setShowSettingsSheet] = useState(false)
   const [search, setSearch] = useState('')
   const [sortConfig, setSortConfig] = useState<SortConfig<Challenge> | null>({ key: 'name', direction: 'asc' })
   const [page, setPage] = useState(1)
@@ -501,10 +611,15 @@ export default function ChallengesPage() {
 
   useEffect(() => {
     setActions(
-      <Button variant="outline" className="bg-card" onClick={() => { setEditTarget(null); setShowSheet(true) }}>
-        <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
-        Add Challenge
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-card" onClick={() => setShowSettingsSheet(true)}>
+          <Settings className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="outline" className="bg-card" onClick={() => { setEditTarget(null); setShowSheet(true) }}>
+          <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
+          Add Challenge
+        </Button>
+      </div>
     )
     return () => setActions(null)
   }, [setActions])
@@ -711,6 +826,12 @@ export default function ChallengesPage() {
         cascadeWarning="Any client progress and results logged against this challenge will also be deleted."
         onConfirm={handleDelete}
         loading={deleting}
+      />
+
+      <ChallengeSettingsSheet
+        open={showSettingsSheet}
+        onOpenChange={setShowSettingsSheet}
+        trainerId={user?.id ?? ''}
       />
     </div>
   )
