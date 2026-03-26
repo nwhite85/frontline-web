@@ -125,6 +125,9 @@ function ChallengeSheet({
   const [isActive, setIsActive] = useState(true)
   const [resultFields, setResultFields] = useState<ResultField[]>([])
   const [optionInputs, setOptionInputs] = useState<Record<number, string>>({})
+  const [passGrey, setPassGrey] = useState('')
+  const [passBlue, setPassBlue] = useState('')
+  const [passBlack, setPassBlack] = useState('')
 
   const [saving, setSaving] = useState(false)
 
@@ -158,12 +161,15 @@ function ChallengeSheet({
         setLocation(editTarget.location || '')
         setIsActive(editTarget.is_active)
         setResultFields(editTarget.result_fields || [])
-
+        const pc = (editTarget as any).pass_criteria || {}
+        setPassGrey(pc.grey != null ? String(pc.grey) : '')
+        setPassBlue(pc.blue != null ? String(pc.blue) : '')
+        setPassBlack(pc.black != null ? String(pc.black) : '')
       } else {
         setName(''); setDescription(''); setInstructions(''); setIcon('trophy')
         setDuration('30'); setMaxCapacity('20'); setExpirationDays('30')
         setLocation(''); setIsActive(true); setResultFields([])
-
+        setPassGrey(''); setPassBlue(''); setPassBlack('')
       }
       setFormError('')
     }
@@ -186,17 +192,22 @@ function ChallengeSheet({
     setSaving(true)
     setFormError('')
     try {
+      const passCriteria: Record<string, number> = {}
+      if (passGrey) passCriteria.grey = parseInt(passGrey)
+      if (passBlue) passCriteria.blue = parseInt(passBlue)
+      if (passBlack) passCriteria.black = parseInt(passBlack)
+
       const payload = {
         name: name.trim(),
         description: description || null,
         instructions: instructions || null,
         icon,
         duration_minutes: parseInt(duration) || 30,
-        max_capacity: parseInt(maxCapacity) || 20,
         expiration_days: parseInt(expirationDays) || 30,
         location: location || null,
         is_active: isActive,
         result_fields: resultFields,
+        pass_criteria: Object.keys(passCriteria).length > 0 ? passCriteria : null,
       }
       if (editTarget) {
         // @ts-ignore
@@ -265,14 +276,10 @@ function ChallengeSheet({
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label>Duration (min)</Label>
               <Input type="number" value={duration} onChange={e => setDuration(e.target.value)} min={1} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Max Capacity</Label>
-              <Input type="number" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)} min={1} placeholder="e.g. 20" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Expires (days)</Label>
@@ -407,6 +414,34 @@ function ChallengeSheet({
               </SortableContext>
             </DndContext>
           </div>
+
+          {resultFields.some(f => f.isPrimary) && (
+            <>
+              <Separator />
+              <div className="flex flex-col gap-3">
+                <div>
+                  <Label className="text-sm font-medium">Pass Targets</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Minimum score to pass at each tier{resultFields.filter(f => f.isPrimary).length > 1 ? ' (sum of all Primary fields)' : ''}. Leave blank to skip pass tracking.
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Grey</label>
+                    <Input type="number" value={passGrey} onChange={e => setPassGrey(e.target.value)} min={0} placeholder="—" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Blue</label>
+                    <Input type="number" value={passBlue} onChange={e => setPassBlue(e.target.value)} min={0} placeholder="—" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Black</label>
+                    <Input type="number" value={passBlack} onChange={e => setPassBlack(e.target.value)} min={0} placeholder="—" />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -469,7 +504,7 @@ export default function ChallengesPage() {
     try {
       const { data, error } = await supabase
         .from('challenges')
-        .select('id, name, description, instructions, icon, location, result_fields, duration_minutes, max_capacity, expiration_days, is_active')
+        .select('id, name, description, instructions, icon, location, result_fields, duration_minutes, max_capacity, expiration_days, is_active, pass_criteria')
         .eq('trainer_id', user.id)
         .order('name', { ascending: true })
       if (error) throw error
