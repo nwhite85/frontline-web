@@ -162,9 +162,15 @@ function ChallengeSheet({
         setIsActive(editTarget.is_active)
         setResultFields(editTarget.result_fields || [])
         const pc = (editTarget as any).pass_criteria || {}
-        setPassGrey(pc.grey != null ? String(pc.grey) : '')
-        setPassBlue(pc.blue != null ? String(pc.blue) : '')
-        setPassBlack(pc.black != null ? String(pc.black) : '')
+        const isTime = pc.direction === 'lte'
+        const fmtVal = (v: number | undefined) => {
+          if (v == null) return ''
+          if (isTime) { const m = Math.floor(v / 60), s = v % 60; return `${m}:${String(s).padStart(2, '0')}` }
+          return String(v)
+        }
+        setPassGrey(fmtVal(pc.grey))
+        setPassBlue(fmtVal(pc.blue))
+        setPassBlack(fmtVal(pc.black))
       } else {
         setName(''); setDescription(''); setInstructions(''); setIcon('trophy')
         setDuration('30'); setMaxCapacity('20'); setExpirationDays('30')
@@ -192,10 +198,25 @@ function ChallengeSheet({
     setSaving(true)
     setFormError('')
     try {
-      const passCriteria: Record<string, number> = {}
-      if (passGrey) passCriteria.grey = parseInt(passGrey)
-      if (passBlue) passCriteria.blue = parseInt(passBlue)
-      if (passBlack) passCriteria.black = parseInt(passBlack)
+      const primaryFields = resultFields.filter(f => f.isPrimary)
+      const isTimePrimary = primaryFields.length === 1 && primaryFields[0].type === 'time'
+      const parsePassValue = (v: string): number | null => {
+        if (!v.trim()) return null
+        if (isTimePrimary) {
+          const parts = v.split(':').map(Number)
+          if (parts.length === 2) return (parts[0] * 60) + parts[1]
+          return Number(v) || null
+        }
+        return parseInt(v) || null
+      }
+      const passCriteria: Record<string, unknown> = {}
+      const greyVal = parsePassValue(passGrey)
+      const blueVal = parsePassValue(passBlue)
+      const blackVal = parsePassValue(passBlack)
+      if (greyVal != null) passCriteria.grey = greyVal
+      if (blueVal != null) passCriteria.blue = blueVal
+      if (blackVal != null) passCriteria.black = blackVal
+      if (Object.keys(passCriteria).length > 0) passCriteria.direction = isTimePrimary ? 'lte' : 'gte'
 
       const payload = {
         name: name.trim(),
@@ -415,33 +436,39 @@ function ChallengeSheet({
             </DndContext>
           </div>
 
-          {resultFields.some(f => f.isPrimary) && (
-            <>
-              <Separator />
-              <div className="flex flex-col gap-3">
-                <div>
-                  <Label className="text-sm font-medium">Pass Targets</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Minimum score to pass at each tier{resultFields.filter(f => f.isPrimary).length > 1 ? ' (sum of all Primary fields)' : ''}. Leave blank to skip pass tracking.
-                  </p>
+          {resultFields.some(f => f.isPrimary) && (() => {
+            const primaryFields = resultFields.filter(f => f.isPrimary)
+            const isTime = primaryFields.length === 1 && primaryFields[0].type === 'time'
+            const multiPrimary = primaryFields.length > 1
+            const desc = isTime
+              ? 'Maximum time to pass at each tier (mm:ss). Lower is better. Leave blank to skip.'
+              : `Minimum score to pass at each tier${multiPrimary ? ' (sum of all Primary fields)' : ''}. Leave blank to skip pass tracking.`
+            return (
+              <>
+                <Separator />
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <Label className="text-sm font-medium">Pass Targets</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[['Grey', passGrey, setPassGrey], ['Blue', passBlue, setPassBlue], ['Black', passBlack, setPassBlack]].map(([label, val, setter]) => (
+                      <div key={label as string} className="flex flex-col gap-1">
+                        <label className="text-xs text-muted-foreground">{label as string}</label>
+                        <Input
+                          type={isTime ? 'text' : 'number'}
+                          value={val as string}
+                          onChange={e => (setter as (v: string) => void)(e.target.value)}
+                          min={isTime ? undefined : 0}
+                          placeholder={isTime ? 'mm:ss' : '—'}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-muted-foreground">Grey</label>
-                    <Input type="number" value={passGrey} onChange={e => setPassGrey(e.target.value)} min={0} placeholder="—" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-muted-foreground">Blue</label>
-                    <Input type="number" value={passBlue} onChange={e => setPassBlue(e.target.value)} min={0} placeholder="—" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-muted-foreground">Black</label>
-                    <Input type="number" value={passBlack} onChange={e => setPassBlack(e.target.value)} min={0} placeholder="—" />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+              </>
+            )
+          })()}
         </div>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
