@@ -156,6 +156,80 @@ function ProgramSheet({
 }
 
 // ─────────────────────────────────────────────
+// Duplicate Sheet
+// ─────────────────────────────────────────────
+function DuplicateSheet({
+  open, onOpenChange, source, trainerId, onSaved,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  source: Program | null
+  trainerId: string
+  onSaved: () => void
+}) {
+  const [title, setTitle] = useState('')
+  const [subtitle, setSubtitle] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    if (open && source) {
+      setTitle(`Copy of ${source.title}`)
+      setSubtitle(source.subtitle || '')
+      setFormError('')
+    }
+  }, [open, source])
+
+  const handleSave = async () => {
+    if (!source) return
+    if (!title.trim()) { setFormError('Title is required'); return }
+    setSaving(true); setFormError('')
+    try {
+      const res = await fetch('/api/duplicate-program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ programId: source.id, title: title.trim(), subtitle, trainerId }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to duplicate program')
+      }
+      toast.success('Program duplicated')
+      onOpenChange(false)
+      onSaved()
+    } catch (err) {
+      setFormError(getErrorMessage(err))
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-[440px] sm:max-w-[440px]">
+        <SheetHeader>
+          <SheetTitle>Duplicate Program</SheetTitle>
+          <SheetDescription>Creates a new program with independent copies of all workouts.</SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
+          <div className="flex flex-col gap-1.5">
+            <Label>Title <span className="text-destructive">*</span></Label>
+            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Copy of 12-Week Strength Builder" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Subtitle</Label>
+            <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="Short tagline" />
+          </div>
+        </SheetBody>
+        <SheetFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? 'Duplicating…' : 'Duplicate'}</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+// ─────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────
 export default function ProgramsPage() {
@@ -173,6 +247,8 @@ export default function ProgramsPage() {
 
   const [showSheet, setShowSheet] = useState(false)
   const [editTarget, setEditTarget] = useState<Program | null>(null)
+  const [showDuplicateSheet, setShowDuplicateSheet] = useState(false)
+  const [duplicateTarget, setDuplicateTarget] = useState<Program | null>(null)
 
   // ── Header search ──
   useEffect(() => {
@@ -346,6 +422,9 @@ export default function ProgramsPage() {
                             <DropdownMenuItem onClick={() => { setEditTarget(prog); setShowSheet(true) }}>
                               Edit details
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setDuplicateTarget(prog); setShowDuplicateSheet(true) }}>
+                              Duplicate
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
@@ -390,6 +469,14 @@ export default function ProgramsPage() {
         open={showSheet}
         onOpenChange={setShowSheet}
         editTarget={editTarget}
+        trainerId={user?.id ?? ''}
+        onSaved={fetchPrograms}
+      />
+
+      <DuplicateSheet
+        open={showDuplicateSheet}
+        onOpenChange={setShowDuplicateSheet}
+        source={duplicateTarget}
         trainerId={user?.id ?? ''}
         onSaved={fetchPrograms}
       />
