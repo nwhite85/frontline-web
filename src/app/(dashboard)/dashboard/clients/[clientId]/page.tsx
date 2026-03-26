@@ -623,7 +623,7 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
 
   const loadAssigned = useCallback(() => {
     return Promise.allSettled([
-      supabase.from('client_programs').select('id, status, created_at, program:programs(id, title, duration_weeks)').eq('client_id', clientId).order('created_at', { ascending: false }),
+      supabase.from('client_programs').select('id, status, created_at, program:programs(id, title, subtitle, duration_weeks)').eq('client_id', clientId).order('created_at', { ascending: false }),
       supabase.from('client_workouts').select('id, status, created_at, workout:workouts(id, name)').eq('client_id', clientId).order('created_at', { ascending: false }),
     ]).then(([p, w]) => {
       if (p.status === 'fulfilled') setPrograms(p.value.data || [])
@@ -787,7 +787,10 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                 </TableRow>
               ) : programs.map((cp: any) => (
                 <TableRow key={cp.id}>
-                  <TableCell className="py-3 text-sm font-medium pl-4">{cp.program?.title ?? 'Unknown'}</TableCell>
+                  <TableCell className="py-3 pl-4">
+                    <p className="text-sm font-medium">{cp.program?.title ?? 'Unknown'}</p>
+                    {cp.program?.subtitle && <p className="text-xs text-muted-foreground">{cp.program.subtitle}</p>}
+                  </TableCell>
                   <TableCell className="py-3 text-xs text-muted-foreground">{cp.program?.duration_weeks ? `${cp.program.duration_weeks}w` : '—'}</TableCell>
                   <TableCell className="py-3 text-xs text-muted-foreground">{format(new Date(cp.created_at), 'dd MMM yyyy')}</TableCell>
                   <TableCell className="py-3"><Badge variant={cp.status === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">{cp.status}</Badge></TableCell>

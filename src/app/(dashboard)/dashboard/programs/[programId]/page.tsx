@@ -315,7 +315,7 @@ export default function ProgramBuilderPage() {
             className="text-xs text-muted-foreground bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-muted-foreground/60 leading-tight"
             value={subtitle}
             onChange={e => handleSubtitleChange(e.target.value)}
-            placeholder="Client name…"
+            placeholder="Label (e.g. Beginner, Sarah M)…"
           />
         </div>
         <div className="flex items-center gap-1.5 shrink-0">

@@ -127,8 +127,8 @@ function ProgramSheet({
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. 12-Week Strength Builder" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Subtitle</Label>
-            <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="Short tagline" />
+            <Label>Label</Label>
+            <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="e.g. Beginner, Advanced, Sarah M" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Description</Label>
@@ -216,8 +216,8 @@ function DuplicateSheet({
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Copy of 12-Week Strength Builder" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Subtitle</Label>
-            <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="Short tagline" />
+            <Label>Label</Label>
+            <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="e.g. Beginner, Advanced, Sarah M" />
           </div>
         </SheetBody>
         <SheetFooter>
