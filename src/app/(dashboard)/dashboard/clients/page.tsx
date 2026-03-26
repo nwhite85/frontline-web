@@ -139,11 +139,11 @@ export default function ClientsPage() {
 
       const { data: programAssignmentsRaw } = await supabase
         .from('client_programs')
-        .select('client_id, status, programs:programs(title)')
+        .select('client_id, status, programs:programs(title, subtitle)')
         .in('client_id', clientIds)
         .eq('status', 'active')
       const programAssignments = programAssignmentsRaw as Array<{
-        client_id: string; status: string; programs: { title: string } | null
+        client_id: string; status: string; programs: { title: string; subtitle: string | null } | null
       }> | null
 
       const { data: membershipsRaw } = await supabase
@@ -185,7 +185,11 @@ export default function ClientsPage() {
       const transformed: Client[] = profiles.map(profile => {
         const programs = programAssignments
           ?.filter(pa => pa.client_id === profile.id)
-          .map(pa => pa.programs?.title || 'Unknown')
+          .map(pa => {
+            const t = pa.programs?.title || 'Unknown'
+            const s = pa.programs?.subtitle
+            return s ? `${t} (${s})` : t
+          })
           .join(', ') || 'No Programs'
 
         const lastActivity = lastActivityMap[profile.id]
