@@ -45,6 +45,7 @@ interface Client {
   programs: string
   status: 'Active' | 'Inactive' | 'Archived' | 'Lead'
   clientType: 'classes' | 'pt' | 'both' | 'none'
+  abilityTier?: string | null
   last_activity_date?: string | null
 }
 
@@ -67,6 +68,13 @@ const TYPE_LABELS: Record<string, string> = {
   pt: 'Personal Training',
   both: 'Full',
   none: 'None',
+}
+
+const TIER_COLOURS: Record<string, string> = {
+  grey: 'bg-muted text-muted-foreground border-transparent',
+  blue: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-transparent',
+  black: 'bg-zinc-800/15 text-zinc-800 dark:text-zinc-300 border-transparent',
+  none: 'bg-muted text-muted-foreground border-transparent',
 }
 
 const TYPE_COLOURS: Record<string, string> = {
@@ -121,7 +129,7 @@ export default function ClientsPage() {
     try {
       const { data: profilesRaw, error: profilesError } = await supabase
         .from('user_profiles')
-        .select('id, name, first_name, email, created_at, status, is_active, client_type')
+        .select('id, name, first_name, email, created_at, status, is_active, client_type, ability_tier')
         .eq('user_type', 'client')
 
       if (profilesError) throw profilesError
@@ -132,6 +140,7 @@ export default function ClientsPage() {
         email: string | null
         created_at: string
         status: string | null
+        ability_tier: string | null
         is_active: boolean | null
       }>
       if (!profiles || profiles.length === 0) { setClients([]); return }
@@ -221,6 +230,7 @@ export default function ClientsPage() {
           programs,
           status,
           clientType,
+          abilityTier: profile.ability_tier ?? null,
           last_activity_date: lastActivity,
         }
       })
@@ -417,6 +427,7 @@ export default function ClientsPage() {
                   />
                 </TableHead>
                 <TableHead className="text-xs font-medium">Type</TableHead>
+                <TableHead className="text-xs font-medium hidden lg:table-cell">Ability</TableHead>
                 <TableHead className="text-xs font-medium hidden md:table-cell">Programs</TableHead>
                 <TableHead className="text-xs font-medium">Status</TableHead>
                 <TableHead className="w-10" />
@@ -446,6 +457,15 @@ export default function ClientsPage() {
                     <Badge variant="outline" className={`text-xs ${TYPE_COLOURS[client.clientType]}`}>
                       {TYPE_LABELS[client.clientType]}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="py-3 hidden lg:table-cell">
+                    {client.abilityTier && client.abilityTier !== 'none' ? (
+                      <Badge variant="outline" className={`text-xs capitalize ${TIER_COLOURS[client.abilityTier] ?? ''}`}>
+                        {client.abilityTier}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-3 hidden md:table-cell">
                     <span className="text-sm text-muted-foreground truncate max-w-[200px] block">
@@ -554,6 +574,7 @@ export default function ClientsPage() {
                   <SelectItem value="grey">Grey</SelectItem>
                   <SelectItem value="blue">Blue</SelectItem>
                   <SelectItem value="black">Black</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                 </SelectContent>
               </Select>
             </div>

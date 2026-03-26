@@ -149,6 +149,7 @@ function EditClientSheet({
                 <SelectItem value="grey">Grey</SelectItem>
                 <SelectItem value="blue">Blue</SelectItem>
                 <SelectItem value="black">Black</SelectItem>
+                <SelectItem value="none">None</SelectItem>
               </SelectContent>
             </Select>
           </div>
