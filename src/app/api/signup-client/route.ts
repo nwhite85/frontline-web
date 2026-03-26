@@ -17,6 +17,7 @@ const signupClientSchema = z.object({
   acceptMarketing: z.boolean().optional(),
   fromDashboard: z.boolean().optional(),
   clientType: z.enum(['classes', 'pt', 'both']).optional(),
+  abilityTier: z.enum(['grey', 'blue', 'black']).optional(),
 });
 import { rateLimit } from '@/utils/rateLimit';
 
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { email, name, phone, dateOfBirth, gender, planId: _planId, trainerId: bodyTrainerId, acceptMarketing, fromDashboard, clientType } = parsed.data;
+    const { email, name, phone, dateOfBirth, gender, planId: _planId, trainerId: bodyTrainerId, acceptMarketing, fromDashboard, clientType, abilityTier } = parsed.data;
     const nameParts = name.trim().split(/\s+/)
     const firstName = nameParts[0] ?? ''
     const lastName = nameParts.slice(1).join(' ') || null
@@ -125,6 +126,7 @@ export async function POST(req: NextRequest) {
           phone,
           date_of_birth: dateOfBirth || null,
           gender: gender || null,
+          ability_tier: abilityTier || null,
           daily_calorie_goal: dailyCalorieGoal,
           user_type: 'client',
           status: fromDashboard ? 'active' : 'lead',

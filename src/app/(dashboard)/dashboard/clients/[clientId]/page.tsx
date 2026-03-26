@@ -54,7 +54,7 @@ interface ClientProfile {
 function EditClientSheet({
   open, onOpenChange, client, onSaved, trainerId,
 }: { open: boolean; onOpenChange: (v: boolean) => void; client: ClientProfile; onSaved: (c: ClientProfile) => void; trainerId: string }) {
-  const [form, setForm] = useState({ name: '', first_name: '', last_name: '', email: '', phone: '', date_of_birth: '', bio: '', status: 'Active', client_type: 'classes', gender: '' })
+  const [form, setForm] = useState({ name: '', first_name: '', last_name: '', email: '', phone: '', date_of_birth: '', bio: '', status: 'Active', client_type: 'classes', gender: '', ability_tier: '' })
   const [ptEnabled, setPtEnabled] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -64,7 +64,7 @@ function EditClientSheet({
       const clientAny = client as unknown as Record<string, unknown>
       const existingFirst = (clientAny.first_name as string) || client.name?.split(' ')[0] || ''
       const existingLast = (clientAny.last_name as string) || client.name?.split(' ').slice(1).join(' ') || ''
-      setForm({ name: client.name ?? '', first_name: existingFirst, last_name: existingLast, email: client.email ?? '', phone: client.phone ?? '', date_of_birth: client.date_of_birth ?? '', bio: client.bio ?? '', status: client.status ?? 'Active', client_type: clientAny.client_type as string ?? 'classes', gender: (clientAny.gender as string) ?? '' })
+      setForm({ name: client.name ?? '', first_name: existingFirst, last_name: existingLast, email: client.email ?? '', phone: client.phone ?? '', date_of_birth: client.date_of_birth ?? '', bio: client.bio ?? '', status: client.status ?? 'Active', client_type: clientAny.client_type as string ?? 'classes', gender: (clientAny.gender as string) ?? '', ability_tier: (clientAny.ability_tier as string) ?? '' })
       setError(null)
       // Load PT status from trainer_client
       supabase
@@ -98,6 +98,7 @@ function EditClientSheet({
           status: form.status || null,
           client_type: form.client_type,
           gender: form.gender || null,
+          ability_tier: form.ability_tier || null,
         })
         .eq('id', client.id).select().single()
       if (err) throw err
@@ -137,6 +138,17 @@ function EditClientSheet({
                 <SelectItem value="male">Male</SelectItem>
                 <SelectItem value="female">Female</SelectItem>
                 <SelectItem value="other">Other / Prefer not to say</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Ability Level</Label>
+            <Select value={form.ability_tier} onValueChange={v => set('ability_tier', v)}>
+              <SelectTrigger><SelectValue placeholder="Select ability level" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="grey">Grey</SelectItem>
+                <SelectItem value="blue">Blue</SelectItem>
+                <SelectItem value="black">Black</SelectItem>
               </SelectContent>
             </Select>
           </div>

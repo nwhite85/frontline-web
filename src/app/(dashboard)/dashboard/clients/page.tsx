@@ -95,6 +95,7 @@ export default function ClientsPage() {
   const [newLastName, setNewLastName] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newGender, setNewGender] = useState('')
+  const [newAbilityTier, setNewAbilityTier] = useState('')
   const [newIsPT, setNewIsPT] = useState(false)
   const [addingClient, setAddingClient] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
@@ -307,7 +308,7 @@ export default function ClientsPage() {
       const response = await fetch('/api/signup-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newEmail.trim(), name: fullName, trainerId: user.id, fromDashboard: true, clientType: newIsPT ? 'pt' : 'classes', gender: newGender || undefined }),
+        body: JSON.stringify({ email: newEmail.trim(), name: fullName, trainerId: user.id, fromDashboard: true, clientType: newIsPT ? 'pt' : 'classes', gender: newGender || undefined, abilityTier: newAbilityTier || undefined }),
       })
       const result = await response.json()
       if (!result.success) throw new Error(result.error || 'Failed to add client')
@@ -315,7 +316,7 @@ export default function ClientsPage() {
       toast.success('Client added successfully')
       setShowAddClient(false)
       setNewIsPT(false)
-      setNewFirstName(''); setNewLastName(''); setNewEmail(''); setNewGender('')
+      setNewFirstName(''); setNewLastName(''); setNewEmail(''); setNewGender(''); setNewAbilityTier('')
       await fetchClients()
     } catch (err) {
       setAddError(getErrorMessage(err))
@@ -542,6 +543,17 @@ export default function ClientsPage() {
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
                   <SelectItem value="other">Other / Prefer not to say</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Ability Level</Label>
+              <Select value={newAbilityTier} onValueChange={setNewAbilityTier} disabled={addingClient}>
+                <SelectTrigger><SelectValue placeholder="Select ability level" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="grey">Grey</SelectItem>
+                  <SelectItem value="blue">Blue</SelectItem>
+                  <SelectItem value="black">Black</SelectItem>
                 </SelectContent>
               </Select>
             </div>
