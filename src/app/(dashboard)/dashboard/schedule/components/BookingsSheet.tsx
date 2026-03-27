@@ -242,7 +242,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
 
         {/* Tier summary — challenges only */}
         {tierCounts && (tierCounts.grey > 0 || tierCounts.blue > 0 || tierCounts.black > 0) && (
-          <div className="flex items-center gap-2 px-1 pb-1">
+          <div className="flex items-center gap-2 px-4 pb-1">
             {tierCounts.grey > 0 && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400">Grey {tierCounts.grey}</span>
             )}
@@ -256,7 +256,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
         )}
 
         {/* Summary bar */}
-        <div className="flex items-center justify-between py-2 px-1">
+        <div className="flex items-center justify-between py-2 px-4">
           <div className="flex items-center gap-2 text-sm">
             <span className="font-semibold text-foreground">{confirmedCount}</span>
             <span className="text-muted-foreground">
@@ -354,17 +354,14 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Badge variant={cfg.variant} className="text-xs">{cfg.label}</Badge>
-                      {booking.booking_status === 'confirmed' && (
-                        <Button
-                         
-                          variant="ghost"
-                          className="h-6 text-xs px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          disabled={updatingId === booking.id}
-                          onClick={() => updateStatus(booking.id, 'attended')}
-                        >
-                          Check in
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        className={`h-6 text-xs px-2 transition-opacity ${booking.booking_status === 'confirmed' ? 'opacity-0 group-hover:opacity-100' : 'invisible'}`}
+                        disabled={updatingId === booking.id || booking.booking_status !== 'confirmed'}
+                        onClick={() => booking.booking_status === 'confirmed' && updateStatus(booking.id, 'attended')}
+                      >
+                        Check in
+                      </Button>
                     </div>
                   </div>
                 )
