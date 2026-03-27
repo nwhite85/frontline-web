@@ -36,6 +36,8 @@ export function ScheduleSettingsSheet({
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [autoCheckin, setAutoCheckin] = useState(true)
+  const [savingAutoCheckin, setSavingAutoCheckin] = useState(false)
 
   const getAuthHeaders = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -122,8 +124,29 @@ export function ScheduleSettingsSheet({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const fetchAutoCheckin = async () => {
+    const { data } = await supabase.from('user_profiles').select('schedule_settings').eq('id', userId).single()
+    const val = data?.schedule_settings?.auto_checkin
+    setAutoCheckin(val !== false) // default true
+  }
+
+  const saveAutoCheckin = async (val: boolean) => {
+    setSavingAutoCheckin(true)
+    setAutoCheckin(val)
+    try {
+      const { data: existing } = await supabase.from('user_profiles').select('schedule_settings').eq('id', userId).single()
+      const current = existing?.schedule_settings || {}
+      await supabase.from('user_profiles').update({ schedule_settings: { ...current, auto_checkin: val } }).eq('id', userId)
+      toast.success(val ? 'Auto check-in enabled' : 'Auto check-in disabled')
+    } catch {
+      toast.error('Failed to save setting')
+    } finally {
+      setSavingAutoCheckin(false)
+    }
+  }
+
   useEffect(() => {
-    if (open && userId) fetchToken()
+    if (open && userId) { fetchToken(); fetchAutoCheckin() }
   }, [open, userId])
 
   const isFullDay = startHour === 0 && endHour === 23
@@ -192,6 +215,19 @@ export function ScheduleSettingsSheet({
                 </div>
               </div>
             )}
+
+            {/* Auto check-in toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Auto attend after start time</Label>
+                <p className="text-xs text-muted-foreground">Confirmed bookings are automatically marked as attended once a session's start time passes.</p>
+              </div>
+              <Switch
+                checked={autoCheckin}
+                disabled={savingAutoCheckin}
+                onCheckedChange={saveAutoCheckin}
+              />
+            </div>
           </div>
 
           <Separator />

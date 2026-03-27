@@ -59,11 +59,20 @@ const STATUS_CONFIG = {
 export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challengeScheduleId, title, subtitle, maxCapacity, sessionDate, sessionStartTime }: BookingsSheetProps) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(false)
+  const [autoCheckin, setAutoCheckin] = useState(true)
   const [showAddClient, setShowAddClient] = useState(false)
   const [clients, setClients] = useState<AvailableClient[]>([])
   const [clientSearch, setClientSearch] = useState('')
   const [addingId, setAddingId] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+
+  const fetchAutoCheckinSetting = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase.from('user_profiles').select('schedule_settings').eq('id', user.id).single()
+    const val = data?.schedule_settings?.auto_checkin
+    setAutoCheckin(val !== false) // default true
+  }
 
   const fetchBookings = async () => {
     if (!scheduleId && !eventId && !challengeScheduleId) return
@@ -107,7 +116,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
         profiles = p || []
       }
 
-      // Auto check-in: if the session has started, mark all confirmed → attended
+      // Auto check-in: if enabled and session has started, mark all confirmed → attended
       const sessionPast = (() => {
         if (!sessionDate) return false
         const timeStr = sessionStartTime?.substring(0, 5) || '00:00'
@@ -115,7 +124,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
         return sessionDt <= new Date()
       })()
 
-      if (sessionPast) {
+      if (autoCheckin && sessionPast) {
         const table = type === 'class' ? 'class_bookings' : type === 'challenge' ? 'challenge_bookings' : 'event_bookings'
         const confirmedIds = data.filter(b => b.booking_status === 'confirmed').map(b => b.id)
         if (confirmedIds.length > 0) {
@@ -148,6 +157,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
 
   useEffect(() => {
     if (open) {
+      fetchAutoCheckinSetting()
       fetchBookings()
       fetchClients()
     }
