@@ -2,7 +2,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -90,7 +90,7 @@ export function CopyMonthDrawer({ open, onOpenChange, trainerId, onCopied }: Cop
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-5 py-4">
+        <SheetBody>
           {/* Month pickers */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -121,13 +121,28 @@ export function CopyMonthDrawer({ open, onOpenChange, trainerId, onCopied }: Cop
 
           {/* Toggles */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="inc-appointments" className="text-sm">Appointments</Label>
-              <Switch
-                id="inc-appointments"
-                checked={includeAppointments}
-                onCheckedChange={setIncludeAppointments}
-              />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="inc-appointments" className="text-sm">Appointments</Label>
+                <Switch
+                  id="inc-appointments"
+                  checked={includeAppointments}
+                  onCheckedChange={setIncludeAppointments}
+                />
+              </div>
+              {includeAppointments && (
+                <div className="flex items-start justify-between gap-3 pl-3 border-l border-border">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="inc-available" className="text-xs">Include available slots</Label>
+                    <p className="text-xs text-muted-foreground">Copies open slots with no client assigned</p>
+                  </div>
+                  <Switch
+                    id="inc-available"
+                    checked={includeAvailable}
+                    onCheckedChange={setIncludeAvailable}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="inc-classes" className="text-sm">Classes</Label>
@@ -151,20 +166,6 @@ export function CopyMonthDrawer({ open, onOpenChange, trainerId, onCopied }: Cop
                 id="inc-challenges"
                 checked={includeChallenges}
                 onCheckedChange={setIncludeChallenges}
-              />
-            </div>
-
-            <Separator />
-
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-0.5">
-                <Label htmlFor="inc-available" className="text-sm">Include available slots</Label>
-                <p className="text-xs text-muted-foreground">Copies open slots with no client assigned</p>
-              </div>
-              <Switch
-                id="inc-available"
-                checked={includeAvailable}
-                onCheckedChange={setIncludeAvailable}
               />
             </div>
           </div>
@@ -194,7 +195,7 @@ export function CopyMonthDrawer({ open, onOpenChange, trainerId, onCopied }: Cop
               )}
             </div>
           )}
-        </div>
+        </SheetBody>
 
         <SheetFooter className="flex gap-2 pt-2">
           <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
