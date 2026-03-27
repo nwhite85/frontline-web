@@ -12,7 +12,8 @@ import { SessionDetailSheet } from './components/SessionDetailSheet'
 import { AddSessionSheet } from './components/AddSessionSheet'
 import { ScheduleSettingsSheet } from './components/ScheduleSettingsSheet'
 import { InvoiceCartDrawer } from './components/InvoiceCartDrawer'
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Receipt } from 'lucide-react'
+import { CopyMonthDrawer } from './components/CopyMonthDrawer'
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Receipt, Copy } from 'lucide-react'
 import type { SessionType } from './components/SessionCard'
 import type { Database } from '@/types/supabase'
 
@@ -170,6 +171,7 @@ export default function SchedulePage() {
   const [detailSheet, setDetailSheet] = useState<{ session: any; type: SessionType } | null>(null)
   const [showSettingsSheet, setShowSettingsSheet] = useState(false)
   const [showInvoiceCart, setShowInvoiceCart] = useState(false)
+  const [showCopyMonth, setShowCopyMonth] = useState(false)
   const [unbilledClientCount, setUnbilledClientCount] = useState(0)
 
   // Time range state with localStorage persistence
@@ -453,6 +455,13 @@ export default function SchedulePage() {
         <Button
           variant="outline"
           className="bg-card"
+          onClick={() => setShowCopyMonth(true)}
+        >
+          <Copy className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />Copy month
+        </Button>
+        <Button
+          variant="outline"
+          className="bg-card"
           onClick={() => setShowSettingsSheet(true)}
         >
           <Settings className="h-4 w-4" />
@@ -608,6 +617,14 @@ export default function SchedulePage() {
         startHour={viewStartHour}
         endHour={viewEndHour}
         onTimeRangeChange={handleTimeRangeChange}
+      />
+
+      {/* Copy month drawer */}
+      <CopyMonthDrawer
+        open={showCopyMonth}
+        onOpenChange={setShowCopyMonth}
+        trainerId={user?.id ?? ''}
+        onCopied={refreshData}
       />
     </div>
   )
