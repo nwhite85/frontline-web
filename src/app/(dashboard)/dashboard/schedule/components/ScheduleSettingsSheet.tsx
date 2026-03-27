@@ -274,7 +274,7 @@ export function ScheduleSettingsSheet({
                     <span className="hidden group-open:inline">▾</span>
                     How to subscribe
                   </summary>
-                  <div className="mt-3 rounded-lg border border-border bg-muted/30 p-4 flex flex-col gap-4 text-sm">
+                  <div className="mt-3 rounded-lg border border-border bg-muted/40 p-4 flex flex-col gap-4 text-sm">
                     <div>
                       <p className="font-medium mb-2">📱 iPhone / iPad</p>
                       <ol className="text-muted-foreground space-y-1 pl-4 list-decimal text-xs">
@@ -299,9 +299,9 @@ export function ScheduleSettingsSheet({
                 </details>
 
                 {/* Info note */}
-                <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30 px-3 py-2.5 flex items-start gap-2">
-                  <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
-                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 flex items-start gap-2">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     <strong>One-way sync.</strong> Changes in Frontline appear in your calendar automatically. Changes made in Apple Calendar won&apos;t affect Frontline.
                   </p>
                 </div>
