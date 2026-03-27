@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Fetch appointments
     const { data: appointments } = await supabase
       .from('appointments')
-      .select('id, appointment_date, start_time, appointment_type, payment_status, price')
+      .select('id, appointment_date, start_time, appointment_type, payment_status, price, trainer_id')
       .in('id', appointmentIds)
       .eq('client_id', clientId)
 
@@ -48,6 +48,15 @@ export async function POST(request: NextRequest) {
     if (!billable.length) {
       return NextResponse.json({ error: 'All sessions already invoiced or paid' }, { status: 400 })
     }
+
+    // Fetch trainer's appointment templates for price fallback
+    const trainerId = (billable[0] as any)?.trainer_id
+    const templateQuery = supabase.from('appointment_templates').select('name, price')
+    if (trainerId) templateQuery.eq('trainer_id', trainerId)
+    const { data: templates } = await templateQuery
+    const templatePriceMap = new Map<string, number>(
+      (templates || []).map((t: any) => [t.name, t.price])
+    )
 
     // Get or create Stripe customer
     let stripeCustomerId: string
@@ -76,8 +85,9 @@ export async function POST(request: NextRequest) {
     const grouped = new Map<string, { count: number; dates: string[]; price: number }>()
 
     for (const apt of billable) {
-      // Use price from appointment row if set, otherwise fall back to £35
-      const price = (apt as any).price || 35
+      // Use price from appointment row, then template lookup, then default £35
+      const aptType = apt.appointment_type || 'PT Session'
+      const price = (apt as any).price ?? templatePriceMap.get(aptType) ?? 35
 
       const key = apt.appointment_type || 'PT Session'
       if (!grouped.has(key)) grouped.set(key, { count: 0, dates: [], price })
