@@ -17,6 +17,11 @@ interface UnbilledAppointment {
   price: number | null
 }
 
+interface AppointmentTemplate {
+  name: string
+  price: number
+}
+
 interface ClientGroup {
   clientId: string
   clientName: string
@@ -31,6 +36,7 @@ interface InvoiceCartDrawerProps {
 
 export function InvoiceCartDrawer({ open, onClose, trainerId }: InvoiceCartDrawerProps) {
   const [groups, setGroups] = useState<ClientGroup[]>([])
+  const [templatePrices, setTemplatePrices] = useState<Map<string, number>>(new Map())
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState<Record<string, boolean>>({})
   const [sendingAll, setSendingAll] = useState(false)
@@ -71,6 +77,16 @@ export function InvoiceCartDrawer({ open, onClose, trainerId }: InvoiceCartDrawe
         }
         groupMap.get(apt.client_id)!.appointments.push(apt)
       }
+      // Fetch template prices for fallback lookup
+      const { data: rawTemplates } = await supabase
+        .from('appointment_templates')
+        .select('name, price')
+        .eq('trainer_id', trainerId)
+      const tMap = new Map<string, number>(
+        (rawTemplates as AppointmentTemplate[] ?? []).map(t => [t.name, t.price])
+      )
+      setTemplatePrices(tMap)
+
       setGroups([...groupMap.values()])
     } finally {
       setLoading(false)
@@ -112,7 +128,8 @@ export function InvoiceCartDrawer({ open, onClose, trainerId }: InvoiceCartDrawe
     new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 
   const totalSessions = groups.reduce((n, g) => n + g.appointments.length, 0)
-  const groupTotal = (group: ClientGroup) => group.appointments.reduce((n, a) => n + (a.price ?? 35), 0)
+  const aptPrice = (a: UnbilledAppointment) => a.price ?? (a.appointment_type ? templatePrices.get(a.appointment_type) : undefined) ?? 35
+  const groupTotal = (group: ClientGroup) => group.appointments.reduce((n, a) => n + aptPrice(a), 0)
   const grandTotal = groups.reduce((n, g) => n + groupTotal(g), 0)
 
   return (
@@ -159,8 +176,8 @@ export function InvoiceCartDrawer({ open, onClose, trainerId }: InvoiceCartDrawe
                 <div className="space-y-1">
                   {group.appointments.map(apt => (
                     <div key={apt.id} className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{formatDate(apt.appointment_date)} · {apt.appointment_type || 'PT Session'}</span>
-                      <span>{apt.start_time?.slice(0, 5)}</span>
+                      <span>{formatDate(apt.appointment_date)} · {apt.appointment_type || 'PT Session'} · {apt.start_time?.slice(0, 5)}</span>
+                      <span>£{aptPrice(apt)}</span>
                     </div>
                   ))}
                 </div>

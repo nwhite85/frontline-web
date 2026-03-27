@@ -256,6 +256,7 @@ export function AddSessionSheet({
           status,
           client_id: aptBookingType === 'booked' ? aptClient || null : null,
           appointment_type: template?.name || 'personal_training',
+          price: template?.price ?? null,
           ...(aptBookingType === 'booked' ? { payment_status: aptComp ? 'comped' : 'unbilled' } : {}),
         }
         const { error } = await supabase.from('appointments').insert(insertData)
