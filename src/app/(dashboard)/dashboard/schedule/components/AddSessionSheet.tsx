@@ -105,7 +105,7 @@ export function AddSessionSheet({
   const [aptComp, setAptComp] = useState(false)
   const [aptRepeat, setAptRepeat] = useState(false)
   const [aptRepeatFreq, setAptRepeatFreq] = useState<'daily' | 'weekly' | 'biweekly' | 'monthly'>('weekly')
-  const [aptRepeatDur, setAptRepeatDur] = useState<'month' | 'year' | 'end-of-year'>('month')
+  const [aptRepeatDur, setAptRepeatDur] = useState<'end-of-week' | 'end-of-month' | 'end-of-year'>('end-of-month')
 
   // Class form
   const [classId, setClassId] = useState('')
@@ -113,7 +113,7 @@ export function AddSessionSheet({
   const [classLocation, setClassLocation] = useState('')
   const [classRepeat, setClassRepeat] = useState(false)
   const [classRepeatFreq, setClassRepeatFreq] = useState<'daily' | 'weekly' | 'biweekly' | 'monthly'>('weekly')
-  const [classRepeatDur, setClassRepeatDur] = useState<'month' | 'year' | 'end-of-year'>('month')
+  const [classRepeatDur, setClassRepeatDur] = useState<'end-of-week' | 'end-of-month' | 'end-of-year'>('end-of-month')
 
   // Event form
   const [eventTemplateId, setEventTemplateId] = useState('')
@@ -199,14 +199,16 @@ export function AddSessionSheet({
     let current = new Date(start)
     let end: Date
 
-    if (dur === 'month') {
+    if (dur === 'end-of-week') {
+      // End of the current ISO week (Sunday)
       end = new Date(start)
-      end.setMonth(end.getMonth() + 1)
-    } else if (dur === 'year') {
-      end = new Date(start)
-      end.setFullYear(end.getFullYear() + 1)
+      const day = end.getDay() // 0=Sun, 1=Mon...
+      const daysUntilSunday = day === 0 ? 7 : 7 - day
+      end.setDate(end.getDate() + daysUntilSunday)
+    } else if (dur === 'end-of-month') {
+      end = new Date(start.getFullYear(), start.getMonth() + 1, 0) // last day of month
     } else {
-      end = new Date(start.getFullYear(), 11, 31)
+      end = new Date(start.getFullYear(), 11, 31) // end of year
     }
 
     const addDays = (d: Date, n: number) => {
@@ -484,8 +486,8 @@ export function AddSessionSheet({
                   <div className="space-y-1">
                     <Label className="text-xs">Duration</Label>
                     <select value={aptRepeatDur} onChange={(e) => setAptRepeatDur(e.target.value as any)} className="w-full h-8 rounded-md border border-input bg-background pl-3 pr-8 text-sm">
-                      <option value="month">1 Month</option>
-                      <option value="year">1 Year</option>
+                      <option value="end-of-week">End of week</option>
+                      <option value="end-of-month">End of month</option>
                       <option value="end-of-year">Until end of year</option>
                     </select>
                   </div>
@@ -544,8 +546,8 @@ export function AddSessionSheet({
                   <div className="space-y-1">
                     <Label className="text-xs">Duration</Label>
                     <select value={classRepeatDur} onChange={(e) => setClassRepeatDur(e.target.value as any)} className="w-full h-8 rounded-md border border-input bg-background pl-3 pr-8 text-sm">
-                      <option value="month">1 Month</option>
-                      <option value="year">1 Year</option>
+                      <option value="end-of-week">End of week</option>
+                      <option value="end-of-month">End of month</option>
                       <option value="end-of-year">Until end of year</option>
                     </select>
                   </div>
