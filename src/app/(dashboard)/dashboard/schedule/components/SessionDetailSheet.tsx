@@ -586,6 +586,8 @@ export function SessionDetailSheet({
           : (session as Event)?.name) || ''}
         subtitle={`${getDate()} · ${formatTime(getStartTime())}`}
         maxCapacity={(session as any)?.max_capacity}
+        sessionDate={getDate()}
+        sessionStartTime={getStartTime()}
       />
     )}
   </>

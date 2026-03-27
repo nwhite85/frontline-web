@@ -44,6 +44,8 @@ interface BookingsSheetProps {
   title: string
   subtitle?: string
   maxCapacity?: number
+  sessionDate?: string   // YYYY-MM-DD
+  sessionStartTime?: string // HH:MM or HH:MM:SS
 }
 
 const STATUS_CONFIG = {
@@ -54,7 +56,7 @@ const STATUS_CONFIG = {
   no_show: { label: 'No show', variant: 'destructive' as const, icon: X },
 }
 
-export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challengeScheduleId, title, subtitle, maxCapacity }: BookingsSheetProps) {
+export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challengeScheduleId, title, subtitle, maxCapacity, sessionDate, sessionStartTime }: BookingsSheetProps) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(false)
   const [showAddClient, setShowAddClient] = useState(false)
@@ -103,6 +105,23 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
           .select('id, name, email')
           .in('id', clientIds)
         profiles = p || []
+      }
+
+      // Auto check-in: if the session has started, mark all confirmed → attended
+      const sessionPast = (() => {
+        if (!sessionDate) return false
+        const timeStr = sessionStartTime?.substring(0, 5) || '00:00'
+        const sessionDt = new Date(`${sessionDate}T${timeStr}`)
+        return sessionDt <= new Date()
+      })()
+
+      if (sessionPast) {
+        const table = type === 'class' ? 'class_bookings' : type === 'challenge' ? 'challenge_bookings' : 'event_bookings'
+        const confirmedIds = data.filter(b => b.booking_status === 'confirmed').map(b => b.id)
+        if (confirmedIds.length > 0) {
+          await supabase.from(table).update({ booking_status: 'attended', checked_in_at: new Date().toISOString() }).in('id', confirmedIds)
+          data = data.map(b => confirmedIds.includes(b.id) ? { ...b, booking_status: 'attended', checked_in_at: new Date().toISOString() } : b)
+        }
       }
 
       setBookings(data.map(b => ({
@@ -354,14 +373,18 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Badge variant={cfg.variant} className="text-xs">{cfg.label}</Badge>
-                      <Button
-                        variant="ghost"
-                        className={`h-6 text-xs px-2 transition-opacity ${booking.booking_status === 'confirmed' ? 'opacity-0 group-hover:opacity-100' : 'invisible'}`}
-                        disabled={updatingId === booking.id || booking.booking_status !== 'confirmed'}
-                        onClick={() => booking.booking_status === 'confirmed' && updateStatus(booking.id, 'attended')}
-                      >
-                        Check in
-                      </Button>
+                      {(booking.booking_status === 'confirmed' || booking.booking_status === 'attended') ? (
+                        <Button
+                          variant="ghost"
+                          className="h-6 text-xs px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          disabled={updatingId === booking.id}
+                          onClick={() => updateStatus(booking.id, booking.booking_status === 'attended' ? 'no_show' : 'attended')}
+                        >
+                          {booking.booking_status === 'attended' ? 'No show' : 'Check in'}
+                        </Button>
+                      ) : (
+                        <span className="h-6 w-16 invisible" />
+                      )}
                     </div>
                   </div>
                 )
