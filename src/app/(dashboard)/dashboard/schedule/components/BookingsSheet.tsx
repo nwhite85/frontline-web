@@ -122,7 +122,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
     const { data } = await supabase
       .from('user_profiles')
       .select('id, name, email')
-      .eq('role', 'client')
+      .eq('user_type', 'client')
       .order('name')
     setClients(data || [])
   }
