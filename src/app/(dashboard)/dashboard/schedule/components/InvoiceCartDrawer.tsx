@@ -14,6 +14,7 @@ interface UnbilledAppointment {
   appointment_type: string | null
   client_id: string | null
   payment_status: string | null
+  price: number | null
 }
 
 interface ClientGroup {
@@ -40,7 +41,7 @@ export function InvoiceCartDrawer({ open, onClose, trainerId }: InvoiceCartDrawe
     try {
       const { data: rawApts } = await supabase
         .from('appointments')
-        .select('id, appointment_date, start_time, appointment_type, client_id, payment_status')
+        .select('id, appointment_date, start_time, appointment_type, client_id, payment_status, price')
         .eq('trainer_id', trainerId)
         .eq('status', 'scheduled')
         .eq('payment_status', 'unbilled')
@@ -111,6 +112,8 @@ export function InvoiceCartDrawer({ open, onClose, trainerId }: InvoiceCartDrawe
     new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 
   const totalSessions = groups.reduce((n, g) => n + g.appointments.length, 0)
+  const groupTotal = (group: ClientGroup) => group.appointments.reduce((n, a) => n + (a.price ?? 35), 0)
+  const grandTotal = groups.reduce((n, g) => n + groupTotal(g), 0)
 
   return (
     <Sheet open={open} onOpenChange={v => { if (!v) onClose() }}>
@@ -161,23 +164,32 @@ export function InvoiceCartDrawer({ open, onClose, trainerId }: InvoiceCartDrawe
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {group.appointments.length} session{group.appointments.length !== 1 ? 's' : ''} · unbilled
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {group.appointments.length} session{group.appointments.length !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-xs font-semibold text-foreground">£{groupTotal(group)}</p>
+                </div>
               </div>
             ))
           )}
         </div>
 
-        {groups.length > 1 && (
-          <SheetFooter className="pt-4 border-t px-4">
-            <Button
-              className="w-full"
-              disabled={sendingAll || Object.values(sending).some(Boolean)}
-              onClick={sendAll}
-            >
-              {sendingAll ? 'Sending all…' : `Send All (${groups.length} invoices)`}
-            </Button>
+        {groups.length > 0 && (
+          <SheetFooter className="pt-3 border-t px-4 flex flex-col gap-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Total to invoice</span>
+              <span className="font-semibold text-foreground">£{grandTotal}</span>
+            </div>
+            {groups.length > 1 && (
+              <Button
+                className="w-full"
+                disabled={sendingAll || Object.values(sending).some(Boolean)}
+                onClick={sendAll}
+              >
+                {sendingAll ? 'Sending all…' : `Send All (${groups.length} invoices)`}
+              </Button>
+            )}
           </SheetFooter>
         )}
       </SheetContent>
