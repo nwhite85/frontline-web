@@ -34,14 +34,19 @@ export default async function LandingPage() {
   bookingEnd.setDate(today.getDate() + 21)
   const bookingEndDate = bookingEnd.toISOString().split('T')[0]
 
+  // Sample week for pre-launch display (w/c Mon 13 Apr 2026)
+  const sampleWeekStart = '2026-04-13'
+  const sampleWeekEnd = '2026-04-19'
+
   // Fetch all landing data server-side (cached)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [plans, classes, schedules, bookingOptions] = await Promise.all([
+  const [plans, classes, schedules, bookingOptions, sampleSchedules] = await Promise.all([
     getCachedMembershipPlans(),
     getCachedClasses(),
     getCachedSchedule(startDate, scheduleEndDate),
     getCachedBookingOptions(startDate, bookingEndDate),
-  ]) as [any[], any[], any[], any[]]
+    getCachedSchedule(sampleWeekStart, sampleWeekEnd),
+  ]) as [any[], any[], any[], any[], any[]]
 
   return (
     <div id="main-content" className="bg-black text-white min-h-screen">
@@ -52,7 +57,7 @@ export default async function LandingPage() {
       <LandingNav />
       <LandingHero />
       <LandingWorkouts initialClasses={classes} />
-      <LandingSchedule initialSchedules={schedules} />
+      <LandingSchedule initialSchedules={schedules} sampleSchedules={sampleSchedules} />
       <LandingLevels />
       <LandingPricing initialPlans={plans} />
       <LandingBooking initialOptions={bookingOptions} />

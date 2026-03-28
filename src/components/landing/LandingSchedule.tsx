@@ -101,10 +101,14 @@ function buildMapFromRaw(raw: RawSchedule[]): Map<string, ClassItem[]> {
   return map
 }
 
-export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSchedule[] }) {
+export function LandingSchedule({ initialSchedules, sampleSchedules }: { initialSchedules?: RawSchedule[]; sampleSchedules?: RawSchedule[] }) {
   const [weekOffset, setWeekOffset] = useState(0)
   const [scheduleMap, setScheduleMap] = useState<Map<string, ClassItem[]>>(() => {
     if (initialSchedules && initialSchedules.length > 0) return buildMapFromRaw(initialSchedules)
+    return new Map()
+  })
+  const [sampleMap] = useState<Map<string, ClassItem[]>>(() => {
+    if (sampleSchedules && sampleSchedules.length > 0) return buildMapFromRaw(sampleSchedules)
     return new Map()
   })
   const [useFallback, setUseFallback] = useState(!initialSchedules || initialSchedules.length === 0)
@@ -151,7 +155,10 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
   }
 
   const prelaunch = typeof window !== 'undefined' ? new Date() < LAUNCH_DATE : false
-  const days = buildWeek(weekOffset, scheduleMap, prelaunch || useFallback)
+  // Pre-launch: use real sample week data if available, else hardcoded fallback
+  const effectiveMap = prelaunch ? (sampleMap.size > 0 ? sampleMap : scheduleMap) : scheduleMap
+  const useFallbackNow = prelaunch ? sampleMap.size === 0 && useFallback : useFallback
+  const days = buildWeek(weekOffset, effectiveMap, useFallbackNow)
 
   const todayIdx = days.findIndex((d) => d.isToday)
 
