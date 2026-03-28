@@ -454,10 +454,12 @@ export default function SchedulePage() {
         </Button>
         <Button
           variant="outline"
-          className="bg-card"
+          size="icon"
+          className="h-8 w-8 bg-card"
           onClick={() => setShowCopyMonth(true)}
+          title="Copy month"
         >
-          <Copy className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />Copy month
+          <Copy className="h-3.5 w-3.5" />
         </Button>
         <Button
           variant="outline"

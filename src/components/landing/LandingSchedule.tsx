@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { Container } from '@/components/ui/container'
-import { ChevronLeft, ChevronRight, MapPin, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin, Clock, Calendar } from 'lucide-react'
+
+const LAUNCH_DATE = new Date('2026-04-11T00:00:00Z')
 
 interface ClassItem {
   name: string
@@ -50,9 +52,16 @@ function formatTime(timeStr: string) {
 function buildWeek(weekOffset: number, scheduleMap: Map<string, ClassItem[]>, useFallback: boolean): DayData[] {
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
-  const currentDayOfWeek = today.getDay()
+  const prelaunch = today < LAUNCH_DATE
+
+  // Before launch: always show the sample week (w/c Mon 13 Apr 2026)
+  const baseDate = prelaunch ? new Date('2026-04-13T00:00:00Z') : today
+
+  const currentDayOfWeek = baseDate.getDay()
   const daysFromMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1
-  const monday = new Date(today.getTime() - daysFromMonday * 86400000 + weekOffset * 7 * 86400000)
+  const monday = prelaunch
+    ? baseDate
+    : new Date(today.getTime() - daysFromMonday * 86400000 + weekOffset * 7 * 86400000)
 
   return Array.from({ length: 6 }, (_, i) => {
     const date = new Date(monday.getTime() + i * 86400000)
@@ -141,7 +150,8 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
     }
   }
 
-  const days = buildWeek(weekOffset, scheduleMap, useFallback)
+  const prelaunch = typeof window !== 'undefined' ? new Date() < LAUNCH_DATE : false
+  const days = buildWeek(weekOffset, scheduleMap, prelaunch || useFallback)
 
   const todayIdx = days.findIndex((d) => d.isToday)
 
@@ -170,37 +180,35 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
 
         {/* Week nav */}
         <div className="flex items-center justify-between mb-6">
-          <span className={`text-sm text-white/50`}>{weekLabel}</span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { const next = weekOffset - 1; setWeekOffset(next); fetchWeek(next) }}
-              aria-label="Previous week"
-              className={`h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${
-'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
-              }`}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            {weekOffset !== 0 && (
+          <span className="text-sm text-white/50">
+            {prelaunch ? 'Sample weekly schedule' : weekLabel}
+          </span>
+          {!prelaunch && (
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => { setWeekOffset(0) }}
-                className={`text-xs px-2 transition-colors ${
-                  'text-white/50 hover:text-white/70'
-                }`}
+                onClick={() => { const next = weekOffset - 1; setWeekOffset(next); fetchWeek(next) }}
+                aria-label="Previous week"
+                className="h-8 w-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white flex items-center justify-center transition-colors"
               >
-                Today
+                <ChevronLeft size={16} />
               </button>
-            )}
-            <button
-              onClick={() => { const next = weekOffset + 1; setWeekOffset(next); fetchWeek(next) }}
-              aria-label="Next week"
-              className={`h-8 w-8 rounded-full border flex items-center justify-center transition-colors ${
-'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
-              }`}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
+              {weekOffset !== 0 && (
+                <button
+                  onClick={() => { setWeekOffset(0) }}
+                  className="text-xs px-2 text-white/50 hover:text-white/70 transition-colors"
+                >
+                  Today
+                </button>
+              )}
+              <button
+                onClick={() => { const next = weekOffset + 1; setWeekOffset(next); fetchWeek(next) }}
+                aria-label="Next week"
+                className="h-8 w-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white flex items-center justify-center transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Mobile day picker */}
@@ -338,6 +346,30 @@ export function LandingSchedule({ initialSchedules }: { initialSchedules?: RawSc
             )
           })()}
         </div>
+
+        {/* Launch banner — shown pre-launch only */}
+        {prelaunch && (
+          <div
+            className="mt-3 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            style={{ background: 'rgba(73,130,232,0.08)', border: '1px solid rgba(73,130,232,0.25)', boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(0,0,0,0.35)' }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-lg bg-brand-blue/20 border border-brand-blue/30 flex items-center justify-center shrink-0">
+                <Calendar size={18} className="text-brand-blue" />
+              </div>
+              <div>
+                <p className="text-white font-semibold">Launching 11th April 2026</p>
+                <p className="text-white/50 text-sm mt-0.5">Bookings open now — secure your spot before we go live.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })}
+              className="shrink-0 inline-flex items-center gap-1.5 bg-brand-blue hover:bg-brand-blue/85 text-white rounded-full px-6 py-2.5 text-sm font-medium transition-colors"
+            >
+              Book your trial <ChevronRight size={14} />
+            </button>
+          </div>
+        )}
 
         {/* CTA */}
         <div className="mt-10 rounded-xl border border-white/10 bg-white/[0.03] px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
