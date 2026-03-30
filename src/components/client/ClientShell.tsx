@@ -70,12 +70,12 @@ export default function ClientShell({ children }: ClientShellProps) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 md:ml-60 pb-[84px] md:pb-0">
+      <main className="flex-1 md:ml-60 md:pb-0" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
         {children}
       </main>
 
       {/* Mobile bottom tab bar — 5 items including sign out */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-black border-t border-white/10 flex">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-black border-t border-white/10 flex" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {navItems.map(({ href, label, icon: Icon, newTab }) => {
           const active = isActive(href)
           return (
