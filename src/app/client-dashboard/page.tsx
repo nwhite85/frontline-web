@@ -410,7 +410,7 @@ function ClientDashboardContent() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'classes', label: 'Classes' },
-    ...(hasPT ? [{ id: 'appointments' as Tab, label: 'Appointments' }] : []),
+    ...(hasPT ? [{ id: 'appointments' as Tab, label: 'PT' }] : []),
     { id: 'checkpoints', label: 'Checkpoints' },
     { id: 'events', label: 'Events' },
   ]
