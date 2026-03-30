@@ -10,7 +10,7 @@ import ClientShell from '@/components/client/ClientShell'
 import type { UserProfile, ClassSchedule, Appointment, ChallengeSchedule, ClientEvent } from '@/types/client'
 import { formatDate, formatTime } from '@/lib/format'
 
-type Tab = 'classes' | 'appointments' | 'events'
+type Tab = 'classes' | 'appointments' | 'checkpoints' | 'events'
 function Spinner() { return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-2 border-brand-blue border-t-transparent" /></div> }
 
 interface ClassBookingModalProps {
@@ -267,9 +267,8 @@ function AppointmentsTab({ userId }: { userId: string }) {
   )
 }
 
-function EventsTab({ userId }: { userId: string }) {
+function CheckpointsTab({ userId }: { userId: string }) {
   const [challenges, setChallenges] = useState<ChallengeSchedule[]>([])
-  const [events, setEvents] = useState<ClientEvent[]>([])
   const [bookedChallengeIds, setBookedChallengeIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<ChallengeSchedule | null>(null)
@@ -277,18 +276,16 @@ function EventsTab({ userId }: { userId: string }) {
 
   const load = async () => {
     const today = new Date().toISOString().split('T')[0]
-    const [{ data: cData }, { data: eData }, { data: bData }] = await Promise.all([
+    const [{ data: cData }, { data: bData }] = await Promise.all([
       supabase.from('challenge_schedules')
         .select('*, trainer_id, challenge:challenge_id(name, description)')
         .eq('status','scheduled').gte('scheduled_date', today).order('scheduled_date', { ascending: true }),
-      supabase.from('events').select('id, title, event_date, location, description').gte('event_date', today).order('event_date', { ascending: true }).limit(10),
       supabase.from('challenge_bookings')
         .select('challenge_schedule_id, booking_status')
         .eq('client_id', userId)
         .in('booking_status', ['confirmed', 'waitlist']),
     ])
     setChallenges((cData as ChallengeSchedule[]) ?? [])
-    setEvents((eData as ClientEvent[]) ?? [])
     const ids = new Set<string>()
     for (const b of ((bData as { challenge_schedule_id: string; booking_status: string }[]) ?? [])) {
       ids.add(b.challenge_schedule_id)
@@ -306,55 +303,40 @@ function EventsTab({ userId }: { userId: string }) {
   }
 
   if (loading) return <Spinner />
-  if (challenges.length === 0 && events.length === 0) return <div className="flex flex-col items-center justify-center py-16 gap-3"><Trophy className="w-10 h-10 text-white opacity-20" /><p className="text-white/40 text-sm">Nothing coming up</p></div>
+  if (challenges.length === 0) return <div className="flex flex-col items-center justify-center py-16 gap-3"><Trophy className="w-10 h-10 text-white opacity-20" /><p className="text-white/40 text-sm">No checkpoints coming up</p></div>
   return (
     <>
       <div className="flex flex-col gap-8">
-        {challenges.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Challenges</p>
-            <div className="flex flex-col gap-3">
-              {challenges.map(c => {
-                const isBooked = bookedChallengeIds.has(c.id)
-                const wasJustBooked = justBooked.has(c.id)
-                return (
-                  <div
-                    key={c.id}
-                    className={`rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5 ${isBooked ? '' : 'cursor-pointer hover:border-white/20 transition-colors'}`}
-                    onClick={() => { if (!isBooked) setSelected(c) }}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-semibold text-white">{c.challenge?.name ?? 'Challenge'}</span>
-                      {isBooked ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full border border-brand-blue text-brand-blue">
-                          {wasJustBooked ? 'Signed Up ✓' : 'Signed Up'}
-                        </span>
-                      ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full border border-green-500 text-green-400">
-                          {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-white/40">{formatDate(c.scheduled_date)}</p>
+        <div>
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Checkpoints</p>
+          <div className="flex flex-col gap-3">
+            {challenges.map(c => {
+              const isBooked = bookedChallengeIds.has(c.id)
+              const wasJustBooked = justBooked.has(c.id)
+              return (
+                <div
+                  key={c.id}
+                  className={`rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5 ${isBooked ? '' : 'cursor-pointer hover:border-white/20 transition-colors'}`}
+                  onClick={() => { if (!isBooked) setSelected(c) }}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-semibold text-white">{c.challenge?.name ?? 'Challenge'}</span>
+                    {isBooked ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full border border-brand-blue text-brand-blue">
+                        {wasJustBooked ? 'Signed Up ✓' : 'Signed Up'}
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded-full border border-green-500 text-green-400">
+                        {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
+                      </span>
+                    )}
                   </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-        {events.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Events</p>
-            <div className="flex flex-col gap-3">
-              {events.map(e => (
-                <div key={e.id} className="rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5">
-                  <span className="text-sm font-semibold text-white">{e.name}</span>
-                  <p className="text-xs text-white/40 mt-1">{formatDate(e.event_date)}{e.location ? ` · ${e.location}` : ''}</p>
+                  <p className="text-xs text-white/40">{formatDate(c.scheduled_date)}</p>
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
-        )}
+        </div>
       </div>
       {selected && (
         <ChallengeBookingModal
@@ -368,6 +350,39 @@ function EventsTab({ userId }: { userId: string }) {
   )
 }
 
+function EventsTab({ userId: _userId }: { userId: string }) {
+  const [events, setEvents] = useState<ClientEvent[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      const today = new Date().toISOString().split('T')[0]
+      const { data: eData } = await supabase.from('events').select('id, title, event_date, location, description').gte('event_date', today).order('event_date', { ascending: true }).limit(10)
+      setEvents((eData as ClientEvent[]) ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [_userId])
+
+  if (loading) return <Spinner />
+  if (events.length === 0) return <div className="flex flex-col items-center justify-center py-16 gap-3"><Trophy className="w-10 h-10 text-white opacity-20" /><p className="text-white/40 text-sm">No events coming up</p></div>
+  return (
+    <div className="flex flex-col gap-8">
+      <div>
+        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Events</p>
+        <div className="flex flex-col gap-3">
+          {events.map(e => (
+            <div key={e.id} className="rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5">
+              <span className="text-sm font-semibold text-white">{e.name}</span>
+              <p className="text-xs text-white/40 mt-1">{formatDate(e.event_date)}{e.location ? ` · ${e.location}` : ''}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ClientDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -376,17 +391,29 @@ function ClientDashboardContent() {
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('classes')
+  const [hasPT, setHasPT] = useState(false)
   const setupComplete = searchParams.get('setup') === 'complete'
 
   useEffect(() => {
     Promise.resolve(supabase.auth.getSession()).then(({ data: { session }, error }) => {
       if (error || !session) { router.push('/login'); return }
       setUser(session.user); setUserId(session.user.id)
-      Promise.resolve(supabase.from('user_profiles').select('id, first_name, last_name, name, email, phone, avatar_url, membership_status, membership_plan').eq('id', session.user.id).single()).then(({ data }) => { if (data) setProfile(data) }).catch(() => {}).finally(() => setLoading(false))
+      Promise.all([
+        supabase.from('user_profiles').select('id, first_name, last_name, name, email, phone, avatar_url, membership_status, membership_plan').eq('id', session.user.id).single(),
+        supabase.from('trainer_client').select('appointment_status').eq('client_id', session.user.id).maybeSingle(),
+      ]).then(([{ data: profileData }, { data: tcData }]) => {
+        if (profileData) setProfile(profileData)
+        setHasPT((tcData as { appointment_status: string } | null)?.appointment_status === 'active')
+      }).catch(() => {}).finally(() => setLoading(false))
     }).catch(() => { router.push('/login') })
   }, [router])
 
-  const tabs: { id: Tab; label: string }[] = [{ id: 'classes', label: 'Classes' }, { id: 'appointments', label: 'Appointments' }, { id: 'events', label: 'Events & Challenges' }]
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'classes', label: 'Classes' },
+    ...(hasPT ? [{ id: 'appointments' as Tab, label: 'Appointments' }] : []),
+    { id: 'checkpoints', label: 'Checkpoints' },
+    { id: 'events', label: 'Events' },
+  ]
 
   if (loading) return <ClientShell user={user}><div className="flex items-center justify-center min-h-[60vh]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-blue border-t-transparent" /></div></ClientShell>
 
@@ -443,7 +470,8 @@ function ClientDashboardContent() {
         </div>
 
         {tab === 'classes' && userId ? <ClassesTab userId={userId} /> : tab === 'classes' && <Spinner />}
-        {tab === 'appointments' && userId ? <AppointmentsTab userId={userId} /> : tab === 'appointments' && <Spinner />}
+        {hasPT && tab === 'appointments' && userId ? <AppointmentsTab userId={userId} /> : hasPT && tab === 'appointments' && <Spinner />}
+        {tab === 'checkpoints' && userId ? <CheckpointsTab userId={userId} /> : tab === 'checkpoints' && <Spinner />}
         {tab === 'events' && userId ? <EventsTab userId={userId} /> : tab === 'events' && <Spinner />}
       </div>
     </ClientShell>

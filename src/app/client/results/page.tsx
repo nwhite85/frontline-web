@@ -26,6 +26,7 @@ export default function ResultsPage() {
   const [tab, setTab] = useState<Tab>('challenges')
   const [results, setResults] = useState<ChallengeResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [hasPT, setHasPT] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -33,6 +34,11 @@ export default function ResultsPage() {
       if (!session) { router.push('/login'); return }
 
       const userId = session.user.id
+
+      // Check PT access
+      const { data: tc } = await (supabase.from('trainer_client').select('appointment_status').eq('client_id', userId).maybeSingle() as unknown as Promise<{ data: { appointment_status: string } | null, error: unknown }>)
+      setHasPT(tc?.appointment_status === 'active')
+
       const { data } = await supabase
         .from('challenge_results')
         .select(`
@@ -65,16 +71,18 @@ export default function ResultsPage() {
     <ClientShell>
       <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-10">
         <h1 className="text-4xl font-bold uppercase text-white tracking-tight mb-2">Results</h1>
-        <p className="text-white/40 mb-8">Your challenge results and personal bests.</p>
+        <p className="text-white/40 mb-8">Your checkpoint results and personal bests.</p>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-8">
           <button className={pillClass(tab === 'challenges')} onClick={() => setTab('challenges')}>
-            Challenges
+            Checkpoints
           </button>
-          <button className={pillClass(tab === 'pbs')} onClick={() => setTab('pbs')}>
-            Personal Bests
-          </button>
+          {hasPT && (
+            <button className={pillClass(tab === 'pbs')} onClick={() => setTab('pbs')}>
+              Personal Bests
+            </button>
+          )}
         </div>
 
         {/* Challenges tab */}
