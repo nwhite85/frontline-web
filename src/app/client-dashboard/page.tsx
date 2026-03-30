@@ -1131,7 +1131,7 @@ function ClientDashboardContent() {
           supabase
             .from('user_profiles')
             .select(
-              'id, first_name, last_name, name, email, phone, avatar_url, membership_status, membership_plan'
+              'id, first_name, last_name, name, email, phone, avatar_url, status, client_type'
             )
             .eq('id', session.user.id)
             .single(),
