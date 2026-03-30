@@ -260,7 +260,11 @@ interface ChallengeDetailSheetProps {
   onCancelled: () => void
   userId: string
   isBooked: boolean
+  userGender?: string | null
 }
+
+const TIERS = ['grey', 'blue', 'black'] as const
+type Tier = typeof TIERS[number]
 
 function ChallengeDetailSheet({
   schedule,
@@ -270,11 +274,15 @@ function ChallengeDetailSheet({
   onCancelled,
   userId,
   isBooked,
+  userGender,
 }: ChallengeDetailSheetProps) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showTierPicker, setShowTierPicker] = useState(false)
+  const [tierAvailability, setTierAvailability] = useState<Record<Tier, boolean>>({ grey: true, blue: true, black: true })
+  const [loadingAvailability, setLoadingAvailability] = useState(false)
 
   useEffect(() => {
     if (!open || !schedule) return
@@ -287,20 +295,36 @@ function ChallengeDetailSheet({
       .finally(() => setLoadingBookings(false))
   }, [open, schedule])
 
+  const openTierPicker = async () => {
+    if (!schedule) return
+    setShowTierPicker(true)
+    setLoadingAvailability(true)
+    try {
+      const params = new URLSearchParams({ scheduleId: schedule.id })
+      if (userGender) params.set('gender', userGender)
+      const res = await fetch(`/api/challenge-availability?${params}`)
+      const data = await res.json()
+      const avail: Record<Tier, boolean> = { grey: true, blue: true, black: true }
+      TIERS.forEach(t => { avail[t] = data?.tiers?.[t] !== 'full' })
+      setTierAvailability(avail)
+    } catch { /* keep defaults */ }
+    finally { setLoadingAvailability(false) }
+  }
+
   if (!schedule) return null
 
-  const handleBook = async () => {
+  const handleBook = async (tier: Tier) => {
+    setShowTierPicker(false)
     setActionLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/cancel-challenge-booking', {
+      const res = await fetch('/api/book-challenge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           challengeScheduleId: schedule.id,
           clientId: userId,
-          action: 'book',
-          trainerId: schedule.trainer_id ?? null,
+          abilityTier: tier,
         }),
       })
       const data = await res.json()
@@ -386,6 +410,38 @@ function ChallengeDetailSheet({
         </SheetBody>
 
         <SheetFooter className="flex-col gap-2 shrink-0 !flex-col sm:max-w-sm sm:mx-auto w-full">
+          {/* Tier picker — shown when selecting ability for booking */}
+          {showTierPicker && !isBooked && (
+            <div className="mb-2">
+              <p className="text-xs text-white/50 mb-2 text-center">Select your ability tier</p>
+              {loadingAvailability ? (
+                <div className="flex justify-center py-2"><div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-blue border-t-transparent" /></div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {TIERS.map(tier => {
+                    const available = tierAvailability[tier]
+                    return (
+                      <button
+                        key={tier}
+                        onClick={() => available && handleBook(tier)}
+                        disabled={!available || actionLoading}
+                        className={`py-2.5 rounded-xl text-sm font-semibold capitalize border transition-colors ${
+                          available
+                            ? tier === 'grey' ? 'bg-zinc-700/40 border-zinc-600 text-white hover:bg-zinc-600/40' :
+                              tier === 'blue' ? 'bg-blue-500/20 border-blue-500/40 text-blue-300 hover:bg-blue-500/30' :
+                              'bg-zinc-900/60 border-zinc-700 text-zinc-200 hover:bg-zinc-800/60'
+                            : 'bg-white/5 border-white/10 text-white/20 cursor-not-allowed'
+                        }`}
+                      >
+                        {tier}{!available ? <span className="block text-[10px] font-normal">Full</span> : null}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <button onClick={() => setShowTierPicker(false)} className="w-full text-xs text-white/30 mt-2 hover:text-white/50 transition-colors">Cancel</button>
+            </div>
+          )}
           {isBooked ? (
             <Button
               size="xl"
@@ -395,16 +451,16 @@ function ChallengeDetailSheet({
             >
               {actionLoading ? 'Cancelling…' : 'Cancel Sign Up'}
             </Button>
-          ) : (
+          ) : !showTierPicker ? (
             <Button
               size="xl"
               className="w-full"
-              onClick={handleBook}
+              onClick={openTierPicker}
               disabled={actionLoading}
             >
-              {actionLoading ? 'Signing up…' : 'Sign Up'}
+              Sign Up
             </Button>
-          )}
+          ) : null}
           <Button
             size="xl"
             className="w-full bg-white/10 hover:bg-white/15 text-white"
@@ -875,6 +931,7 @@ function CheckpointsTab({ userId }: { userId: string }) {
   const [selected, setSelected] = useState<ChallengeSchedule | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [justBooked, setJustBooked] = useState<Set<string>>(new Set())
+  const [userGender, setUserGender] = useState<string | null>(null)
 
   const load = async () => {
     const today = new Date().toISOString().split('T')[0]
@@ -905,6 +962,9 @@ function CheckpointsTab({ userId }: { userId: string }) {
 
   useEffect(() => {
     load()
+    // Fetch gender for KB availability check
+    supabase.from('user_profiles').select('gender').eq('id', userId).single()
+      .then(({ data }) => setUserGender((data as any)?.gender ?? null))
   }, [userId])
 
   const handleBooked = async (scheduleId: string) => {
@@ -982,6 +1042,7 @@ function CheckpointsTab({ userId }: { userId: string }) {
         onCancelled={handleCancelled}
         userId={userId}
         isBooked={selected ? bookedChallengeIds.has(selected.id) : false}
+        userGender={userGender}
       />
     </>
   )
