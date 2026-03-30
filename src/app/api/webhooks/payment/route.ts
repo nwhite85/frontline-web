@@ -65,9 +65,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const supabase = getAdminClient()
   const userId = session.metadata?.user_id;
   const planId = session.metadata?.plan_id;
+  const planType = session.metadata?.plan_type ?? 'recurring';
+  const classCredits = parseInt(session.metadata?.class_credits ?? '0', 10) || 0;
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
 
-  logger.log('Checkout completed:', { userId, planId, customerId });
+  logger.log('Checkout completed:', { userId, planId, planType, classCredits, customerId });
 
   if (!userId) {
     logger.error('No user_id in checkout session metadata');
@@ -91,36 +93,53 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // Assign membership plan if plan_id is in metadata
   if (planId) {
-    // Fetch trainer_id from the plan
     const { data: plan } = await supabase
       .from('membership_plans')
-      .select('id, trainer_id')
+      .select('id, trainer_id, plan_type, class_credits, credits_expire_in_days')
       .eq('id', planId)
       .single()
 
     if (plan) {
-      // Cancel any existing active memberships
-      await supabase
-        .from('client_memberships')
-        .update({ status: 'cancelled' })
-        .eq('client_id', userId)
-        .eq('status', 'active')
+      const isCreditPackage = (plan as any).plan_type === 'credit_package'
 
-      // Insert new membership
+      if (!isCreditPackage) {
+        // Recurring subscription — cancel existing and insert fresh
+        await supabase
+          .from('client_memberships')
+          .update({ status: 'cancelled' })
+          .eq('client_id', userId)
+          .eq('status', 'active')
+      }
+
+      // Build membership row
+      const membershipRow: Record<string, unknown> = {
+        client_id: userId,
+        membership_plan_id: planId,
+        trainer_id: plan.trainer_id,
+        status: 'active',
+        start_date: new Date().toISOString().split('T')[0],
+      }
+
+      // For credit packages: set credits and expiry
+      if (isCreditPackage) {
+        const credits = (plan as any).class_credits ?? classCredits
+        membershipRow.class_credits_remaining = credits
+        if ((plan as any).credits_expire_in_days) {
+          const expiry = new Date()
+          expiry.setDate(expiry.getDate() + (plan as any).credits_expire_in_days)
+          membershipRow.end_date = expiry.toISOString().split('T')[0]
+        }
+        logger.log(`Credit package: granting ${credits} class credits to user ${userId}`)
+      }
+
       const { error: memError } = await supabase
         .from('client_memberships')
-        .insert({
-          client_id: userId,
-          membership_plan_id: planId,
-          trainer_id: plan.trainer_id,
-          status: 'active',
-          start_date: new Date().toISOString().split('T')[0],
-        })
+        .insert(membershipRow)
 
       if (memError) {
         logger.error('Error creating client_membership:', memError)
       } else {
-        logger.log(`Membership plan ${planId} assigned to user ${userId}`)
+        logger.log(`Membership plan ${planId} (${(plan as any).plan_type}) assigned to user ${userId}`)
       }
     } else {
       logger.error(`Plan ${planId} not found — membership not assigned`)

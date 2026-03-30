@@ -52,13 +52,15 @@ export async function POST(request: NextRequest) {
 
     logger.log('Create subscription checkout:', { email, planId, planName, planPrice });
 
-    // Check if we have a Stripe price ID for this plan
+    // Check if we have a Stripe price ID for this plan and get plan type
     const { data: planData } = await supabaseAdmin
       .from('membership_plans')
-      .select('stripe_price_id')
+      .select('stripe_price_id, plan_type, class_credits')
       .eq('id', planId)
       .single();
 
+    const planType = planData?.plan_type ?? 'recurring'
+    const isCreditPackage = planType === 'credit_package'
     let stripePriceId = planData?.stripe_price_id;
 
     // If no Stripe price ID exists, create the product and price in Stripe
@@ -79,18 +81,17 @@ export async function POST(request: NextRequest) {
         logger.log('Created Stripe product:', product.id);
       }
 
-      // Create price
-      const price = await stripe.prices.create({
+      // Create price — recurring for subscription plans, one_time for credit packages
+      const priceData: any = {
         product: product.id,
-        unit_amount: Math.round(planPrice * 100), // Convert to pence
+        unit_amount: Math.round(planPrice * 100),
         currency: 'gbp',
-        recurring: {
-          interval: 'month',
-        },
-        metadata: {
-          plan_id: planId,
-        },
-      });
+        metadata: { plan_id: planId },
+      }
+      if (!isCreditPackage) {
+        priceData.recurring = { interval: 'month' }
+      }
+      const price = await stripe.prices.create(priceData);
       logger.log('Created Stripe price:', price.id);
 
       stripePriceId = price.id;
@@ -128,32 +129,30 @@ export async function POST(request: NextRequest) {
       logger.log('Created Stripe customer:', customerId);
     }
 
-    // Create Stripe Checkout session for subscription
-    const session = await stripe.checkout.sessions.create({
+    // Create Stripe Checkout session
+    const sessionParams: any = {
       customer: customerId as string,
-      mode: 'subscription',
+      mode: isCreditPackage ? 'payment' : 'subscription',
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: stripePriceId as string,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: stripePriceId as string, quantity: 1 }],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk'}/signup/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk'}/signup?plan=${planId}&cancelled=true`,
       metadata: {
         user_id: userId || '',
         plan_id: planId,
         plan_name: planName || '',
+        plan_type: planType,
+        class_credits: String(planData?.class_credits ?? 0),
         accept_marketing: acceptMarketing ? 'true' : 'false',
       },
-      subscription_data: {
-        metadata: {
-          user_id: userId || '',
-          plan_id: planId,
-        },
-      },
-    });
+    }
+    // Add subscription metadata only for recurring plans
+    if (!isCreditPackage) {
+      sessionParams.subscription_data = {
+        metadata: { user_id: userId || '', plan_id: planId },
+      }
+    }
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     logger.log('Created checkout session:', session.id);
 
