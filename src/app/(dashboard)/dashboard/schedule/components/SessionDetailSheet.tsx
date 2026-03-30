@@ -155,6 +155,7 @@ export function SessionDetailSheet({
       setEditLocation(cls.location || cls.class?.location || '')
       setEditNotes(cls.notes || '')
       setEditMaxCapacity(cls.max_capacity || cls.class?.max_capacity || 20)
+      setEditDuration(cls.class?.duration_minutes || 60)
     } else if (type === 'event') {
       const evt = session as Event
       setEditTime(evt.start_time || '')
@@ -187,10 +188,16 @@ export function SessionDetailSheet({
           .eq('id', session.id)
         if (error) throw error
       } else if (type === 'class') {
+        const calcEndTime = (start: string, mins: number) => {
+          const [h, m] = start.split(':').map(Number)
+          const total = h * 60 + m + mins
+          return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+        }
         const { error } = await supabase
           .from('class_schedules')
           .update({
             start_time: editTime,
+            end_time: calcEndTime(editTime, editDuration),
             location: editLocation || null,
             max_capacity: editMaxCapacity || null,
           })
@@ -407,7 +414,7 @@ export function SessionDetailSheet({
                     className="h-8 text-sm"
                   />
                 </div>
-                {type === 'appointment' && (
+                {(type === 'appointment' || type === 'class') && (
                   <div className="space-y-1">
                     <Label htmlFor="edit-duration" className="text-xs">Duration (minutes)</Label>
                     <select
