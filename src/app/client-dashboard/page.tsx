@@ -171,7 +171,7 @@ function ClassDetailSheet({
             )}
           </div>
           {schedule.class?.description && (
-            <p className="text-sm text-white/40 mt-2">{schedule.class.description}</p>
+            <p className="text-sm text-white/40 mt-2 whitespace-pre-line">{schedule.class.description}</p>
           )}
         </SheetHeader>
 
@@ -216,7 +216,7 @@ function ClassDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col">
+        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col sm:max-w-sm sm:mx-auto w-full">
           {isBooked ? (
             <Button
               size="xl"
@@ -355,7 +355,7 @@ function ChallengeDetailSheet({
             </span>
           </div>
           {schedule.challenge?.description && (
-            <p className="text-sm text-white/40 mt-2">{schedule.challenge.description}</p>
+            <p className="text-sm text-white/40 mt-2 whitespace-pre-line">{schedule.challenge.description}</p>
           )}
         </SheetHeader>
 
@@ -385,7 +385,7 @@ function ChallengeDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col">
+        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col sm:max-w-sm sm:mx-auto w-full">
           {isBooked ? (
             <Button
               size="xl"
@@ -525,7 +525,7 @@ function EventDetailSheet({
             )}
           </div>
           {event.description && (
-            <p className="text-sm text-white/40 mt-2">{event.description}</p>
+            <p className="text-sm text-white/40 mt-2 whitespace-pre-line">{event.description}</p>
           )}
         </SheetHeader>
 
@@ -555,7 +555,7 @@ function EventDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col">
+        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col sm:max-w-sm sm:mx-auto w-full">
           {isBooked ? (
             <Button
               size="xl"
