@@ -216,7 +216,7 @@ function ClassDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col sm:max-w-sm sm:mx-auto w-full">
+        <SheetFooter className="shrink-0 flex flex-col sm:flex-row sm:justify-end gap-2">
           {isBooked ? (
             <Button
               size="xl"
@@ -409,7 +409,7 @@ function ChallengeDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col sm:max-w-sm sm:mx-auto w-full">
+        <SheetFooter className="shrink-0 flex flex-col sm:flex-row sm:justify-end gap-2">
           {/* Tier picker — shown when selecting ability for booking */}
           {showTierPicker && !isBooked && (
             <div className="mb-2">
@@ -611,7 +611,7 @@ function EventDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col sm:max-w-sm sm:mx-auto w-full">
+        <SheetFooter className="shrink-0 flex flex-col sm:flex-row sm:justify-end gap-2">
           {isBooked ? (
             <Button
               size="xl"
