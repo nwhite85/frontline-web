@@ -26,6 +26,7 @@ export const getCachedClasses = unstable_cache(
     const { data } = await supabase
       .from('classes')
       .select('id, name, description, duration_minutes, image_url')
+      .neq('name', 'Test Booking Class')
       .limit(20)
     return data ?? []
   },
