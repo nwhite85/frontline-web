@@ -3894,10 +3894,12 @@ export type Database = {
           colors: string[] | null
           created_at: string | null
           description: string | null
+          hidden: boolean
           id: string
           image_url: string | null
           name: string
           price: number
+          purchasable: boolean
           sizes: string[] | null
           trainer_id: string
           type: string
@@ -3909,10 +3911,12 @@ export type Database = {
           colors?: string[] | null
           created_at?: string | null
           description?: string | null
+          hidden?: boolean
           id?: string
           image_url?: string | null
           name: string
           price: number
+          purchasable?: boolean
           sizes?: string[] | null
           trainer_id: string
           type: string
@@ -3924,10 +3928,12 @@ export type Database = {
           colors?: string[] | null
           created_at?: string | null
           description?: string | null
+          hidden?: boolean
           id?: string
           image_url?: string | null
           name?: string
           price?: number
+          purchasable?: boolean
           sizes?: string[] | null
           trainer_id?: string
           type?: string

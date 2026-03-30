@@ -17,6 +17,8 @@ interface ShopProduct {
   colors: string[] | null
   sizes: string[] | null
   description: string | null
+  purchasable: boolean
+  hidden: boolean
   created_at: string
 }
 
@@ -46,8 +48,9 @@ export default function ShopPage() {
     async function fetchProducts() {
       const { data } = await supabase
         .from('shop_products')
-        .select('id, name, price, category, image_url, image_urls, colors, sizes, description, created_at')
+        .select('id, name, price, category, image_url, image_urls, colors, sizes, description, purchasable, hidden, created_at')
         .eq('active', true)
+        .eq('hidden', false)
         .order('price', { ascending: true })
       setProducts(data ?? [])
       setLoading(false)
@@ -271,13 +274,19 @@ export default function ShopPage() {
                     {product.name}{product.category && product.category !== 'accessories' ? ` (${CATEGORY_LABELS[product.category] ?? product.category})` : ''}
                   </p>
                   
-                  <button
-                    disabled
-                    className="w-full mt-1 rounded-full py-2 text-xs font-semibold border border-white/15 text-white/30 cursor-not-allowed"
-                    title="Orders opening soon"
-                  >
-                    Coming soon
-                  </button>
+                  {product.purchasable ? (
+                    <button
+                      disabled
+                      className="w-full mt-1 rounded-full py-2 text-xs font-semibold border border-white/15 text-white/30 cursor-not-allowed"
+                      title="Orders opening soon"
+                    >
+                      Orders opening soon
+                    </button>
+                  ) : (
+                    <span className="w-full mt-1 flex items-center justify-center rounded-full py-2 text-xs font-semibold border border-white/10 text-white/20 bg-white/[0.03] select-none">
+                      Coming soon
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

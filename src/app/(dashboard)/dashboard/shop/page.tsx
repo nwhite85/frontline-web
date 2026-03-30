@@ -43,6 +43,8 @@ interface Product {
   image_url?: string
   image_urls?: string[]
   active: boolean
+  purchasable: boolean
+  hidden: boolean
   trainer_id: string
   created_at: string
 }
@@ -80,6 +82,8 @@ const EMPTY_FORM = {
   image_url: '',
   image_urls: [] as string[],
   active: true,
+  purchasable: true,
+  hidden: false,
 }
 
 export default function ShopPage() {
@@ -231,6 +235,8 @@ export default function ShopPage() {
       image_url: product.image_url || '',
       image_urls: existingUrls,
       active: product.active,
+      purchasable: product.purchasable ?? true,
+      hidden: product.hidden ?? false,
     })
     setFormError(null)
     setPendingImageFiles([])
@@ -308,6 +314,8 @@ export default function ShopPage() {
         image_url: primaryImageUrl,
         image_urls: allImageUrls,
         active: form.active,
+        purchasable: form.purchasable,
+        hidden: form.hidden,
         trainer_id: user!.id,
       }
 
@@ -415,7 +423,8 @@ export default function ShopPage() {
                     <TableHead className="text-xs font-medium">Category</TableHead>
                     <TableHead className="text-xs font-medium">Price</TableHead>
                     <TableHead className="text-xs font-medium">Sizes</TableHead>
-                    <TableHead className="text-xs font-medium">Status</TableHead>
+                    <TableHead className="text-xs font-medium">Active</TableHead>
+                    <TableHead className="text-xs font-medium">Purchasable</TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
@@ -466,6 +475,21 @@ export default function ShopPage() {
                             if (error) {
                               setProducts(prev => prev.map(p => p.id === product.id ? { ...p, active: !checked } : p))
                               toast.error('Failed to update status')
+                            }
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell className="py-2" onClick={e => e.stopPropagation()}>
+                        <Switch
+                          checked={product.purchasable ?? true}
+                          onCheckedChange={async (checked) => {
+                            setProducts(prev => prev.map(p => p.id === product.id ? { ...p, purchasable: checked } : p))
+                            const { error } = await supabase.from('shop_products')
+                              // @ts-ignore
+                              .update({ purchasable: checked }).eq('id', product.id)
+                            if (error) {
+                              setProducts(prev => prev.map(p => p.id === product.id ? { ...p, purchasable: !checked } : p))
+                              toast.error('Failed to update purchasable')
                             }
                           }}
                         />
@@ -673,6 +697,17 @@ export default function ShopPage() {
                 />
                 <Label htmlFor="product-active" className="text-sm">
                   {form.active ? 'Active (visible in shop)' : 'Inactive (hidden from shop)'}
+                </Label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="product-hidden"
+                  checked={form.hidden}
+                  onCheckedChange={val => setForm(p => ({ ...p, hidden: val }))}
+                />
+                <Label htmlFor="product-hidden" className="text-sm">
+                  {form.hidden ? 'Hidden (completely invisible everywhere)' : 'Hide product'}
                 </Label>
               </div>
             </div>
