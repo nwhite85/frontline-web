@@ -219,8 +219,8 @@ function EventsTab() {
         supabase
           .from('events')
           .select('*')
-          .gte('event_date', today)
-          .order('event_date', { ascending: true }),
+          .gte('start_date', today)
+          .order('start_date', { ascending: true }),
       ])
       setChallenges((cData as ChallengeSchedule[]) ?? [])
       setEvents((eData as ClientEvent[]) ?? [])
@@ -276,7 +276,7 @@ function EventsTab() {
               <div key={e.id} className="rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5">
                 <span className="text-sm font-semibold text-white">{e.name}</span>
                 <p className="text-xs text-white/40 mt-1">
-                  {formatDate(e.event_date)}{e.location ? ` · ${e.location}` : ''}
+                  {formatDate(e.start_date)}{e.location ? ` · ${e.location}` : ''}
                 </p>
               </div>
             ))}

@@ -36,8 +36,11 @@ export interface ChallengeSchedule {
 export interface ClientEvent {
   id: string
   name: string
-  event_date: string
+  start_date: string
+  start_time?: string | null
+  end_time?: string | null
   location: string | null
+  description?: string | null
 }
 
 export interface UserProfile {

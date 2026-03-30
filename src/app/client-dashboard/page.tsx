@@ -357,7 +357,7 @@ function EventsTab({ userId: _userId }: { userId: string }) {
   useEffect(() => {
     const load = async () => {
       const today = new Date().toISOString().split('T')[0]
-      const { data: eData } = await supabase.from('events').select('id, title, event_date, location, description').gte('event_date', today).order('event_date', { ascending: true }).limit(10)
+      const { data: eData } = await supabase.from('events').select('id, name, start_date, start_time, end_time, location, description').gte('start_date', today).order('start_date', { ascending: true }).limit(10)
       setEvents((eData as ClientEvent[]) ?? [])
       setLoading(false)
     }
@@ -374,7 +374,7 @@ function EventsTab({ userId: _userId }: { userId: string }) {
           {events.map(e => (
             <div key={e.id} className="rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5">
               <span className="text-sm font-semibold text-white">{e.name}</span>
-              <p className="text-xs text-white/40 mt-1">{formatDate(e.event_date)}{e.location ? ` · ${e.location}` : ''}</p>
+              <p className="text-xs text-white/40 mt-1">{formatDate(e.start_date)}{e.start_time ? ` · ${formatTime(e.start_time)}` : ''}{e.location ? ` · ${e.location}` : ''}</p>
             </div>
           ))}
         </div>
