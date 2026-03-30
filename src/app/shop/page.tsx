@@ -267,7 +267,9 @@ export default function ShopPage() {
                   {isNew(product.created_at) && (
                     <span className="text-[9px] font-bold uppercase tracking-widest text-brand-blue">New</span>
                   )}
-                  <p className="text-sm font-semibold text-white leading-tight">{product.name}</p>
+                  <p className="text-sm font-semibold text-white leading-tight">
+                    {product.name}{product.category && product.category !== 'accessories' ? ` (${CATEGORY_LABELS[product.category] ?? product.category})` : ''}
+                  </p>
                   
                   <button
                     disabled
