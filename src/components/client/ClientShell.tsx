@@ -70,7 +70,7 @@ export default function ClientShell({ children }: ClientShellProps) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 md:ml-60 pb-24 md:pb-0">
+      <main className="flex-1 md:ml-60 pb-[84px] md:pb-0">
         {children}
       </main>
 
