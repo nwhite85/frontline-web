@@ -19,12 +19,23 @@ interface ChallengeResult {
   } | null
 }
 
+interface PersonalBest {
+  exercise_id: string
+  exercise_name: string
+  weight: number | null
+  reps: number | null
+  time_seconds: number | null
+  distance: number | null
+  workout_date: string
+}
+
 type Tab = 'challenges' | 'pbs'
 
 export default function ResultsPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('challenges')
   const [results, setResults] = useState<ChallengeResult[]>([])
+  const [pbs, setPbs] = useState<PersonalBest[]>([])
   const [loading, setLoading] = useState(true)
   const [hasPT, setHasPT] = useState(false)
 
@@ -57,6 +68,39 @@ export default function ResultsPage() {
         .order('recorded_at', { ascending: false })
 
       if (data) setResults(data as ChallengeResult[])
+
+      // Fetch personal bests
+      const { data: pbData } = await supabase
+        .from('workout_set_history')
+        .select('exercise_id, weight, reps, time_seconds, distance, workout_date')
+        .eq('client_id', userId)
+        .eq('is_personal_best', true)
+        .order('workout_date', { ascending: false })
+
+      if (pbData && pbData.length > 0) {
+        const exIds = [...new Set(pbData.map((p: any) => p.exercise_id))]
+        const { data: exData } = await supabase.from('exercises').select('id, name').in('id', exIds)
+        const exMap = new Map((exData || []).map((e: any) => [e.id, e.name]))
+        // One PB per exercise (first = most recent/highest)
+        const seen = new Set<string>()
+        const dedupedPbs: PersonalBest[] = []
+        for (const p of pbData as any[]) {
+          if (!seen.has(p.exercise_id)) {
+            seen.add(p.exercise_id)
+            dedupedPbs.push({
+              exercise_id: p.exercise_id,
+              exercise_name: exMap.get(p.exercise_id) || 'Unknown',
+              weight: p.weight,
+              reps: p.reps,
+              time_seconds: p.time_seconds,
+              distance: p.distance,
+              workout_date: p.workout_date,
+            })
+          }
+        }
+        setPbs(dedupedPbs)
+      }
+
       setLoading(false)
     }
     init()
@@ -148,16 +192,40 @@ export default function ResultsPage() {
 
         {/* Personal Bests tab */}
         {tab === 'pbs' && (
-          <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
-            <Dumbbell className="h-10 w-10 text-white opacity-20" />
-            <div>
-              <p className="text-white font-semibold text-lg mb-2">Personal Bests</p>
-              <p className="text-white/40 text-sm max-w-xs">Your personal bests will appear here once you&apos;ve logged workouts with your trainer.</p>
+          pbs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+              <Dumbbell className="h-10 w-10 text-white opacity-20" />
+              <p className="text-white font-semibold text-lg">No personal bests yet</p>
+              <p className="text-white/40 text-sm max-w-xs">Log workouts in the app to track your personal bests here.</p>
             </div>
-            <div className="bg-brand-blue/10 border border-brand-blue/20 rounded-xl p-4">
-              <p className="text-sm text-brand-blue font-medium">Coming soon</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {pbs.map(pb => {
+                const valueParts: string[] = []
+                if (pb.weight) valueParts.push(`${pb.weight}kg`)
+                if (pb.reps) valueParts.push(`${pb.reps} reps`)
+                if (pb.time_seconds) {
+                  const m = Math.floor(pb.time_seconds / 60), s = pb.time_seconds % 60
+                  valueParts.push(m > 0 ? `${m}m ${s}s` : `${s}s`)
+                }
+                if (pb.distance) valueParts.push(`${pb.distance}m`)
+                return (
+                  <div key={pb.exercise_id} className="rounded-xl border border-white/10 bg-[#0a0f1a] p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-blue/10 border border-brand-blue/20 shrink-0">
+                        <Dumbbell className="h-4 w-4 text-brand-blue" />
+                      </div>
+                      <p className="text-sm font-medium text-white truncate">{pb.exercise_name}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold text-brand-blue">{valueParts.join(' · ')}</p>
+                      <p className="text-xs text-white/40 mt-0.5">{new Date(pb.workout_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          )
         )}
       </div>
     </ClientShell>
