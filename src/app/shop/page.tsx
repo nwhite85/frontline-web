@@ -48,6 +48,7 @@ export default function ShopPage() {
         .from('shop_products')
         .select('id, name, price, category, image_url, image_urls, colors, sizes, description, created_at')
         .eq('active', true)
+        .order('price', { ascending: true })
       setProducts(data ?? [])
       setLoading(false)
     }
