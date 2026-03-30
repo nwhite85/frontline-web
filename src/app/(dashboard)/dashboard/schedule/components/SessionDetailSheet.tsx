@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -131,6 +131,32 @@ export function SessionDetailSheet({
   const [deleteMode, setDeleteMode] = useState<'single' | 'future'>('single')
   const [showBookings, setShowBookings] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [inlineBookings, setInlineBookings] = useState<{ id: string; client_name: string; booking_status: string; ability_tier?: string | null }[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(false)
+
+  useEffect(() => {
+    if (!open || !session || type === 'appointment') { setInlineBookings([]); return }
+    setLoadingBookings(true)
+    const s = session as any
+    let endpoint = ''
+    if (type === 'class') endpoint = `/api/class-bookings?classScheduleId=${s.id}`
+    else if (type === 'event') endpoint = `/api/event-bookings?eventId=${s.id}`
+    else if (type === 'challenge') endpoint = `/api/challenge-bookings?scheduleId=${s.id}`
+    if (!endpoint) { setLoadingBookings(false); return }
+    fetch(endpoint)
+      .then(r => r.json())
+      .then(data => {
+        const bookings = (data.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
+        setInlineBookings(bookings.map((b: any) => ({
+          id: b.id,
+          client_name: b.user_profiles?.name || 'Unknown',
+          booking_status: b.booking_status,
+          ability_tier: b.ability_tier ?? null,
+        })))
+      })
+      .catch(() => setInlineBookings([]))
+      .finally(() => setLoadingBookings(false))
+  }, [open, session, type])
 
   // Edit form state
   const [editTime, setEditTime] = useState('')
@@ -398,6 +424,41 @@ export function SessionDetailSheet({
             </>
           )}
 
+          {/* Inline bookings — class / event / challenge only */}
+          {type !== 'appointment' && (
+            <>
+              <Separator />
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {loadingBookings ? 'Loading…' : `${inlineBookings.filter(b => b.booking_status !== 'cancelled').length} booked`}
+                  </span>
+                </div>
+                {!loadingBookings && inlineBookings.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No bookings yet</p>
+                )}
+                {!loadingBookings && inlineBookings.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    {inlineBookings.map(b => (
+                      <div key={b.id} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
+                        <span className="text-foreground">{b.client_name}</span>
+                        <div className="flex items-center gap-1.5">
+                          {b.ability_tier && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize bg-muted text-muted-foreground">{b.ability_tier}</span>
+                          )}
+                          {b.booking_status === 'waitlist' && (
+                            <span className="text-[10px] text-amber-500">waitlist</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
           {/* Edit form */}
           {editing && (
             <>
@@ -520,16 +581,6 @@ export function SessionDetailSheet({
         </div>
 
         <SheetFooter className="pt-4 border-t flex-col gap-2 sm:flex-col">
-          {!editing && !confirmDelete && (type === 'class' || type === 'event' || type === 'challenge') && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setShowBookings(true)}
-            >
-              <Users className="h-3.5 w-3.5 mr-1.5" />
-              View Bookings
-            </Button>
-          )}
           {!editing && !confirmDelete && (
             <div className="flex gap-2 w-full">
               <Button
