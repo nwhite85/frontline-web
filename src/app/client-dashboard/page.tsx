@@ -216,7 +216,7 @@ function ClassDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0">
+        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col">
           {isBooked ? (
             <Button
               size="xl"
@@ -385,7 +385,7 @@ function ChallengeDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0">
+        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col">
           {isBooked ? (
             <Button
               size="xl"
@@ -555,7 +555,7 @@ function EventDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2 shrink-0">
+        <SheetFooter className="flex-col gap-2 shrink-0 !flex-col">
           {isBooked ? (
             <Button
               size="xl"
