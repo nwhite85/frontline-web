@@ -216,11 +216,11 @@ function ClassDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="shrink-0 flex flex-col sm:flex-row sm:justify-end gap-2">
+        <SheetFooter className="shrink-0 flex flex-row justify-end gap-2">
           {isBooked ? (
             <Button
               size="xl"
-              className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20"
+              className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20"
               onClick={handleCancel}
               disabled={actionLoading}
             >
@@ -229,7 +229,7 @@ function ClassDetailSheet({
           ) : (
             <Button
               size="xl"
-              className="w-full"
+              className="flex-1"
               onClick={handleBook}
               disabled={actionLoading || !!error}
             >
@@ -238,7 +238,7 @@ function ClassDetailSheet({
           )}
           <Button
             size="xl"
-            className="w-full bg-white/10 hover:bg-white/15 text-white"
+            className="flex-1 bg-white/10 hover:bg-white/15 text-white"
             onClick={onClose}
             disabled={actionLoading}
           >
@@ -409,7 +409,7 @@ function ChallengeDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="shrink-0 flex flex-col sm:flex-row sm:justify-end gap-2">
+        <SheetFooter className="shrink-0 flex flex-row justify-end gap-2">
           {/* Tier picker — shown when selecting ability for booking */}
           {showTierPicker && !isBooked && (
             <div className="mb-2">
@@ -445,7 +445,7 @@ function ChallengeDetailSheet({
           {isBooked ? (
             <Button
               size="xl"
-              className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20"
+              className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20"
               onClick={handleCancel}
               disabled={actionLoading}
             >
@@ -454,7 +454,7 @@ function ChallengeDetailSheet({
           ) : !showTierPicker ? (
             <Button
               size="xl"
-              className="w-full"
+              className="flex-1"
               onClick={openTierPicker}
               disabled={actionLoading}
             >
@@ -463,7 +463,7 @@ function ChallengeDetailSheet({
           ) : null}
           <Button
             size="xl"
-            className="w-full bg-white/10 hover:bg-white/15 text-white"
+            className="flex-1 bg-white/10 hover:bg-white/15 text-white"
             onClick={onClose}
             disabled={actionLoading}
           >
@@ -611,11 +611,11 @@ function EventDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="shrink-0 flex flex-col sm:flex-row sm:justify-end gap-2">
+        <SheetFooter className="shrink-0 flex flex-row justify-end gap-2">
           {isBooked ? (
             <Button
               size="xl"
-              className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20"
+              className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20"
               onClick={handleCancel}
               disabled={actionLoading}
             >
@@ -624,7 +624,7 @@ function EventDetailSheet({
           ) : (
             <Button
               size="xl"
-              className="w-full"
+              className="flex-1"
               onClick={handleBook}
               disabled={actionLoading}
             >
@@ -633,7 +633,7 @@ function EventDetailSheet({
           )}
           <Button
             size="xl"
-            className="w-full bg-white/10 hover:bg-white/15 text-white"
+            className="flex-1 bg-white/10 hover:bg-white/15 text-white"
             onClick={onClose}
             disabled={actionLoading}
           >
