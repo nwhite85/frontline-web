@@ -402,7 +402,7 @@ function ClientDashboardContent() {
         supabase.from('user_profiles').select('id, first_name, last_name, name, email, phone, avatar_url, membership_status, membership_plan').eq('id', session.user.id).single(),
         supabase.from('trainer_client').select('appointment_status').eq('client_id', session.user.id).maybeSingle(),
       ]).then(([{ data: profileData }, { data: tcData }]) => {
-        if (profileData) setProfile(profileData)
+        if (profileData) setProfile(profileData as any)
         setHasPT((tcData as { appointment_status: string } | null)?.appointment_status === 'active')
       }).catch(() => {}).finally(() => setLoading(false))
     }).catch(() => { router.push('/login') })
