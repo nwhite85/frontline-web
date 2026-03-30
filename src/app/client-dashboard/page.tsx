@@ -417,7 +417,8 @@ function ClientDashboardContent() {
 
   if (loading) return <ClientShell user={user}><div className="flex items-center justify-center min-h-[60vh]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-blue border-t-transparent" /></div></ClientShell>
 
-  const firstName = profile?.first_name || profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || null
+  const profileAny = profile as any
+  const firstName = profileAny?.first_name || profileAny?.name?.split(' ')[0] || profileAny?.email?.split('@')[0] || user?.email?.split('@')[0] || null
 
   if (setupComplete) return (
     <ClientShell user={user}>
