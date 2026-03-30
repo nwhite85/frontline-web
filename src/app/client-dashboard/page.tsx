@@ -148,9 +148,9 @@ function ClassDetailSheet({
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl"
+        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl flex flex-col"
       >
-        <SheetHeader className="pb-2">
+        <SheetHeader className="pb-2 shrink-0">
           <SheetTitle className="text-white text-lg font-semibold">
             {schedule.class?.name ?? 'Class'}
           </SheetTitle>
@@ -175,7 +175,7 @@ function ClassDetailSheet({
           )}
         </SheetHeader>
 
-        <SheetBody className="gap-0">
+        <SheetBody className="gap-0 overflow-y-auto flex-1">
           {/* Confirmed participants */}
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -216,7 +216,7 @@ function ClassDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2">
+        <SheetFooter className="flex-col gap-2 shrink-0">
           {isBooked ? (
             <Button
               size="xl"
@@ -342,9 +342,9 @@ function ChallengeDetailSheet({
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl"
+        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl flex flex-col"
       >
-        <SheetHeader className="pb-2">
+        <SheetHeader className="pb-2 shrink-0">
           <SheetTitle className="text-white text-lg font-semibold">
             {schedule.challenge?.name ?? 'Challenge'}
           </SheetTitle>
@@ -359,7 +359,7 @@ function ChallengeDetailSheet({
           )}
         </SheetHeader>
 
-        <SheetBody className="gap-0">
+        <SheetBody className="gap-0 overflow-y-auto flex-1">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Users className="h-4 w-4 text-white/40" />
@@ -385,7 +385,7 @@ function ChallengeDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2">
+        <SheetFooter className="flex-col gap-2 shrink-0">
           {isBooked ? (
             <Button
               size="xl"
@@ -502,9 +502,9 @@ function EventDetailSheet({
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl"
+        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl flex flex-col"
       >
-        <SheetHeader className="pb-2">
+        <SheetHeader className="pb-2 shrink-0">
           <SheetTitle className="text-white text-lg font-semibold">{event.name}</SheetTitle>
           <div className="flex flex-wrap gap-3 mt-1">
             <span className="flex items-center gap-1.5 text-xs text-white/50">
@@ -529,7 +529,7 @@ function EventDetailSheet({
           )}
         </SheetHeader>
 
-        <SheetBody className="gap-0">
+        <SheetBody className="gap-0 overflow-y-auto flex-1">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Users className="h-4 w-4 text-white/40" />
@@ -555,7 +555,7 @@ function EventDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="flex-col gap-2">
+        <SheetFooter className="flex-col gap-2 shrink-0">
           {isBooked ? (
             <Button
               size="xl"
