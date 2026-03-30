@@ -1,6 +1,17 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
+
+function useSheetSide(): 'bottom' | 'right' {
+  const [side, setSide] = useState<'bottom' | 'right'>('bottom')
+  useEffect(() => {
+    const check = () => setSide(window.innerWidth >= 768 ? 'right' : 'bottom')
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return side
+}
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
@@ -78,6 +89,7 @@ function ClassDetailSheet({
   userId,
   bookingStatus,
 }: ClassDetailSheetProps) {
+  const sheetSide = useSheetSide()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -147,8 +159,8 @@ function ClassDetailSheet({
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        side="bottom"
-        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl flex flex-col"
+        side={sheetSide}
+        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] sm:max-h-full rounded-t-2xl sm:rounded-none flex flex-col"
       >
         <SheetHeader className="pb-2 shrink-0">
           <SheetTitle className="text-white text-lg font-semibold">
@@ -276,6 +288,7 @@ function ChallengeDetailSheet({
   isBooked,
   userGender,
 }: ChallengeDetailSheetProps) {
+  const sheetSide = useSheetSide()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -365,8 +378,8 @@ function ChallengeDetailSheet({
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        side="bottom"
-        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl flex flex-col"
+        side={sheetSide}
+        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] sm:max-h-full rounded-t-2xl sm:rounded-none flex flex-col"
       >
         <SheetHeader className="pb-2 shrink-0">
           <SheetTitle className="text-white text-lg font-semibold">
@@ -496,6 +509,7 @@ function EventDetailSheet({
   userId,
   isBooked,
 }: EventDetailSheetProps) {
+  const sheetSide = useSheetSide()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -557,8 +571,8 @@ function EventDetailSheet({
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
-        side="bottom"
-        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] rounded-t-2xl flex flex-col"
+        side={sheetSide}
+        className="bg-[#0a0f1a] border-white/10 text-white max-h-[85vh] sm:max-h-full rounded-t-2xl sm:rounded-none flex flex-col"
       >
         <SheetHeader className="pb-2 shrink-0">
           <SheetTitle className="text-white text-lg font-semibold">{event.name}</SheetTitle>
