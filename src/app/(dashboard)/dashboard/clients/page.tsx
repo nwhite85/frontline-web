@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Switch } from '@/components/ui/switch'
-import { Search, Plus, MoreHorizontal, Archive, Trash2, Users, SlidersHorizontal, Check } from 'lucide-react'
+import { Search, Plus, MoreHorizontal, Archive, Trash2, Users, SlidersHorizontal, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SortButton } from '@/components/ui/sort-button'
 import { toast } from 'sonner'
 import type { Database } from '@/types/supabase'
@@ -384,7 +384,7 @@ export default function ClientsPage() {
   const totalPages = pageSize === Infinity ? 1 : Math.max(1, Math.ceil(total / pageSize))
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-6 pb-10">
       {error && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
       )}
@@ -512,9 +512,9 @@ export default function ClientsPage() {
 
       {/* Pagination */}
       {filtered.length > 0 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground pt-4">
-          <span>{total} clients</span>
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground pt-2">
+          <span className="shrink-0">{total} clients</span>
+          <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
             <Select value={pageSize === Infinity ? 'all' : String(pageSize)} onValueChange={v => { setPageSize(v === 'all' ? Infinity : Number(v)); setPage(1) }}>
               <SelectTrigger className="h-7 w-20 text-xs bg-card"><SelectValue>{pageSize === Infinity ? 'All' : String(pageSize)}</SelectValue></SelectTrigger>
               <SelectContent>
@@ -524,9 +524,13 @@ export default function ClientsPage() {
                 <SelectItem value="all">All</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" className="bg-card" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-            <span>Page {page} of {totalPages}</span>
-            <Button variant="outline" className="bg-card" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+            <Button variant="outline" size="icon" className="h-7 w-7 bg-card" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="icon" className="h-7 w-7 bg-card" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       )}

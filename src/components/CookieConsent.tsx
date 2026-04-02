@@ -1,13 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Fingerprint, X } from 'lucide-react'
 
 export function CookieConsent() {
   const [show, setShow] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const pathname = usePathname()
+
+  // Don't show on dashboard or client dashboard routes
+  const isDashboard = pathname?.startsWith('/dashboard') || pathname?.startsWith('/client-dashboard') || pathname?.startsWith('/client')
 
   useEffect(() => {
+    if (isDashboard) return
     const consent = localStorage.getItem('cookie-consent')
     if (!consent) {
       const timer = setTimeout(() => {
@@ -17,7 +23,7 @@ export function CookieConsent() {
       return () => clearTimeout(timer)
     }
     // Already consented — stay hidden
-  }, [])
+  }, [isDashboard])
 
   const accept = () => {
     localStorage.setItem('cookie-consent', 'accepted')
@@ -31,7 +37,7 @@ export function CookieConsent() {
     setShow(false)
   }
 
-  if (!show) return null
+  if (!show || isDashboard) return null
 
   return (
     <div className="fixed bottom-5 left-5 z-[9999] flex flex-col items-start gap-2">

@@ -30,6 +30,7 @@ import {
   ChevronsUpDown,
   Settings,
   Menu,
+  Search,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -120,6 +121,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
   const [isPanelOpen, setIsPanelOpen] = useState(true)
   const [showThemeSettings, setShowThemeSettings] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -155,6 +157,21 @@ function AppShellInner({ children }: { children: ReactNode }) {
             <Menu style={{ width: 20, height: 20 }} />
           </button>
           <div className="flex-1" />
+          {headerSearch && (
+            <button
+              onClick={() => setMobileSearchOpen(v => !v)}
+              className={cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                mobileSearchOpen
+                  ? 'bg-sidebar-accent text-sidebar-primary'
+                  : 'text-muted-foreground hover:bg-sidebar-accent'
+              )}
+              aria-label="Toggle search"
+            >
+              <Search style={{ width: 18, height: 18 }} />
+            </button>
+          )}
+          {actions && <div className="flex items-center gap-1.5">{actions}</div>}
           {headerTabs && <div className="flex items-center shrink-0">{headerTabs}</div>}
         </div>
 
@@ -395,10 +412,25 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
         {/* Main area */}
         <div className="flex flex-1 flex-col overflow-hidden pt-14 lg:pt-0">
-          {/* Header */}
+          {/* Mobile collapsible search strip */}
+          {headerSearch && (
+            <div
+              className={cn(
+                'lg:hidden overflow-hidden border-b border-border transition-all duration-200',
+                mobileSearchOpen ? 'h-12' : 'h-0 border-b-0'
+              )}
+              style={{ zIndex: 19 }}
+            >
+              <div className="flex items-center h-12 px-3">
+                {headerSearch}
+              </div>
+            </div>
+          )}
+
+          {/* Header — desktop only */}
           {(headerTabs || headerSearch || actions) && (
-            <header className="flex h-14 shrink-0 items-center gap-2 lg:gap-3 border-b border-border px-3 lg:px-6" style={{ zIndex: 20 }}>
-              {headerTabs && <div className="hidden lg:flex items-center shrink-0">{headerTabs}</div>}
+            <header className="hidden lg:flex h-14 shrink-0 items-center gap-2 lg:gap-3 border-b border-border px-3 lg:px-6" style={{ zIndex: 20 }}>
+              {headerTabs && <div className="flex items-center shrink-0">{headerTabs}</div>}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {headerSearch}
               </div>
@@ -409,7 +441,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
           )}
 
           {/* Page content */}
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto min-h-0">
             {children}
           </main>
         </div>
