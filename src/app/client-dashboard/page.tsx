@@ -862,8 +862,9 @@ function ClassesTab({ userId }: { userId: string }) {
                       } else {
                         const tierVals = Object.values(avail.tiers)
                         const fullCount = tierVals.filter(s => s === 'full').length
-                        fillRatio = tierVals.length > 0 ? fullCount / tierVals.length : 0
-                        if (fullCount > 0) { statusLabel = 'Limited'; barColor = '#ef4444' }
+                        // Keep fillRatio as booked/cap for bar width; use tier fullness only for label
+                        if (fullCount === tierVals.length && tierVals.length > 0) { statusLabel = 'Full'; barColor = '#ef4444'; fillRatio = 1 }
+                        else if (fullCount > 0) { statusLabel = 'Limited'; barColor = '#ef4444' }
                         else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
                       }
                     } else if (cap > 0) {
@@ -1228,8 +1229,9 @@ function CheckpointsTab({ userId }: { userId: string }) {
                   } else {
                     const tierVals = Object.values(avail.tiers)
                     const fullCount = tierVals.filter(s => s === 'full').length
-                    fillRatio = tierVals.length > 0 ? fullCount / tierVals.length : 0
-                    if (fullCount > 0) { statusLabel = 'Limited'; barColor = '#ef4444' }
+                    // Keep fillRatio as booked/cap for bar width; use tier fullness only for label
+                    if (fullCount === tierVals.length && tierVals.length > 0) { statusLabel = 'Full'; barColor = '#ef4444'; fillRatio = 1 }
+                    else if (fullCount > 0) { statusLabel = 'Limited'; barColor = '#ef4444' }
                     else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
                   }
                 } else if (cap > 0) {
