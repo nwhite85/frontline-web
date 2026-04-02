@@ -856,19 +856,20 @@ function ClassesTab({ userId }: { userId: string }) {
                     let fillRatio = cap > 0 ? Math.min(booked / cap, 1) : 0
                     let statusLabel = 'Spots Free'
                     let barColor = '#4982e8'
+                    let badgeLabel = 'Available'
                     if (avail?.mode === 'resource') {
                       if (avail.sessionFull) {
-                        fillRatio = 1; statusLabel = 'Full'; barColor = '#ef4444'
+                        fillRatio = 1; statusLabel = 'Full'; badgeLabel = 'Full'; barColor = '#ef4444'
                       } else {
                         const tierVals = Object.values(avail.tiers)
                         const fullCount = tierVals.filter(s => s === 'full').length
                         // Keep fillRatio as booked/cap for bar width; use tier fullness only for label
-                        if (fullCount === tierVals.length && tierVals.length > 0) { statusLabel = 'Full'; barColor = '#ef4444'; fillRatio = 1 }
+                        if (fullCount === tierVals.length && tierVals.length > 0) { statusLabel = 'Full'; badgeLabel = 'Full'; barColor = '#ef4444'; fillRatio = 1 }
                         else if (fullCount > 0) { statusLabel = 'Limited'; barColor = '#ef4444' }
                         else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
                       }
                     } else if (cap > 0) {
-                      if (booked >= cap) { statusLabel = 'Full'; barColor = '#ef4444' }
+                      if (booked >= cap) { statusLabel = 'Full'; badgeLabel = 'Full'; barColor = '#ef4444' }
                       else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
                     }
                     return (
@@ -884,7 +885,7 @@ function ClassesTab({ userId }: { userId: string }) {
                               {wasJustBooked ? 'Signed Up ✓' : 'Signed Up'}
                             </span>
                           ) : (
-                            <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: barColor, color: barColor }}>{statusLabel}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: barColor, color: barColor }}>{badgeLabel}</span>
                           )}
                         </div>
                         <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{c.start_time ? ` · ${formatTime(c.start_time)}` : ''}{c.location ? ` · ${c.location}` : ''}</p>
@@ -1223,19 +1224,20 @@ function CheckpointsTab({ userId }: { userId: string }) {
                 let fillRatio = cap > 0 ? Math.min(booked / cap, 1) : 0
                 let statusLabel = 'Spots Free'
                 let barColor = '#4982e8'
+                let badgeLabel = 'Available'
                 if (avail?.mode === 'resource') {
                   if (avail.sessionFull) {
-                    fillRatio = 1; statusLabel = 'Full'; barColor = '#ef4444'
+                    fillRatio = 1; statusLabel = 'Full'; badgeLabel = 'Full'; barColor = '#ef4444'
                   } else {
                     const tierVals = Object.values(avail.tiers)
                     const fullCount = tierVals.filter(s => s === 'full').length
                     // Keep fillRatio as booked/cap for bar width; use tier fullness only for label
-                    if (fullCount === tierVals.length && tierVals.length > 0) { statusLabel = 'Full'; barColor = '#ef4444'; fillRatio = 1 }
+                    if (fullCount === tierVals.length && tierVals.length > 0) { statusLabel = 'Full'; badgeLabel = 'Full'; barColor = '#ef4444'; fillRatio = 1 }
                     else if (fullCount > 0) { statusLabel = 'Limited'; barColor = '#ef4444' }
                     else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
                   }
                 } else if (cap > 0) {
-                  if (booked >= cap) { statusLabel = 'Full'; barColor = '#ef4444' }
+                  if (booked >= cap) { statusLabel = 'Full'; badgeLabel = 'Full'; barColor = '#ef4444' }
                   else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
                 }
                 return (
@@ -1256,7 +1258,7 @@ function CheckpointsTab({ userId }: { userId: string }) {
                           {wasJustBooked ? 'Signed Up ✓' : 'Signed Up'}
                         </span>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: barColor, color: barColor }}>{statusLabel}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: barColor, color: barColor }}>{badgeLabel}</span>
                       )}
                     </div>
                     <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{(c as any).start_time ? ` · ${formatTime((c as any).start_time)}` : ''}{(c as any).location ? ` · ${(c as any).location}` : ''}</p>
