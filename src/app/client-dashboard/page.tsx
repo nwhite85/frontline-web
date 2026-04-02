@@ -859,7 +859,17 @@ function ClassesTab({ userId }: { userId: string }) {
                             <span className="text-xs px-2 py-0.5 rounded-full border border-green-500 text-green-400">Available</span>
                           )}
                         </div>
-                        <p className="text-xs text-white/40">{formatDate(c.scheduled_date)}{c.start_time ? ` · ${formatTime(c.start_time)}` : ''}{c.location ? ` · ${c.location}` : ''}</p>
+                        <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{c.start_time ? ` · ${formatTime(c.start_time)}` : ''}{c.location ? ` · ${c.location}` : ''}</p>
+                        {cap > 0 && (
+                          <>
+                            <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
+                              <span>Bookings</span><span>{booked}/{cap}</span>
+                            </div>
+                            <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                              <div className="h-full rounded-full bg-brand-blue" style={{ width: `${Math.min((booked / cap) * 100, 100)}%` }} />
+                            </div>
+                          </>
+                        )}
                       </div>
                     )
                   }
@@ -1169,6 +1179,11 @@ function CheckpointsTab({ userId }: { userId: string }) {
               {challenges.map(c => {
                 const isBooked = bookedChallengeIds.has(c.id)
                 const wasJustBooked = justBooked.has(c.id)
+                const booked = (c as any).current_bookings ?? 0
+                const cap = (c as any).max_capacity ?? 0
+                const isFull = cap > 0 && booked >= cap
+                const isLimited = !isFull && cap > 0 && booked / cap >= 0.75
+                const pct = cap > 0 ? Math.min((booked / cap) * 100, 100) : 0
                 return (
                   <div
                     key={c.id}
@@ -1186,13 +1201,25 @@ function CheckpointsTab({ userId }: { userId: string }) {
                         <span className="text-xs px-2 py-0.5 rounded-full border border-brand-blue text-brand-blue">
                           {wasJustBooked ? 'Signed Up ✓' : 'Signed Up'}
                         </span>
+                      ) : isFull ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full border border-red-500 text-red-400">Full</span>
+                      ) : isLimited ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full border border-amber-500 text-amber-400">Limited Spots</span>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full border border-green-500 text-green-400">
-                          {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
-                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full border border-green-500 text-green-400">Available</span>
                       )}
                     </div>
-                    <p className="text-xs text-white/40">{formatDate(c.scheduled_date)}</p>
+                    <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{(c as any).start_time ? ` · ${formatTime((c as any).start_time)}` : ''}{(c as any).location ? ` · ${(c as any).location}` : ''}</p>
+                    {cap > 0 && (
+                      <>
+                        <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
+                          <span>Bookings</span><span>{booked}/{cap}</span>
+                        </div>
+                        <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                          <div className="h-full rounded-full bg-brand-blue" style={{ width: `${pct}%` }} />
+                        </div>
+                      </>
+                    )}
                   </div>
                 )
               })}
