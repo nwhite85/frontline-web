@@ -671,6 +671,7 @@ function ClassesTab({ userId }: { userId: string }) {
   const [challenges, setChallenges] = useState<(ChallengeSchedule & { start_time?: string; max_capacity?: number; current_bookings?: number; location?: string })[]>([])
   const [bookedIds, setBookedIds] = useState<Record<string, string>>({})
   const [bookedChallengeIds, setBookedChallengeIds] = useState<Set<string>>(new Set())
+  const [checkpointAvailability, setCheckpointAvailability] = useState<Record<string, { mode: string; tiers: Record<string, string>; sessionFull: boolean }>>({})
   const [loading, setLoading] = useState(true)
   const [selectedClass, setSelectedClass] = useState<ClassSchedule | null>(null)
   const [classSheetOpen, setClassSheetOpen] = useState(false)
@@ -716,13 +717,27 @@ function ClassesTab({ userId }: { userId: string }) {
     }
     setBookedIds(map)
 
-    setChallenges((cData as any[]) ?? [])
+    const challengeList = (cData as any[]) ?? []
+    setChallenges(challengeList)
     const cIds = new Set<string>()
     for (const b of ((cbData as { challenge_schedule_id: string; booking_status: string }[]) ?? [])) {
       cIds.add(b.challenge_schedule_id)
     }
     setBookedChallengeIds(cIds)
     setLoading(false)
+
+    // Fetch per-tier availability for each challenge schedule
+    if (challengeList.length > 0) {
+      const availMap: Record<string, { mode: string; tiers: Record<string, string>; sessionFull: boolean }> = {}
+      await Promise.all(challengeList.map(async (c: any) => {
+        try {
+          const params = new URLSearchParams({ scheduleId: c.id })
+          const res = await fetch(`/api/challenge-availability?${params}`)
+          if (res.ok) availMap[c.id] = await res.json()
+        } catch { /* ignore */ }
+      }))
+      setCheckpointAvailability(availMap)
+    }
   }
 
   useEffect(() => {
@@ -837,8 +852,24 @@ function ClassesTab({ userId }: { userId: string }) {
                     const wasJustBooked = justBooked.has(c.id)
                     const booked = c.current_bookings ?? 0
                     const cap = c.max_capacity ?? 0
-                    const isFull = cap > 0 && booked >= cap
-                    const isLimited = !isFull && cap > 0 && booked / cap >= 0.75
+                    const avail = checkpointAvailability[c.id]
+                    let fillRatio = cap > 0 ? Math.min(booked / cap, 1) : 0
+                    let statusLabel = 'Spots Free'
+                    let barColor = '#22c55e'
+                    if (avail?.mode === 'resource') {
+                      if (avail.sessionFull) {
+                        fillRatio = 1; statusLabel = 'Full'; barColor = '#ef4444'
+                      } else {
+                        const tierVals = Object.values(avail.tiers)
+                        const fullCount = tierVals.filter(s => s === 'full').length
+                        fillRatio = tierVals.length > 0 ? fullCount / tierVals.length : 0
+                        if (fullCount > 0) { statusLabel = 'Limited'; barColor = '#ef4444' }
+                        else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
+                      }
+                    } else if (cap > 0) {
+                      if (booked >= cap) { statusLabel = 'Full'; barColor = '#ef4444' }
+                      else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
+                    }
                     return (
                       <div
                         key={c.id}
@@ -851,25 +882,17 @@ function ClassesTab({ userId }: { userId: string }) {
                             <span className="text-xs px-2 py-0.5 rounded-full border border-brand-blue text-brand-blue">
                               {wasJustBooked ? 'Signed Up ✓' : 'Signed Up'}
                             </span>
-                          ) : isFull ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full border border-red-500 text-red-400">Full</span>
-                          ) : isLimited ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full border border-amber-500 text-amber-400">Limited Spots</span>
                           ) : (
-                            <span className="text-xs px-2 py-0.5 rounded-full border border-green-500 text-green-400">Available</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: barColor, color: barColor }}>{statusLabel}</span>
                           )}
                         </div>
                         <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{c.start_time ? ` · ${formatTime(c.start_time)}` : ''}{c.location ? ` · ${c.location}` : ''}</p>
-                        {cap > 0 && (
-                          <>
-                            <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
-                              <span>Bookings</span><span>{booked}/{cap}</span>
-                            </div>
-                            <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
-                              <div className="h-full rounded-full bg-brand-blue" style={{ width: `${Math.min((booked / cap) * 100, 100)}%` }} />
-                            </div>
-                          </>
-                        )}
+                        <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
+                          <span>Bookings</span><span style={{ color: barColor }}>{statusLabel}</span>
+                        </div>
+                        <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${Math.max(fillRatio * 100, fillRatio > 0 ? 4 : 0)}%`, backgroundColor: barColor }} />
+                        </div>
                       </div>
                     )
                   }
@@ -1009,6 +1032,7 @@ function CheckpointsTab({ userId }: { userId: string }) {
   const [reviewClasses, setReviewClasses] = useState<ClassSchedule[]>([])
   const [bookedChallengeIds, setBookedChallengeIds] = useState<Set<string>>(new Set())
   const [bookedClassIds, setBookedClassIds] = useState<Record<string, string>>({})
+  const [checkpointAvailability, setCheckpointAvailability] = useState<Record<string, { mode: string; tiers: Record<string, string>; sessionFull: boolean }>>({})
   const [loading, setLoading] = useState(true)
   const [selectedChallenge, setSelectedChallenge] = useState<ChallengeSchedule | null>(null)
   const [selectedClass, setSelectedClass] = useState<ClassSchedule | null>(null)
@@ -1060,6 +1084,19 @@ function CheckpointsTab({ userId }: { userId: string }) {
     }
     setBookedClassIds(classMap)
     setLoading(false)
+
+    // Fetch per-tier availability for challenge schedules
+    const challengeList = (cData as ChallengeSchedule[]) ?? []
+    if (challengeList.length > 0) {
+      const availMap: Record<string, { mode: string; tiers: Record<string, string>; sessionFull: boolean }> = {}
+      await Promise.all(challengeList.map(async (c) => {
+        try {
+          const res = await fetch(`/api/challenge-availability?scheduleId=${c.id}`)
+          if (res.ok) availMap[c.id] = await res.json()
+        } catch { /* ignore */ }
+      }))
+      setCheckpointAvailability(availMap)
+    }
   }
 
   useEffect(() => {
@@ -1181,9 +1218,24 @@ function CheckpointsTab({ userId }: { userId: string }) {
                 const wasJustBooked = justBooked.has(c.id)
                 const booked = (c as any).current_bookings ?? 0
                 const cap = (c as any).max_capacity ?? 0
-                const isFull = cap > 0 && booked >= cap
-                const isLimited = !isFull && cap > 0 && booked / cap >= 0.75
-                const pct = cap > 0 ? Math.min((booked / cap) * 100, 100) : 0
+                const avail = checkpointAvailability[c.id]
+                let fillRatio = cap > 0 ? Math.min(booked / cap, 1) : 0
+                let statusLabel = 'Spots Free'
+                let barColor = '#22c55e'
+                if (avail?.mode === 'resource') {
+                  if (avail.sessionFull) {
+                    fillRatio = 1; statusLabel = 'Full'; barColor = '#ef4444'
+                  } else {
+                    const tierVals = Object.values(avail.tiers)
+                    const fullCount = tierVals.filter(s => s === 'full').length
+                    fillRatio = tierVals.length > 0 ? fullCount / tierVals.length : 0
+                    if (fullCount > 0) { statusLabel = 'Limited'; barColor = '#ef4444' }
+                    else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
+                  }
+                } else if (cap > 0) {
+                  if (booked >= cap) { statusLabel = 'Full'; barColor = '#ef4444' }
+                  else if (fillRatio >= 0.7) { statusLabel = 'Filling Up'; barColor = '#f59e0b' }
+                }
                 return (
                   <div
                     key={c.id}
@@ -1201,25 +1253,17 @@ function CheckpointsTab({ userId }: { userId: string }) {
                         <span className="text-xs px-2 py-0.5 rounded-full border border-brand-blue text-brand-blue">
                           {wasJustBooked ? 'Signed Up ✓' : 'Signed Up'}
                         </span>
-                      ) : isFull ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full border border-red-500 text-red-400">Full</span>
-                      ) : isLimited ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full border border-amber-500 text-amber-400">Limited Spots</span>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full border border-green-500 text-green-400">Available</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: barColor, color: barColor }}>{statusLabel}</span>
                       )}
                     </div>
                     <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{(c as any).start_time ? ` · ${formatTime((c as any).start_time)}` : ''}{(c as any).location ? ` · ${(c as any).location}` : ''}</p>
-                    {cap > 0 && (
-                      <>
-                        <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
-                          <span>Bookings</span><span>{booked}/{cap}</span>
-                        </div>
-                        <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
-                          <div className="h-full rounded-full bg-brand-blue" style={{ width: `${pct}%` }} />
-                        </div>
-                      </>
-                    )}
+                    <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
+                      <span>Bookings</span><span style={{ color: barColor }}>{statusLabel}</span>
+                    </div>
+                    <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${Math.max(fillRatio * 100, fillRatio > 0 ? 4 : 0)}%`, backgroundColor: barColor }} />
+                    </div>
                   </div>
                 )
               })}
