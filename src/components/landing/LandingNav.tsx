@@ -85,7 +85,13 @@ export function LandingNav() {
 
             {/* Desktop right */}
             <div className="hidden md:flex items-center gap-2">
-<button
+              <Link
+                href="/client-dashboard"
+                className="text-sm px-4 py-2 text-white/60 hover:text-white transition-colors"
+              >
+                Member Login
+              </Link>
+              <button
                 onClick={() => scrollTo('booking')}
                 className="text-sm px-4 py-2 rounded-full border border-white/30 text-white hover:bg-white/10 transition-colors"
               >
@@ -129,6 +135,13 @@ export function LandingNav() {
         >
           Shop
         </a>
+        <Link
+          href="/client-dashboard"
+          onClick={() => setMobileOpen(false)}
+          className="text-white text-2xl font-light tracking-wide hover:opacity-70 transition-opacity"
+        >
+          Member Login
+        </Link>
         <button
           onClick={() => scrollTo('booking')}
           className="mt-4 bg-white text-black rounded-full px-8 py-3 text-base font-medium hover:opacity-90 transition-opacity cursor-pointer"
