@@ -172,7 +172,6 @@ function AppShellInner({ children }: { children: ReactNode }) {
             </button>
           )}
           {actions && <div className="flex items-center gap-1.5">{actions}</div>}
-          {headerTabs && <div className="flex items-center shrink-0">{headerTabs}</div>}
         </div>
 
         {/* Mobile nav drawer */}
@@ -412,6 +411,15 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
         {/* Main area */}
         <div className="flex flex-1 flex-col overflow-hidden pt-14 lg:pt-0">
+          {/* Mobile tab strip — full width, always visible when tabs present */}
+          {headerTabs && (
+            <div className="lg:hidden border-b border-border overflow-x-auto" style={{ zIndex: 19 }}>
+              <div className="flex items-center h-11 px-3">
+                {headerTabs}
+              </div>
+            </div>
+          )}
+
           {/* Mobile collapsible search strip */}
           {headerSearch && (
             <div

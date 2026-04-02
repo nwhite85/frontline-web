@@ -21,7 +21,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Search, Plus, MoreHorizontal, Activity, LayoutTemplate } from 'lucide-react'
+import { Search, Plus, MoreHorizontal, Activity, LayoutTemplate, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SortButton } from '@/components/ui/sort-button'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -469,9 +469,9 @@ export default function WorkoutsPage() {
                 <SelectItem value="all">All</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" className="bg-card" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
+            <Button variant="outline" size="icon" className="h-7 w-7 bg-card" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
             <span>Page {page} of {totalPages}</span>
-            <Button variant="outline" className="bg-card" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+            <Button variant="outline" size="icon" className="h-7 w-7 bg-card" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
         </div>
       )}
