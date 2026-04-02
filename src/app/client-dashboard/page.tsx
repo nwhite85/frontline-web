@@ -661,17 +661,27 @@ function EventDetailSheet({
 
 // ─── Classes Tab ──────────────────────────────────────────────────────────────
 
+// Unified item type for the Classes tab (classes + checkpoints merged)
+type ClassesTabItem =
+  | { kind: 'class'; data: ClassSchedule; scheduled_date: string; start_time: string }
+  | { kind: 'challenge'; data: ChallengeSchedule & { start_time?: string; max_capacity?: number; current_bookings?: number; location?: string }; scheduled_date: string; start_time: string }
+
 function ClassesTab({ userId }: { userId: string }) {
   const [schedules, setSchedules] = useState<ClassSchedule[]>([])
+  const [challenges, setChallenges] = useState<(ChallengeSchedule & { start_time?: string; max_capacity?: number; current_bookings?: number; location?: string })[]>([])
   const [bookedIds, setBookedIds] = useState<Record<string, string>>({})
+  const [bookedChallengeIds, setBookedChallengeIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<ClassSchedule | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
+  const [selectedClass, setSelectedClass] = useState<ClassSchedule | null>(null)
+  const [classSheetOpen, setClassSheetOpen] = useState(false)
+  const [selectedChallenge, setSelectedChallenge] = useState<ChallengeSchedule | null>(null)
+  const [challengeSheetOpen, setChallengeSheetOpen] = useState(false)
   const [justBooked, setJustBooked] = useState<Set<string>>(new Set())
+  const [userGender, setUserGender] = useState<string | null>(null)
 
   const load = async () => {
     const today = new Date().toISOString().split('T')[0]
-    const [{ data: schedData }, { data: bData }] = await Promise.all([
+    const [{ data: schedData }, { data: bData }, { data: cData }, { data: cbData }] = await Promise.all([
       supabase
         .from('class_schedules')
         .select(
@@ -686,37 +696,80 @@ function ClassesTab({ userId }: { userId: string }) {
         .select('class_schedule_id, booking_status')
         .eq('client_id', userId)
         .in('booking_status', ['confirmed', 'waitlist']),
+      supabase
+        .from('challenge_schedules')
+        .select('*, trainer_id, challenge:challenge_id(name, description)')
+        .eq('status', 'scheduled')
+        .gte('scheduled_date', today)
+        .order('scheduled_date', { ascending: true }),
+      supabase
+        .from('challenge_bookings')
+        .select('challenge_schedule_id, booking_status')
+        .eq('client_id', userId)
+        .in('booking_status', ['confirmed', 'waitlist']),
     ])
 
-    // Use current_bookings from the DB directly — it's the authoritative count updated by the booking API
     setSchedules((schedData as ClassSchedule[]) ?? [])
     const map: Record<string, string> = {}
     for (const b of ((bData as { class_schedule_id: string; booking_status: string }[]) ?? [])) {
       map[b.class_schedule_id] = b.booking_status
     }
     setBookedIds(map)
+
+    setChallenges((cData as any[]) ?? [])
+    const cIds = new Set<string>()
+    for (const b of ((cbData as { challenge_schedule_id: string; booking_status: string }[]) ?? [])) {
+      cIds.add(b.challenge_schedule_id)
+    }
+    setBookedChallengeIds(cIds)
     setLoading(false)
   }
 
   useEffect(() => {
     load()
+    supabase.from('user_profiles').select('gender').eq('id', userId).single()
+      .then(({ data }) => setUserGender((data as any)?.gender ?? null))
   }, [userId])
 
-  const handleBooked = async (scheduleId: string) => {
-    setSheetOpen(false)
-    setSelected(null)
+  const handleClassBooked = async (scheduleId: string) => {
+    setClassSheetOpen(false)
+    setSelectedClass(null)
     setJustBooked(prev => new Set(prev).add(scheduleId))
     await load()
   }
 
-  const handleCancelled = async () => {
-    setSheetOpen(false)
-    setSelected(null)
+  const handleClassCancelled = async () => {
+    setClassSheetOpen(false)
+    setSelectedClass(null)
+    await load()
+  }
+
+  const handleChallengeBooked = async (scheduleId: string) => {
+    setChallengeSheetOpen(false)
+    setSelectedChallenge(null)
+    setJustBooked(prev => new Set(prev).add(scheduleId))
+    await load()
+  }
+
+  const handleChallengeCancelled = async () => {
+    setChallengeSheetOpen(false)
+    setSelectedChallenge(null)
     await load()
   }
 
   if (loading) return <Spinner />
-  if (schedules.length === 0)
+
+  // Merge classes and challenges into unified list, sort by date then time
+  const allItems: ClassesTabItem[] = [
+    ...schedules.map(s => ({ kind: 'class' as const, data: s, scheduled_date: s.scheduled_date, start_time: s.start_time })),
+    ...challenges.map(c => ({ kind: 'challenge' as const, data: c, scheduled_date: c.scheduled_date, start_time: (c as any).start_time ?? '00:00:00' })),
+  ].sort((a, b) => {
+    const d = a.scheduled_date.localeCompare(b.scheduled_date)
+    if (d !== 0) return d
+    return a.start_time.localeCompare(b.start_time)
+  })
+
+  if (allItems.length === 0)
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <CalendarDays className="w-10 h-10 text-white opacity-20" />
@@ -724,10 +777,10 @@ function ClassesTab({ userId }: { userId: string }) {
       </div>
     )
 
-  const grouped: Record<string, ClassSchedule[]> = {}
-  for (const s of schedules) {
-    if (!grouped[s.scheduled_date]) grouped[s.scheduled_date] = []
-    grouped[s.scheduled_date].push(s)
+  const grouped: Record<string, ClassesTabItem[]> = {}
+  for (const item of allItems) {
+    if (!grouped[item.scheduled_date]) grouped[item.scheduled_date] = []
+    grouped[item.scheduled_date].push(item)
   }
 
   return (
@@ -741,67 +794,83 @@ function ClassesTab({ userId }: { userId: string }) {
                 {formatDate(date)}
               </p>
               <div className="flex flex-col gap-3">
-                {grouped[date].map(s => {
-                  const booked = s.current_bookings ?? 0
-                  const cap = s.class?.max_capacity ?? 0
-                  const isFull = cap > 0 && booked >= cap
-                  const pct = cap > 0 ? Math.min((booked / cap) * 100, 100) : 0
-                  const isBooked = !!bookedIds[s.id]
-                  const wasJustBooked = justBooked.has(s.id)
-                  const bookingStatus = bookedIds[s.id]
-                  return (
-                    <div
-                      key={s.id}
-                      className="rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5 cursor-pointer hover:border-white/20 transition-colors"
-                      onClick={() => {
-                        setSelected(s)
-                        setSheetOpen(true)
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-semibold text-white">
-                          {s.class?.name ?? 'Class'}
-                        </span>
-                        {isBooked ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full border border-brand-blue text-brand-blue">
-                            {wasJustBooked && bookingStatus === 'waitlist'
-                              ? 'Waitlisted ✓'
-                              : wasJustBooked
-                              ? 'Booked ✓'
-                              : bookingStatus === 'waitlist'
-                              ? 'Waitlisted'
-                              : 'Booked'}
-                          </span>
-                        ) : (
-                          <span
-                            className={`text-xs px-2 py-0.5 rounded-full border ${
-                              isFull
-                                ? 'border-red-500 text-red-400'
-                                : 'border-green-500 text-green-400'
-                            }`}
-                          >
-                            {isFull ? 'Full' : 'Available'}
-                          </span>
+                {grouped[date].map(item => {
+                  if (item.kind === 'class') {
+                    const s = item.data
+                    const booked = s.current_bookings ?? 0
+                    const cap = s.class?.max_capacity ?? 0
+                    const isFull = cap > 0 && booked >= cap
+                    const pct = cap > 0 ? Math.min((booked / cap) * 100, 100) : 0
+                    const isBooked = !!bookedIds[s.id]
+                    const wasJustBooked = justBooked.has(s.id)
+                    const bookingStatus = bookedIds[s.id]
+                    return (
+                      <div
+                        key={s.id}
+                        className="rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5 cursor-pointer hover:border-white/20 transition-colors"
+                        onClick={() => { setSelectedClass(s); setClassSheetOpen(true) }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-semibold text-white">{s.class?.name ?? 'Class'}</span>
+                          {isBooked ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full border border-brand-blue text-brand-blue">
+                              {wasJustBooked && bookingStatus === 'waitlist' ? 'Waitlisted ✓' : wasJustBooked ? 'Booked ✓' : bookingStatus === 'waitlist' ? 'Waitlisted' : 'Booked'}
+                            </span>
+                          ) : (
+                            <span className={`text-xs px-2 py-0.5 rounded-full border ${isFull ? 'border-red-500 text-red-400' : 'border-green-500 text-green-400'}`}>
+                              {isFull ? 'Full' : 'Available'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-white/40 mb-2">{formatDate(s.scheduled_date)} · {formatTime(s.start_time)} · {s.class?.location ?? '—'}</p>
+                        <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
+                          <span>Bookings</span><span>{booked}/{cap}</span>
+                        </div>
+                        <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                          <div className="h-full rounded-full bg-brand-blue" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  } else {
+                    const c = item.data
+                    const isBooked = bookedChallengeIds.has(c.id)
+                    const wasJustBooked = justBooked.has(c.id)
+                    const booked = c.current_bookings ?? 0
+                    const cap = c.max_capacity ?? 0
+                    const isFull = cap > 0 && booked >= cap
+                    const pct = cap > 0 ? Math.min((booked / cap) * 100, 100) : 0
+                    return (
+                      <div
+                        key={c.id}
+                        className="rounded-xl border border-white/10 bg-[#0d1420] px-4 py-3.5 cursor-pointer hover:border-white/20 transition-colors"
+                        onClick={() => { setSelectedChallenge(c as ChallengeSchedule); setChallengeSheetOpen(true) }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-semibold text-white">{c.challenge?.name ?? 'Checkpoint'}</span>
+                          {isBooked ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full border border-brand-blue text-brand-blue">
+                              {wasJustBooked ? 'Booked ✓' : 'Booked'}
+                            </span>
+                          ) : (
+                            <span className={`text-xs px-2 py-0.5 rounded-full border ${isFull ? 'border-red-500 text-red-400' : 'border-green-500 text-green-400'}`}>
+                              {isFull ? 'Full' : 'Available'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{c.start_time ? ` · ${formatTime(c.start_time)}` : ''}{c.location ? ` · ${c.location}` : ''}</p>
+                        {cap > 0 && (
+                          <>
+                            <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
+                              <span>Bookings</span><span>{booked}/{cap}</span>
+                            </div>
+                            <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                              <div className="h-full rounded-full bg-brand-blue" style={{ width: `${pct}%` }} />
+                            </div>
+                          </>
                         )}
                       </div>
-                      <p className="text-xs text-white/40 mb-2">
-                        {formatDate(s.scheduled_date)} · {formatTime(s.start_time)} ·{' '}
-                        {s.class?.location ?? '—'}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
-                        <span>Bookings</span>
-                        <span>
-                          {booked}/{cap}
-                        </span>
-                      </div>
-                      <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-brand-blue"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
+                    )
+                  }
                 })}
               </div>
             </div>
@@ -809,16 +878,24 @@ function ClassesTab({ userId }: { userId: string }) {
       </div>
 
       <ClassDetailSheet
-        schedule={selected}
-        open={sheetOpen}
-        onClose={() => {
-          setSheetOpen(false)
-          setSelected(null)
-        }}
-        onBooked={() => handleBooked(selected!.id)}
-        onCancelled={handleCancelled}
+        schedule={selectedClass}
+        open={classSheetOpen}
+        onClose={() => { setClassSheetOpen(false); setSelectedClass(null) }}
+        onBooked={() => handleClassBooked(selectedClass!.id)}
+        onCancelled={handleClassCancelled}
         userId={userId}
-        bookingStatus={selected ? bookedIds[selected.id] : undefined}
+        bookingStatus={selectedClass ? bookedIds[selectedClass.id] : undefined}
+      />
+
+      <ChallengeDetailSheet
+        schedule={selectedChallenge}
+        open={challengeSheetOpen}
+        onClose={() => { setChallengeSheetOpen(false); setSelectedChallenge(null) }}
+        onBooked={() => handleChallengeBooked(selectedChallenge!.id)}
+        onCancelled={handleChallengeCancelled}
+        userId={userId}
+        isBooked={selectedChallenge ? bookedChallengeIds.has(selectedChallenge.id) : false}
+        userGender={userGender}
       />
     </>
   )
