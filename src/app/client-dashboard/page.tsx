@@ -855,7 +855,7 @@ function ClassesTab({ userId }: { userId: string }) {
                     const avail = checkpointAvailability[c.id]
                     let fillRatio = cap > 0 ? Math.min(booked / cap, 1) : 0
                     let statusLabel = 'Spots Free'
-                    let barColor = '#22c55e'
+                    let barColor = '#4982e8'
                     if (avail?.mode === 'resource') {
                       if (avail.sessionFull) {
                         fillRatio = 1; statusLabel = 'Full'; barColor = '#ef4444'
@@ -1222,7 +1222,7 @@ function CheckpointsTab({ userId }: { userId: string }) {
                 const avail = checkpointAvailability[c.id]
                 let fillRatio = cap > 0 ? Math.min(booked / cap, 1) : 0
                 let statusLabel = 'Spots Free'
-                let barColor = '#22c55e'
+                let barColor = '#4982e8'
                 if (avail?.mode === 'resource') {
                   if (avail.sessionFull) {
                     fillRatio = 1; statusLabel = 'Full'; barColor = '#ef4444'
