@@ -217,7 +217,7 @@ export default function ShopPage() {
                 </div>
                 {allPurchasable ? (
                   <a
-                    href="/checkout"
+                    href="/shop/checkout"
                     className="block text-center py-2 px-4 rounded-full bg-brand-blue text-white text-xs font-semibold uppercase tracking-wide hover:bg-[#3a6fd0] transition-colors"
                   >
                     Place Order
