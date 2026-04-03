@@ -198,11 +198,12 @@ function EditClientSheet({
 function SetupLinkButton({ email }: { email: string }) {
   const [sending, setSending] = useState(false)
   const [link, setLink] = useState<string | null>(null)
+  const [emailSent, setEmailSent] = useState(false)
   const [copied, setCopied] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   const handleSend = async () => {
-    setSending(true); setErr(null); setLink(null)
+    setSending(true); setErr(null); setLink(null); setEmailSent(false)
     try {
       const res = await fetch('/api/send-password-reset', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -210,7 +211,12 @@ function SetupLinkButton({ email }: { email: string }) {
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
-      setLink(d.link ?? null)
+      if (d.emailSent) {
+        setEmailSent(true)
+        setTimeout(() => setEmailSent(false), 4000)
+      } else {
+        setLink(d.link ?? null)
+      }
     } catch (e: any) { setErr(e.message) } finally { setSending(false) }
   }
 
@@ -230,7 +236,7 @@ function SetupLinkButton({ email }: { email: string }) {
         disabled={sending}
       >
         <Mail className="h-3 w-3 mr-1.5" />
-        {sending ? 'Generating…' : link ? (copied ? 'Copied!' : 'Copy Reset Link') : 'Generate Setup Link'}
+        {sending ? 'Sending…' : emailSent ? 'Sent ✓' : link ? (copied ? 'Copied!' : 'Copy Reset Link') : 'Send Setup Link'}
       </Button>
       {link && !copied && (
         <p className="text-[0.6rem] text-muted-foreground max-w-[200px] truncate" title={link}>
