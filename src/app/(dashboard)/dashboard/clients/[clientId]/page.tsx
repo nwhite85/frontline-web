@@ -197,34 +197,46 @@ function EditClientSheet({
 
 function SetupLinkButton({ email }: { email: string }) {
   const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [link, setLink] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   const handleSend = async () => {
-    setSending(true); setErr(null)
+    setSending(true); setErr(null); setLink(null)
     try {
       const res = await fetch('/api/send-password-reset', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
-      setSent(true)
-      setTimeout(() => setSent(false), 4000)
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error)
+      setLink(d.link ?? null)
     } catch (e: any) { setErr(e.message) } finally { setSending(false) }
   }
 
+  const handleCopy = async () => {
+    if (!link) return
+    await navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
-    <div className="flex flex-col items-end gap-0.5">
+    <div className="flex flex-col items-end gap-1">
       <Button
         variant="outline"
-       
         className="h-7 text-xs shrink-0 bg-card"
-        onClick={handleSend}
+        onClick={link ? handleCopy : handleSend}
         disabled={sending}
       >
         <Mail className="h-3 w-3 mr-1.5" />
-        {sending ? 'Sending…' : sent ? 'Sent!' : 'Send Setup Link'}
+        {sending ? 'Generating…' : link ? (copied ? 'Copied!' : 'Copy Reset Link') : 'Generate Setup Link'}
       </Button>
+      {link && !copied && (
+        <p className="text-[0.6rem] text-muted-foreground max-w-[200px] truncate" title={link}>
+          Link ready — click to copy, then send to client
+        </p>
+      )}
       {err && <p className="text-[0.65rem] text-destructive">{err}</p>}
     </div>
   )

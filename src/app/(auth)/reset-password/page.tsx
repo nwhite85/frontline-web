@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -15,11 +14,23 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
-    })
-    if (error) { setError(error.message) } else { setSent(true) }
-    setLoading(false)
+    try {
+      // Use server-side route which calls admin.generateLink — avoids Supabase email rate limits
+      const res = await fetch('/api/send-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error ?? 'Failed to send reset link')
+      }
+      setSent(true)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -46,7 +57,10 @@ export default function ResetPasswordPage() {
           </div>
           <div className="rounded-xl border border-white/10 bg-[#0a0f1a] p-6 flex flex-col gap-4">
             {sent ? (
-              <p className="text-sm text-green-400">Check your email for a reset link.</p>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-green-400">Reset link sent — check your inbox (and junk folder).</p>
+                <p className="text-xs text-white/40">If you don&apos;t receive it within a few minutes, contact Nick directly.</p>
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">

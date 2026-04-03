@@ -17,14 +17,22 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createServerSupabaseClient()
 
     const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://frontlinefitness.co.uk'}/update-password`
-    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl })
+
+    // Use generateLink (admin API) — avoids Supabase's email service rate limits.
+    // The link is returned to the dashboard so the trainer can copy/send it directly.
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: redirectUrl },
+    })
 
     if (error) {
-      logger.error('Error sending setup link:', error)
+      logger.error('Error generating reset link:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    const actionLink = data?.properties?.action_link
+    return NextResponse.json({ success: true, link: actionLink })
   } catch (err) {
     logger.error('send-password-reset error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
