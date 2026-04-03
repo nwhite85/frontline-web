@@ -29,12 +29,19 @@ const isNew = (createdAt: string) => {
   return created > threeMonthsAgo
 }
 
+interface PickerState {
+  product: ShopProduct
+  color: string | null
+  size: string | null
+}
+
 export default function ShopPage() {
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('all')
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [picker, setPicker] = useState<PickerState | null>(null)
 
   useEffect(() => {
     setCart(readCart())
@@ -83,8 +90,42 @@ export default function ShopPage() {
     })
   }
 
+  function addToCart(product: ShopProduct) {
+    setPicker({
+      product,
+      color: product.colors && product.colors.length > 0 ? null : null,
+      size: product.sizes && product.sizes.length > 0 ? null : null,
+    })
+  }
+
+  function confirmAddToCart() {
+    if (!picker) return
+    setCart(prev => {
+      const existingIdx = prev.findIndex(
+        i => i.product.id === picker.product.id && i.color === picker.color && i.size === picker.size
+      )
+      if (existingIdx >= 0) {
+        const next = [...prev]
+        next[existingIdx] = { ...next[existingIdx], qty: next[existingIdx].qty + 1 }
+        return next
+      }
+      return [...prev, { product: picker.product, color: picker.color, size: picker.size, qty: 1 }]
+    })
+    setPicker(null)
+    setCartOpen(true)
+  }
+
+  const pickerReady = picker
+    ? ((!picker.product.colors || picker.product.colors.length === 0) || picker.color !== null)
+      && ((!picker.product.sizes || picker.product.sizes.length === 0) || picker.size !== null)
+    : false
+
   const cartCount = cart.reduce((s, i) => s + i.qty, 0)
   const subtotal = cart.reduce((s, i) => s + i.product.price * i.qty, 0)
+  const allPurchasable = cart.length > 0 && cart.every(i => {
+    const p = products.find(pr => pr.id === i.product.id)
+    return p ? p.purchasable : true
+  })
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
@@ -174,9 +215,18 @@ export default function ShopPage() {
                   <span className="text-sm text-white/50">Subtotal</span>
                   <span className="font-bold text-white">£{subtotal.toFixed(2)}</span>
                 </div>
-                <div className="text-center py-2 px-4 rounded-full border border-white/10 text-white/30 text-xs font-semibold uppercase tracking-wide cursor-not-allowed">
-                  Orders opening soon
-                </div>
+                {allPurchasable ? (
+                  <a
+                    href="/checkout"
+                    className="block text-center py-2 px-4 rounded-full bg-brand-blue text-white text-xs font-semibold uppercase tracking-wide hover:bg-[#3a6fd0] transition-colors"
+                  >
+                    Place Order
+                  </a>
+                ) : (
+                  <div className="text-center py-2 px-4 rounded-full border border-white/10 text-white/30 text-xs font-semibold uppercase tracking-wide cursor-not-allowed">
+                    Orders opening soon
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -199,11 +249,6 @@ export default function ShopPage() {
           <p className="text-brand-blue text-xs font-semibold uppercase tracking-widest mb-1">Frontline Fitness</p>
           <h1 className="text-4xl font-bold uppercase text-white tracking-tight">Shop</h1>
         </div>
-      </div>
-
-      {/* Orders not yet open banner */}
-      <div className="relative z-10 bg-brand-blue/10 border-b border-brand-blue/20 px-6 py-5 text-center">
-        <p className="text-brand-blue text-xs font-semibold uppercase tracking-widest">Orders opening soon — browse the range below</p>
       </div>
 
       {/* Category filter */}
@@ -276,11 +321,10 @@ export default function ShopPage() {
                   
                   {product.purchasable ? (
                     <button
-                      disabled
-                      className="w-full mt-1 rounded-full py-2 text-xs font-semibold border border-white/15 text-white/30 cursor-not-allowed"
-                      title="Orders opening soon"
+                      onClick={() => addToCart(product)}
+                      className="w-full mt-1 rounded-full py-2 text-xs font-semibold border border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white transition-colors"
                     >
-                      Orders opening soon
+                      Add to cart
                     </button>
                   ) : (
                     <span className="w-full mt-1 flex items-center justify-center rounded-full py-2 text-xs font-semibold border border-white/10 text-white/20 bg-white/[0.03] select-none">
@@ -300,6 +344,90 @@ export default function ShopPage() {
           <a href="/privacy" className="text-xs text-white/30 hover:text-white/60 transition-colors">Privacy &amp; Terms</a>
         </div>
       </div>
+
+      {/* Product picker bottom sheet */}
+      {picker && (
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end" style={{ touchAction: 'none' }}>
+          <div className="absolute inset-0 bg-black/70" onClick={() => setPicker(null)} />
+          <div className="relative bg-[#0d1420] border-t border-white/10 rounded-t-2xl px-5 pt-5 pb-8 flex flex-col gap-5 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex gap-4 items-center">
+                {picker.product.image_url && (
+                  <div className="w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-white/[0.05]">
+                    <img src={picker.product.image_url} alt={picker.product.name} className="w-full h-full object-cover" style={{ objectPosition: 'center 15%' }} />
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-white leading-tight">
+                    {picker.product.name}
+                    {picker.product.category && picker.product.category !== 'accessories'
+                      ? ` (${CATEGORY_LABELS[picker.product.category] ?? picker.product.category})`
+                      : ''}
+                  </p>
+                  <p className="text-base font-bold text-[#4982e8] mt-1">£{picker.product.price.toFixed(2)}</p>
+                </div>
+              </div>
+              <button onClick={() => setPicker(null)} className="text-white opacity-40 hover:opacity-100 transition-opacity flex-shrink-0 mt-1">
+                <X size={20} />
+              </button>
+            </div>
+
+            {picker.product.colors && picker.product.colors.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Colour</p>
+                <div className="flex flex-wrap gap-2">
+                  {picker.product.colors.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setPicker(prev => prev ? { ...prev, color: c } : prev)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        picker.color === c
+                          ? 'bg-[#4982e8] border-[#4982e8] text-white'
+                          : 'bg-transparent border-white/20 text-white/60 hover:border-white/40 hover:text-white'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {picker.product.sizes && picker.product.sizes.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-white/40">Size</p>
+                <div className="flex flex-wrap gap-2">
+                  {picker.product.sizes.map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setPicker(prev => prev ? { ...prev, size: s } : prev)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        picker.size === s
+                          ? 'bg-[#4982e8] border-[#4982e8] text-white'
+                          : 'bg-transparent border-white/20 text-white/60 hover:border-white/40 hover:text-white'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={confirmAddToCart}
+              disabled={!pickerReady}
+              className={`w-full rounded-full py-3 text-sm font-semibold transition-colors ${
+                pickerReady
+                  ? 'bg-[#4982e8] text-white hover:bg-[#3a6fd0]'
+                  : 'bg-white/[0.06] text-white/25 cursor-not-allowed'
+              }`}
+            >
+              {pickerReady ? 'Add to cart' : 'Select options above'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
