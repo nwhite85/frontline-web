@@ -24,6 +24,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/class-bookings',
   '/api/challenge-bookings',
   '/api/book-challenge',
+  '/api/challenge-availability',
   '/api/create-shop-checkout',
   '/api/shop-order',
   // Note: /api/shop-orders (GET) is dashboard-only, stays protected
