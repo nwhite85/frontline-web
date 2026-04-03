@@ -3,6 +3,7 @@ import { rateLimit } from '@/utils/rateLimit'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { logger } from '@/utils/logger'
 import { Resend } from 'resend'
+import { passwordResetEmail } from '@/utils/emailTemplates'
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown'
@@ -39,19 +40,25 @@ export async function POST(request: NextRequest) {
       const resend = new Resend(resendKey)
       const fromDomain = process.env.RESEND_FROM_EMAIL ?? 'Frontline Fitness <onboarding@resend.dev>'
 
+      // Look up client name for personalised greeting
+      let clientName: string | undefined
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('name, first_name')
+          .eq('email', email)
+          .maybeSingle()
+        clientName = (profile as any)?.first_name || (profile as any)?.name || undefined
+      } catch { /* non-blocking */ }
+
+      const emailContent = passwordResetEmail({ clientName, resetUrl: actionLink })
+
       const { error: emailError } = await resend.emails.send({
         from: fromDomain,
         to: email,
         subject: 'Set your Frontline Fitness password',
-        html: `
-          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-            <img src="https://frontlinefitness.co.uk/logos/frontline-logo-blue.png" alt="Frontline Fitness" style="height: 24px; margin-bottom: 32px;" />
-            <h2 style="font-size: 20px; font-weight: 600; margin: 0 0 8px;">Set your password</h2>
-            <p style="color: #666; margin: 0 0 24px;">Click the button below to set your Frontline Fitness account password. This link expires in 24 hours.</p>
-            <a href="${actionLink}" style="display: inline-block; background: #4982e8; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 15px;">Set Password</a>
-            <p style="color: #999; font-size: 12px; margin: 24px 0 0;">If you didn't request this, you can ignore this email.</p>
-          </div>
-        `,
+        html: emailContent.html,
+        text: emailContent.text,
       })
 
       if (emailError) {

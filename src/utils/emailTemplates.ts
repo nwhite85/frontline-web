@@ -327,4 +327,28 @@ export function trainerNewTrialistEmail(data: TrialistBookingData & { email: str
 
 // ─── Email sending helper ────────────────────────────────────────────────────
 
+// ─── Password Reset ─────────────────────────────────────────────────────────
+
+export function passwordResetEmail(data: { clientName?: string; resetUrl: string }): { subject: string; html: string; text: string } {
+  const name = data.clientName || 'there'
+  const subject = 'Set your Frontline Fitness password'
+
+  const html = baseLayout(`
+    <div class="body">
+      <h2>Set your password</h2>
+      <p>Hi ${name},</p>
+      <p>Click the button below to set your Frontline Fitness account password. This link is valid for 24 hours.</p>
+      <div style="text-align:center;margin:28px 0 8px">
+        <a href="${data.resetUrl}" class="btn" style="color:#ffffff">Set Password</a>
+      </div>
+      <p style="text-align:center;font-size:13px;color:${BRAND.textMuted}">This link expires in 24 hours</p>
+      <p style="font-size:13px;color:${BRAND.textMuted};margin-top:24px">If you didn't request this, you can safely ignore this email.</p>
+    </div>
+  `, subject)
+
+  const text = `${subject}\n\nHi ${name},\n\nClick the link below to set your Frontline Fitness password:\n${data.resetUrl}\n\nThis link expires in 24 hours. If you didn't request this, ignore this email.\n\n— Frontline Fitness`
+
+  return { subject, html, text }
+}
+
 export { BRAND as EMAIL_BRAND };
