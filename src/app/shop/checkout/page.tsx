@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { readCart, writeCart, CartItem } from '@/lib/cart'
+import { readCart, CartItem } from '@/lib/cart'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -27,29 +27,27 @@ export default function ShopCheckoutPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/shop-order', {
+      const res = await fetch('/api/create-shop-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, items: cart }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to place order')
-      writeCart([])
-      router.push('/shop/checkout/success')
+      if (!res.ok) throw new Error(data.error ?? 'Failed to create checkout')
+      window.location.href = data.url
     } catch (e: any) {
       setError(e.message)
-    } finally {
       setLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black flex items-center px-6">
+      <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black flex items-center px-6 gap-4">
         <a href="/shop">
           <img src="/logos/frontline-logo-blue.png" alt="Frontline Fitness" style={{ height: 20, width: 'auto' }} />
         </a>
-        <span className="ml-4 text-white/40 text-sm">Checkout</span>
+        <span className="text-white/40 text-sm">Checkout</span>
       </div>
 
       <div className="flex-1 max-w-lg mx-auto w-full px-6 py-10 flex flex-col gap-8">
@@ -97,13 +95,13 @@ export default function ShopCheckoutPage() {
           </div>
 
           <p className="text-xs text-white/30">
-            Nick will contact you to arrange collection and payment. No card details required.
+            Pay securely by card. You'll collect your order from Nick at the park.
           </p>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Placing order…' : 'Place Order'}
+            {loading ? 'Redirecting to payment…' : `Pay £${subtotal.toFixed(2)}`}
           </Button>
         </form>
       </div>
