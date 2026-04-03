@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { logger } from '@/utils/logger'
 import { rateLimit } from '@/utils/rateLimit'
 import { z } from 'zod'
+import { Resend } from 'resend'
+import { passwordResetEmail } from '@/utils/emailTemplates'
 
 const schema = z.object({
   email: z.string().email('Invalid email format'),
@@ -37,13 +39,55 @@ export async function POST(request: NextRequest) {
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://frontlinefitness.co.uk'
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${siteUrl}/client/setup`,
+    const redirectTo = `${siteUrl}/client/setup`
+
+    // Generate link via admin API — no Supabase email rate limits
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo },
     })
 
-    if (resetError) {
-      logger.error('[resend-invitation] Error sending reset email:', resetError)
-      return NextResponse.json({ error: 'Failed to send invitation email' }, { status: 500 })
+    if (linkError) {
+      logger.error('[resend-invitation] Error generating link:', linkError)
+      return NextResponse.json({ error: 'Failed to generate invitation link' }, { status: 500 })
+    }
+
+    const actionLink = linkData?.properties?.action_link
+    if (!actionLink) {
+      return NextResponse.json({ error: 'Failed to generate invitation link' }, { status: 500 })
+    }
+
+    // Look up client name
+    let clientName: string | undefined
+    try {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('name, first_name')
+        .eq('email', email)
+        .maybeSingle()
+      clientName = (profile as any)?.first_name || (profile as any)?.name || undefined
+    } catch { /* non-blocking */ }
+
+    // Send via Resend
+    const resendKey = process.env.RESEND_API_KEY
+    if (resendKey) {
+      const resend = new Resend(resendKey)
+      const fromDomain = process.env.RESEND_FROM_EMAIL ?? 'Frontline Fitness <onboarding@resend.dev>'
+      const emailContent = passwordResetEmail({ clientName, resetUrl: actionLink })
+
+      const { error: emailError } = await resend.emails.send({
+        from: fromDomain,
+        to: email,
+        subject: emailContent.subject,
+        html: emailContent.html,
+        text: emailContent.text,
+      })
+
+      if (emailError) {
+        logger.error('[resend-invitation] Resend error:', emailError)
+        return NextResponse.json({ error: 'Failed to send invitation email' }, { status: 500 })
+      }
     }
 
     return NextResponse.json({ success: true, message: 'Invitation resent successfully' })
