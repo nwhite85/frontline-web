@@ -89,7 +89,7 @@ export function LandingNav() {
                 href="/client-dashboard"
                 className="text-sm px-4 py-2 text-white/60 hover:text-white transition-colors"
               >
-                Member Login
+                Login
               </Link>
               <button
                 onClick={() => scrollTo('booking')}
@@ -140,7 +140,7 @@ export function LandingNav() {
           onClick={() => setMobileOpen(false)}
           className="text-white text-2xl font-light tracking-wide hover:opacity-70 transition-opacity"
         >
-          Member Login
+          Login
         </Link>
         <button
           onClick={() => scrollTo('booking')}

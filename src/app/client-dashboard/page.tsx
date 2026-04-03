@@ -891,7 +891,7 @@ function ClassesTab({ userId }: { userId: string }) {
                         </div>
                         <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{c.start_time ? ` · ${formatTime(c.start_time)}` : ''}{c.location ? ` · ${c.location}` : ''}</p>
                         <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
-                          <span>Bookings</span><span style={{ color: barColor }}>{statusLabel}</span>
+                          <span>Bookings</span><span>{statusLabel}</span>
                         </div>
                         <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${Math.max(fillRatio * 100, fillRatio > 0 ? 4 : 0)}%`, backgroundColor: barColor }} />
@@ -1265,7 +1265,7 @@ function CheckpointsTab({ userId }: { userId: string }) {
                     </div>
                     <p className="text-xs text-white/40 mb-2">{formatDate(c.scheduled_date)}{(c as any).start_time ? ` · ${formatTime((c as any).start_time)}` : ''}{(c as any).location ? ` · ${(c as any).location}` : ''}</p>
                     <div className="flex items-center justify-between text-xs text-white/30 mb-1.5">
-                      <span>Bookings</span><span style={{ color: barColor }}>{statusLabel}</span>
+                      <span>Bookings</span><span>{statusLabel}</span>
                     </div>
                     <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${Math.max(fillRatio * 100, fillRatio > 0 ? 4 : 0)}%`, backgroundColor: barColor }} />
