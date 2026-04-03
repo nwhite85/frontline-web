@@ -37,12 +37,10 @@ function strengthFull(
   const tierCfg = tiers[tier]
   if (!tierCfg) return false
   const weight = tierCfg[gender]
-  weightUsage[weight] = (weightUsage[weight] || 0) + kbsPerPerson
 
-  for (const [w, used] of Object.entries(weightUsage)) {
-    if (used > (kbs[w] ?? 0)) return true
-  }
-  return false
+  // Only check the KB pool relevant to this tier+gender — other pools are not this person's concern
+  const currentUsage = weightUsage[weight] ?? 0
+  return (currentUsage + kbsPerPerson) > (kbs[weight] ?? 0)
 }
 
 function speedFull(tc: any, totalCount: number): boolean {

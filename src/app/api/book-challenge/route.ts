@@ -36,20 +36,17 @@ function checkStrength(
     weightUsage[weight] = (weightUsage[weight] || 0) + kbsPerPerson
   }
 
-  // Add the new booking
+  // Only check the pool for this new booking's tier+gender
   const newTierCfg = tiers[tier]
   if (!newTierCfg) return null
   const newGender = gender === 'male' ? 'male' : 'female'
   const newWeight = newTierCfg[newGender]
-  weightUsage[newWeight] = (weightUsage[newWeight] || 0) + kbsPerPerson
+  const currentUsage = weightUsage[newWeight] ?? 0
+  const stock = kbs[newWeight] ?? 0
 
-  // Check all pools
-  for (const [weight, used] of Object.entries(weightUsage)) {
-    const stock = kbs[weight] ?? 0
-    if (used > stock) {
-      const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
-      return `${tierLabel} tier is full — not enough ${weight} kettlebells available (${stock} in stock, ${used} needed).`
-    }
+  if (currentUsage + kbsPerPerson > stock) {
+    const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
+    return `${tierLabel} tier is full — not enough ${newWeight} kettlebells available (${stock} in stock, ${currentUsage + kbsPerPerson} needed).`
   }
   return null
 }
