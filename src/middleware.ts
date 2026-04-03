@@ -26,6 +26,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/book-challenge',
   '/api/create-shop-checkout',
   '/api/shop-order',
+  // Note: /api/shop-orders (GET) is dashboard-only, stays protected
 ]
 
 export async function middleware(req: NextRequest) {

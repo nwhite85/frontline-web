@@ -86,6 +86,50 @@ const EMPTY_FORM = {
   hidden: false,
 }
 
+function OrdersTab({ orders, loading, onLoad }: {
+  orders: Array<{ id: string; name: string; email: string; total: number; items: Array<{ name: string; color?: string | null; size?: string | null; qty: number; price: number }>; created: number; payment_status: string }>
+  loading: boolean
+  onLoad: () => void
+}) {
+  useEffect(() => { onLoad() }, [])
+
+  if (loading) return (
+    <div className="flex flex-col gap-2">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
+  )
+
+  if (orders.length === 0) return (
+    <EmptyState icon={ShoppingCart} title="No orders yet" description="Paid shop orders will appear here." />
+  )
+
+  return (
+    <div className="flex flex-col gap-3">
+      {orders.map(order => (
+        <Card key={order.id} className="py-0">
+          <CardContent className="p-4 flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{order.name}</p>
+                <p className="text-xs text-muted-foreground">{order.email}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-sm font-semibold">£{order.total.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">{new Date(order.created * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              {order.items.map((item, i) => (
+                <p key={i} className="text-xs text-muted-foreground">
+                  {item.name}{[item.color, item.size].filter(Boolean).length > 0 ? ` — ${[item.color, item.size].filter(Boolean).join(' / ')}` : ''}{item.qty > 1 ? ` ×${item.qty}` : ''}
+                </p>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
 export default function ShopPage() {
   const { user } = useSimpleAuth()
   const { setActions, setHeaderSearch, setHeaderTabs } = usePageActions()
@@ -94,6 +138,14 @@ export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Shop orders
+  const [orders, setOrders] = useState<Array<{
+    id: string; name: string; email: string; total: number;
+    items: Array<{ name: string; color?: string | null; size?: string | null; qty: number; price: number }>;
+    created: number; payment_status: string;
+  }>>([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -533,10 +585,17 @@ export default function ShopPage() {
 
       {/* Orders tab */}
       {activeTab === 'orders' && (<>
-          <EmptyState
-            icon={ShoppingCart}
-            title="No orders yet"
-            description="When clients purchase products from your shop, orders will appear here."
+          <OrdersTab
+            orders={orders}
+            loading={ordersLoading}
+            onLoad={async () => {
+              if (orders.length > 0 || ordersLoading) return
+              setOrdersLoading(true)
+              try {
+                const res = await fetch('/api/shop-orders')
+                if (res.ok) setOrders(await res.json())
+              } catch { /* ignore */ } finally { setOrdersLoading(false) }
+            }}
           />
         </>)}
 
