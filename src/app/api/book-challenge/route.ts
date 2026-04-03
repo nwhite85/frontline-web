@@ -142,24 +142,32 @@ export async function POST(request: NextRequest) {
 
     // Fetch client gender for KB allocation
     const { data: clientData } = await supabase
-      .from('clients')
+      .from('user_profiles')
       .select('gender')
       .eq('id', clientId)
-      .single()
-    const clientGender = clientData?.gender ?? null
+      .maybeSingle()
+    const clientGender = (clientData as any)?.gender ?? null
 
     // Get current booking counts per tier (include gender for KB checks)
     const { data: existingBookings } = await supabase
       .from('challenge_bookings')
-      .select('ability_tier, client:client_id(gender)')
+      .select('ability_tier, client_id')
       .eq('challenge_schedule_id', challengeScheduleId)
       .neq('booking_status', 'cancelled')
+
+    // Fetch genders for all booked clients
+    const bookedClientIds = (existingBookings || []).map((b: any) => b.client_id).filter(Boolean)
+    const { data: clientProfiles } = bookedClientIds.length > 0
+      ? await supabase.from('user_profiles').select('id, gender').in('id', bookedClientIds)
+      : { data: [] }
+    const genderMap: Record<string, string | null> = {}
+    for (const p of clientProfiles || []) genderMap[(p as any).id] = (p as any).gender ?? null
 
     const counts: Record<Tier, number> = { grey: 0, blue: 0, black: 0 }
     let totalCount = 0
     for (const b of existingBookings || []) {
-      if (b.ability_tier && VALID_TIERS.includes(b.ability_tier as Tier)) {
-        counts[b.ability_tier as Tier]++
+      if ((b as any).ability_tier && VALID_TIERS.includes((b as any).ability_tier as Tier)) {
+        counts[(b as any).ability_tier as Tier]++
       }
       totalCount++
     }
@@ -167,7 +175,7 @@ export async function POST(request: NextRequest) {
     // Flatten bookings to { ability_tier, gender } for checkStrength
     const bookingsForCheck = (existingBookings || []).map((b: any) => ({
       ability_tier: b.ability_tier ?? null,
-      gender: b.client?.gender ?? null,
+      gender: genderMap[b.client_id] ?? null,
     }))
 
     // Run resource capacity check

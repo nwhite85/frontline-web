@@ -126,13 +126,21 @@ export async function GET(request: NextRequest) {
     // ── Resource mode: fetch existing bookings with gender ──
     const { data: existingBookings } = await supabase
       .from('challenge_bookings')
-      .select('ability_tier, client:client_id(gender)')
+      .select('ability_tier, client_id')
       .eq('challenge_schedule_id', scheduleId)
       .neq('booking_status', 'cancelled')
 
+    // Fetch genders separately (no FK relationship on challenge_bookings)
+    const bookedClientIds = (existingBookings || []).map((b: any) => b.client_id).filter(Boolean)
+    const { data: clientProfiles } = bookedClientIds.length > 0
+      ? await supabase.from('user_profiles').select('id, gender').in('id', bookedClientIds)
+      : { data: [] }
+    const genderMap: Record<string, string | null> = {}
+    for (const p of clientProfiles || []) genderMap[(p as any).id] = (p as any).gender ?? null
+
     const bookingsForCheck = (existingBookings || []).map((b: any) => ({
       ability_tier: b.ability_tier ?? null,
-      gender: b.client?.gender ?? null,
+      gender: genderMap[b.client_id] ?? null,
     }))
 
     const counts: Record<Tier, number> = { grey: 0, blue: 0, black: 0 }
