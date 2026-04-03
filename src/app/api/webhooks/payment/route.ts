@@ -62,6 +62,12 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  // Shop order — identified by order_items in metadata
+  if (session.metadata?.order_items) {
+    await handleShopOrderCompleted(session)
+    return
+  }
+
   const supabase = getAdminClient()
   const userId = session.metadata?.user_id;
   const planId = session.metadata?.plan_id;
@@ -145,6 +151,71 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       logger.error(`Plan ${planId} not found — membership not assigned`)
     }
   }
+}
+
+async function handleShopOrderCompleted(session: Stripe.Checkout.Session) {
+  const { Resend } = await import('resend')
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) return
+
+  const resend = new Resend(resendKey)
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'Frontline Fitness <nick@frontlinefitness.co.uk>'
+
+  const customerName = session.metadata?.customer_name ?? 'Customer'
+  const customerEmail = session.customer_email ?? ''
+  let items: Array<{ name: string; color?: string | null; size?: string | null; qty: number; price: number }> = []
+  try { items = JSON.parse(session.metadata?.order_items ?? '[]') } catch { /* ignore */ }
+
+  const total = (session.amount_total ?? 0) / 100
+
+  const itemsHtml = items.map(i =>
+    `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${i.name}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280">${[i.color, i.size].filter(Boolean).join(' / ') || '—'}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:center">${i.qty}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right">£${(i.price * i.qty).toFixed(2)}</td>
+    </tr>`
+  ).join('')
+
+  const tableHtml = `<table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
+    <thead><tr style="color:#6b7280;font-size:12px;text-transform:uppercase">
+      <th style="text-align:left;padding-bottom:8px">Item</th>
+      <th style="text-align:left;padding-bottom:8px">Options</th>
+      <th style="text-align:center;padding-bottom:8px">Qty</th>
+      <th style="text-align:right;padding-bottom:8px">Price</th>
+    </tr></thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+  <p style="font-weight:700;margin:16px 0 0;text-align:right">Total: £${total.toFixed(2)}</p>`
+
+  // Notify Nick
+  await resend.emails.send({
+    from: fromEmail,
+    to: 'nick@frontlinefitness.co.uk',
+    replyTo: customerEmail || undefined,
+    subject: `New shop order from ${customerName} — £${total.toFixed(2)}`,
+    html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px">
+      <h2 style="margin:0 0 8px">New shop order — paid</h2>
+      <p style="color:#666;margin:0 0 24px"><strong>${customerName}</strong>${customerEmail ? ` — ${customerEmail}` : ''}</p>
+      ${tableHtml}
+    </div>`,
+  })
+
+  // Confirm to customer
+  if (customerEmail) {
+    await resend.emails.send({
+      from: fromEmail,
+      to: customerEmail,
+      subject: 'Your Frontline Fitness order — payment confirmed',
+      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px">
+        <h2 style="margin:0 0 8px">Payment confirmed!</h2>
+        <p style="color:#666;margin:0 0 24px">Hi ${customerName}, your order is confirmed. Nick will be in touch to arrange collection at the park.</p>
+        ${tableHtml}
+      </div>`,
+    })
+  }
+
+  logger.log(`[shop-order] Emails sent for session ${session.id}`)
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
