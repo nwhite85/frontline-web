@@ -420,10 +420,10 @@ function applyTheme(s: ThemeSettings) {
         root.setProperty('--tab-active-bg', 'rgba(0,0,0,0.08)')
         break
       case 'single-border':
-        // Hairline only on White background; elsewhere just shadow
-        root.setProperty('--card-box-shadow', isPureBg
-          ? (hasShadow ? `0 0 0 1px ${borderToken}, ${shadowMdVal}` : `0 0 0 1px ${borderToken}`)
-          : (hasShadow ? shadowMdVal : 'none'))
+        // Always show hairline border — it's the defining feature of this style
+        root.setProperty('--card-box-shadow', hasShadow
+          ? `0 0 0 1px ${borderToken}, ${shadowMdVal}`
+          : `0 0 0 1px ${borderToken}`)
         root.setProperty('--tab-active-bg', '#ffffff')
         break
       case 'inset-highlight':
