@@ -486,9 +486,8 @@ export default function ProgramBuilderPage() {
     if (weeks < weeksCount) {
       await db.from('program_workouts').delete().eq('program_id', programId).gt('week_number', weeks)
     }
-    if (days < daysPerWeek) {
-      await db.from('program_workouts').delete().eq('program_id', programId).gt('day_number', days)
-    }
+    // Always enforce the day limit — remove any orphan rows beyond the configured days per week
+    await db.from('program_workouts').delete().eq('program_id', programId).gt('day_number', days)
 
     // Update local slot state to match
     setSlots(prev => {
