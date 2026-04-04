@@ -148,7 +148,7 @@ function OrdersTab({ orders, loading, onLoad }: {
               ))}
             </div>
             {refundError[order.id] && <p className="text-xs text-destructive">{refundError[order.id]}</p>}
-            {refunded.has(order.id) ? (
+            {refunded.has(order.id) || order.payment_status === 'refunded' ? (
               <p className="text-xs text-muted-foreground">Refunded ✓</p>
             ) : (
               <Button
