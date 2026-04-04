@@ -422,10 +422,10 @@ function ChallengeDetailSheet({
           {error && <p className="text-xs text-red-400 pt-2">{error}</p>}
         </SheetBody>
 
-        <SheetFooter className="shrink-0 flex flex-row justify-end gap-2">
+        <SheetFooter className="shrink-0 flex flex-col gap-2">
           {/* Tier picker — shown when selecting ability for booking */}
           {showTierPicker && !isBooked && (
-            <div className="mb-2">
+            <div className="w-full">
               <p className="text-xs text-white/50 mb-2 text-center">Select your ability tier</p>
               {loadingAvailability ? (
                 <div className="flex justify-center py-2"><div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-blue border-t-transparent" /></div>
@@ -455,33 +455,35 @@ function ChallengeDetailSheet({
               <button onClick={() => setShowTierPicker(false)} className="w-full text-xs text-white/30 mt-2 hover:text-white/50 transition-colors">Cancel</button>
             </div>
           )}
-          {isBooked ? (
+          <div className="flex gap-2 w-full">
+            {isBooked ? (
+              <Button
+                size="xl"
+                className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20"
+                onClick={handleCancel}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Cancelling…' : 'Cancel Sign Up'}
+              </Button>
+            ) : !showTierPicker ? (
+              <Button
+                size="xl"
+                className="flex-1"
+                onClick={openTierPicker}
+                disabled={actionLoading}
+              >
+                Sign Up
+              </Button>
+            ) : null}
             <Button
               size="xl"
-              className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20"
-              onClick={handleCancel}
+              className="flex-1 bg-white/10 hover:bg-white/15 text-white"
+              onClick={onClose}
               disabled={actionLoading}
             >
-              {actionLoading ? 'Cancelling…' : 'Cancel Sign Up'}
+              Close
             </Button>
-          ) : !showTierPicker ? (
-            <Button
-              size="xl"
-              className="flex-1"
-              onClick={openTierPicker}
-              disabled={actionLoading}
-            >
-              Sign Up
-            </Button>
-          ) : null}
-          <Button
-            size="xl"
-            className="flex-1 bg-white/10 hover:bg-white/15 text-white"
-            onClick={onClose}
-            disabled={actionLoading}
-          >
-            Close
-          </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>
