@@ -91,7 +91,31 @@ function OrdersTab({ orders, loading, onLoad }: {
   loading: boolean
   onLoad: () => void
 }) {
+  const [refunding, setRefunding] = useState<string | null>(null)
+  const [refunded, setRefunded] = useState<Set<string>>(new Set())
+  const [refundError, setRefundError] = useState<Record<string, string>>({})
+
   useEffect(() => { onLoad() }, [])
+
+  const handleRefund = async (sessionId: string) => {
+    if (!confirm('Issue a full refund for this order?')) return
+    setRefunding(sessionId)
+    setRefundError(prev => { const n = { ...prev }; delete n[sessionId]; return n })
+    try {
+      const res = await fetch('/api/shop-refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setRefunded(prev => new Set(prev).add(sessionId))
+    } catch (e: any) {
+      setRefundError(prev => ({ ...prev, [sessionId]: e.message }))
+    } finally {
+      setRefunding(null)
+    }
+  }
 
   if (loading) return (
     <div className="flex flex-col gap-2">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
@@ -123,6 +147,20 @@ function OrdersTab({ orders, loading, onLoad }: {
                 </p>
               ))}
             </div>
+            {refundError[order.id] && <p className="text-xs text-destructive">{refundError[order.id]}</p>}
+            {refunded.has(order.id) ? (
+              <p className="text-xs text-muted-foreground">Refunded ✓</p>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-7 self-start text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => handleRefund(order.id)}
+                disabled={refunding === order.id}
+              >
+                {refunding === order.id ? 'Refunding…' : 'Refund'}
+              </Button>
+            )}
           </CardContent>
         </Card>
       ))}
