@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const { data: bookings, error: bookingsError } = await supabase
       .from('challenge_bookings')
-      .select('id, client_id, booking_status')
+      .select('id, client_id, booking_status, ability_tier')
       .eq('challenge_schedule_id', scheduleId)
       .in('booking_status', ['booked', 'confirmed'])
 
