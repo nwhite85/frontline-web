@@ -429,11 +429,26 @@ export function SessionDetailSheet({
             <>
               <Separator />
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {loadingBookings ? 'Loading…' : `${inlineBookings.filter(b => b.booking_status !== 'cancelled').length} booked`}
                   </span>
+                  {!loadingBookings && (() => {
+                    const active = inlineBookings.filter(b => b.booking_status !== 'cancelled')
+                    const grey = active.filter(b => b.ability_tier === 'grey').length
+                    const blue = active.filter(b => b.ability_tier === 'blue').length
+                    const black = active.filter(b => b.ability_tier === 'black').length
+                    if (!grey && !blue && !black) return null
+                    return (
+                      <>
+                        <span className="text-muted-foreground/40 text-xs">·</span>
+                        {grey > 0 && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400">Grey {grey}</span>}
+                        {blue > 0 && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Blue {blue}</span>}
+                        {black > 0 && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-zinc-900/60 text-zinc-300">Black {black}</span>}
+                      </>
+                    )
+                  })()}
                 </div>
                 {!loadingBookings && inlineBookings.length === 0 && (
                   <p className="text-xs text-muted-foreground">No bookings yet</p>
