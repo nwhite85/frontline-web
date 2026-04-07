@@ -21,38 +21,75 @@ export async function GET(request: NextRequest) {
 
     const supabase = getAdminClient()
 
-    const { data: bookings, error: bookingsError } = await supabase
-      .from('challenge_bookings')
-      .select('id, client_id, booking_status, ability_tier')
-      .eq('challenge_schedule_id', scheduleId)
-      .in('booking_status', ['booked', 'confirmed'])
+    // Fetch bookings and challenge tier_capacity in parallel
+    const [bookingsRes, scheduleRes] = await Promise.all([
+      supabase
+        .from('challenge_bookings')
+        .select('id, client_id, booking_status, ability_tier')
+        .eq('challenge_schedule_id', scheduleId)
+        .in('booking_status', ['booked', 'confirmed']),
+      supabase
+        .from('challenge_schedules')
+        .select('challenges(tier_capacity)')
+        .eq('id', scheduleId)
+        .single(),
+    ])
 
-    if (bookingsError) {
-      return NextResponse.json({ error: bookingsError.message }, { status: 500 })
+    if (bookingsRes.error) {
+      return NextResponse.json({ error: bookingsRes.error.message }, { status: 500 })
     }
 
-    const rows = bookings || []
+    const rows = bookingsRes.data || []
+    const tierCapacity = (scheduleRes.data as any)?.challenges?.tier_capacity ?? null
+
     let result = rows as any[]
 
     if (rows.length > 0) {
       const clientIds = rows.map((b: any) => b.client_id)
       const { data: profiles } = await supabase
         .from('user_profiles')
-        .select('id, name, email')
+        .select('id, name, email, gender')
         .in('id', clientIds)
 
-      const profileMap: Record<string, { name: string; email: string }> = {}
+      const profileMap: Record<string, { name: string; email: string; gender: string | null }> = {}
       ;(profiles || []).forEach((p: any) => {
-        profileMap[p.id] = { name: p.name || 'Unknown', email: p.email || '' }
+        profileMap[p.id] = { name: p.name || 'Unknown', email: p.email || '', gender: p.gender ?? null }
       })
 
       result = rows.map((b: any) => ({
         ...b,
-        user_profiles: profileMap[b.client_id] || { name: 'Unknown', email: '' },
+        user_profiles: profileMap[b.client_id] || { name: 'Unknown', email: '', gender: null },
       }))
     }
 
-    return NextResponse.json({ bookings: result })
+    // Compute KB equipment summary if tier_capacity has the right shape
+    let kb_summary: { weight: string; needed: number; available: number }[] | null = null
+    if (tierCapacity?.tiers && tierCapacity?.kettlebells) {
+      const kbCount: Record<string, number> = {}
+      for (const booking of result) {
+        const tier = booking.ability_tier as string | null
+        const gender = booking.user_profiles?.gender as string | null
+        if (!tier) continue
+        const tierWeights = tierCapacity.tiers[tier]
+        if (!tierWeights) continue
+        // Use gender-specific weight; fall back to female weight if unknown
+        const weight: string = gender === 'male' ? (tierWeights.male ?? tierWeights.female) : (tierWeights.female ?? tierWeights.male)
+        if (!weight) continue
+        kbCount[weight] = (kbCount[weight] || 0) + (tierCapacity.kbs_per_person ?? 1)
+      }
+      // Build summary in weight order
+      const allWeights = Object.keys(tierCapacity.kettlebells).sort((a, b) => parseFloat(a) - parseFloat(b))
+      kb_summary = allWeights
+        .filter(w => (kbCount[w] || 0) > 0 || tierCapacity.kettlebells[w] > 0)
+        .map(w => ({
+          weight: w,
+          needed: kbCount[w] || 0,
+          available: tierCapacity.kettlebells[w] || 0,
+        }))
+        .filter(s => s.needed > 0)
+    }
+
+    return NextResponse.json({ bookings: result, kb_summary })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to fetch bookings'
     return NextResponse.json({ error: msg }, { status: 500 })

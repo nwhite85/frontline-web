@@ -132,10 +132,11 @@ export function SessionDetailSheet({
   const [showBookings, setShowBookings] = useState(false)
   const [saving, setSaving] = useState(false)
   const [inlineBookings, setInlineBookings] = useState<{ id: string; client_name: string; booking_status: string; ability_tier?: string | null }[]>([])
+  const [kbSummary, setKbSummary] = useState<{ weight: string; needed: number; available: number }[] | null>(null)
   const [loadingBookings, setLoadingBookings] = useState(false)
 
   useEffect(() => {
-    if (!open || !session || type === 'appointment') { setInlineBookings([]); return }
+    if (!open || !session || type === 'appointment') { setInlineBookings([]); setKbSummary(null); return }
     setLoadingBookings(true)
     const s = session as any
     let endpoint = ''
@@ -153,8 +154,9 @@ export function SessionDetailSheet({
           booking_status: b.booking_status,
           ability_tier: b.ability_tier ?? null,
         })))
+        setKbSummary(data.kb_summary ?? null)
       })
-      .catch(() => setInlineBookings([]))
+      .catch(() => { setInlineBookings([]); setKbSummary(null) })
       .finally(() => setLoadingBookings(false))
   }, [open, session, type])
 
@@ -421,6 +423,24 @@ export function SessionDetailSheet({
             <>
               <Separator />
               <p className="text-sm text-muted-foreground">{getDescription()}</p>
+            </>
+          )}
+
+          {/* KB equipment summary — challenges with kettlebell tier_capacity */}
+          {kbSummary && kbSummary.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Kettlebells needed</p>
+                <div className="flex flex-wrap gap-2">
+                  {kbSummary.map(({ weight, needed, available }) => (
+                    <div key={weight} className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border ${needed > available ? 'border-red-500/40 bg-red-500/10 text-red-400' : 'border-white/10 bg-white/[0.03] text-foreground'}`}>
+                      <span className="font-semibold">{weight}</span>
+                      <span className={needed > available ? 'text-red-400' : 'text-muted-foreground'}>{needed}/{available}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </>
           )}
 
