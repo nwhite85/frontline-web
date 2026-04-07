@@ -243,11 +243,11 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
   }
 
   const confirmedCount = bookings.filter(b => b.booking_status === 'confirmed' || b.booking_status === 'attended').length
-  const tierCounts = type === 'challenge' ? {
+  const tierCounts = {
     grey: bookings.filter(b => b.ability_tier === 'grey' && b.booking_status !== 'cancelled').length,
     blue: bookings.filter(b => b.ability_tier === 'blue' && b.booking_status !== 'cancelled').length,
     black: bookings.filter(b => b.ability_tier === 'black' && b.booking_status !== 'cancelled').length,
-  } : null
+  }
   const filteredClients = clients.filter(c =>
     c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
     c.email?.toLowerCase().includes(clientSearch.toLowerCase())
@@ -269,28 +269,21 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
           </SheetDescription>
         </SheetHeader>
 
-        {/* Tier summary — challenges only */}
-        {tierCounts && (tierCounts.grey > 0 || tierCounts.blue > 0 || tierCounts.black > 0) && (
-          <div className="flex items-center gap-2 px-4 pb-1">
-            {tierCounts.grey > 0 && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400">Grey {tierCounts.grey}</span>
-            )}
-            {tierCounts.blue > 0 && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Blue {tierCounts.blue}</span>
-            )}
-            {tierCounts.black > 0 && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-900/60 text-zinc-300">Black {tierCounts.black}</span>
-            )}
-          </div>
-        )}
-
         {/* Summary bar */}
         <div className="flex items-center justify-between py-2 px-4">
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm flex-wrap">
             <span className="font-semibold text-foreground">{confirmedCount}</span>
             <span className="text-muted-foreground">
               {maxCapacity ? `/ ${maxCapacity} booked` : 'booked'}
             </span>
+            {(tierCounts.grey > 0 || tierCounts.blue > 0 || tierCounts.black > 0) && (
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                {tierCounts.grey > 0 && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400">Grey {tierCounts.grey}</span>}
+                {tierCounts.blue > 0 && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Blue {tierCounts.blue}</span>}
+                {tierCounts.black > 0 && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-900/60 text-zinc-300">Black {tierCounts.black}</span>}
+              </>
+            )}
             {bookings.filter(b => b.booking_status === 'waitlist').length > 0 && (
               <Badge variant="outline" className="bg-card text-xs ml-1">
                 {bookings.filter(b => b.booking_status === 'waitlist').length} waitlist
