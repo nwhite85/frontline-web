@@ -46,7 +46,7 @@ export function LandingHero() {
               </h1>
             </div>
             <p className="text-sm sm:text-base text-white/80 max-w-md leading-relaxed mb-5 drop-shadow ml-auto animate-fade-up animation-delay-150">
-              Forces-led outdoor fitness for everyone. Train in the fresh air with expert guidance that gets results.
+              Forces-led outdoor fitness at Lydiard Park, Swindon. Train in the fresh air with expert guidance that gets results.
             </p>
             <div className="animate-fade-up animation-delay-300">
               <ScrollButton

@@ -47,11 +47,22 @@ const faqs = [
   { q: 'Is Lydiard Park suitable for beginners?', a: 'Yes. The flat, open terrain at Lydiard Park makes it ideal for all fitness levels. Sessions are fully coached and all exercises can be modified to suit beginners. Many of our most committed members started with no fitness background at all.' },
 ]
 
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+}
+
 export default function LydiardParkPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
       {/* Nav */}
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">

@@ -7,6 +7,8 @@ const footerNavLinks = [
   { label: 'Schedule', id: 'schedule' },
   { label: 'Pricing', id: 'pricing' },
   { label: 'Shop', href: '/shop' },
+  { label: 'Lydiard Park', href: '/lydiard-park' },
+  { label: 'Swindon Bootcamp', href: '/swindon-bootcamp' },
   { label: 'Privacy', href: '/privacy' },
   { label: 'Terms', href: '/terms' },
 ]

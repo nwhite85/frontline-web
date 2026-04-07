@@ -48,11 +48,22 @@ const faqs = [
   { q: 'What should I bring to my first session?', a: 'Comfortable workout clothes, a water bottle, and trainers. We provide all equipment. Arrive a couple of minutes early so the coach can introduce themselves.' },
 ]
 
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+}
+
 export default function SwindonBootcampPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
       {/* Nav */}
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">
