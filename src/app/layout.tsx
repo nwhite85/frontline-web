@@ -131,7 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Analytics />
         <SpeedInsights />
-        <Toaster />
+        <Toaster position="bottom-left" />
         <CookieConsent />
       </body>
     </html>
