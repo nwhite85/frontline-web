@@ -38,6 +38,7 @@ export const posts: BlogPost[] = [
 <h2>Frontline Fitness at Lydiard Park</h2>
 <p>Frontline Fitness runs multiple weekly sessions at Lydiard Park, led by qualified instructors with military and professional fitness backgrounds. Sessions are designed for all fitness levels — whether you're returning to exercise after a break or you're already training regularly and want to push harder.</p>
 <p>Every session is structured around proven training principles: a proper warm-up, a challenging main workout using bodyweight, resistance bands, and functional equipment, and a cool-down that helps your body recover properly. No faff, no filler — just 45-60 minutes that makes a real difference.</p>
+<p>Find out more about <a href="/lydiard-park">fitness classes at Lydiard Park</a> or explore our full range of <a href="/swindon-bootcamp">outdoor bootcamp sessions in Swindon</a>.</p>
 
 <h2>Getting Started</h2>
 <p>You don't need to be fit to start. You just need to show up. Our trial sessions are free and designed specifically to ease you into group training without the pressure. The group is supportive, the instructors are experienced, and the results speak for themselves.</p>
@@ -544,6 +545,89 @@ export const posts: BlogPost[] = [
 
 <h2>Frontline Fitness: Forces-Led Training in Swindon</h2>
 <p>Frontline Fitness was built directly on these principles. Led by instructors with Royal Marines and forces fitness backgrounds, sessions at Lydiard Park and Lydiard Academy apply military physical training methodology in a format accessible to everyone — regardless of background or current fitness level. If you want to train the way the military trains, this is where to start. First session is free.</p>
+    `.trim(),
+  },
+  {
+    slug: 'lydiard-park-bootcamp-guide',
+    title: 'Lydiard Park Bootcamp: The Complete Guide',
+    excerpt: 'Everything you need to know about bootcamp training at Lydiard Park — what sessions involve, where to meet, what to bring, and why Lydiard Park is Swindon\'s best outdoor training venue.',
+    date: '2026-04-01',
+    author: 'Nick White',
+    readTime: '5 min read',
+    category: 'Training',
+    content: `
+<p>Lydiard Park bootcamp has become one of the most popular ways to get fit in Swindon — and for good reason. The combination of a world-class outdoor setting, expert military-background coaching, and a tight-knit community makes it unlike anything a gym can offer. This guide covers everything you need to know before your first session.</p>
+
+<h2>What Is Lydiard Park Bootcamp?</h2>
+<p>Bootcamp at Lydiard Park is a coached group fitness session held on the open grounds of Lydiard Park, Swindon (SN5 3PA). Sessions run throughout the week, year-round, in all weathers. They combine strength, cardio, and functional movement — all coached by qualified instructors with military and professional fitness backgrounds.</p>
+<p>Unlike gym classes, outdoor bootcamp at Lydiard Park uses the terrain itself: open grass for circuits, natural inclines for conditioning, and 260 acres of space that no gym floor can replicate. Sessions last 45–60 minutes and are structured to challenge every fitness level from beginners to regular athletes.</p>
+
+<h2>What Happens in a Session?</h2>
+<p>Every Lydiard Park bootcamp session follows a clear structure:</p>
+<ul>
+<li><strong>Warm-up</strong> — 5–10 minutes of dynamic movement to prepare the body and reduce injury risk</li>
+<li><strong>Main workout</strong> — 30–40 minutes of coached exercise using bodyweight, resistance bands, kettlebells, and functional movements</li>
+<li><strong>Cool-down</strong> — stretching and recovery work to close the session properly</li>
+</ul>
+<p>No two sessions are identical. The programming is designed to develop all-round fitness: you'll build strength, improve cardiovascular conditioning, and develop mobility over time. Sessions use a tier system so each exercise can be scaled to your current ability — no one is left behind and no one is held back.</p>
+
+<h2>Where to Meet</h2>
+<p>Sessions meet at Lydiard Park, Swindon, SN5 3PA — the main entrance near the car park. Look for the group gathering on the open grass. Exact meeting point details are confirmed when you book.</p>
+<p>Lydiard Park has a free car park on site, well signposted from the A3102 and M4 junction 16. The park is easily accessible from all areas of Swindon and north Wiltshire.</p>
+
+<h2>What to Bring</h2>
+<ul>
+<li>Comfortable workout clothes appropriate for the weather</li>
+<li>Trainers with grip — trail shoes are ideal for wet grass</li>
+<li>A water bottle</li>
+<li>Arrive 2–3 minutes early for your first session so the coach can introduce themselves</li>
+</ul>
+<p>All equipment is provided. You don't need to bring anything other than yourself and the right attitude.</p>
+
+<h2>Who Is It For?</h2>
+<p>Lydiard Park bootcamp is genuinely suitable for all fitness levels. If you're returning to exercise after years away, the sessions are structured and coached so you can work at your own pace without feeling lost or embarrassed. If you're already training regularly and want a harder, more social alternative to the gym, the sessions will push you.</p>
+<p>The group at Lydiard Park includes people of all ages, backgrounds, and fitness levels. The only common denominator is that they've all shown up.</p>
+
+<h2>How to Book</h2>
+<p>Your first <a href="/lydiard-park">Lydiard Park bootcamp session</a> is completely free — no commitment, no card details required. After that, membership starts from £38/month for unlimited sessions. You can also pay per session or book a block if you prefer flexibility.</p>
+<p>Book through the <a href="/swindon-bootcamp">Frontline Fitness Swindon bootcamp page</a> or use the booking section on the homepage.</p>
+    `.trim(),
+  },
+  {
+    slug: 'fitness-classes-lydiard-park-swindon',
+    title: 'Fitness Classes at Lydiard Park: What\'s Available and How to Join',
+    excerpt: 'A guide to the fitness classes available at Lydiard Park in Swindon — from coached bootcamp sessions to kettlebell checkpoints and personal training.',
+    date: '2026-04-04',
+    author: 'Nick White',
+    readTime: '4 min read',
+    category: 'Training',
+    content: `
+<p>Lydiard Park is more than a beautiful green space on the western edge of Swindon. For anyone serious about fitness, it's one of the best outdoor training venues in Wiltshire — and it's on your doorstep. Here's a breakdown of what fitness classes are available at Lydiard Park and how to get started.</p>
+
+<h2>Group Bootcamp Classes</h2>
+<p>The flagship offering at <a href="/lydiard-park">Lydiard Park</a> is the coached group bootcamp class. Sessions run multiple times per week and are led by instructors with military and professional fitness backgrounds. Each session is 45–60 minutes of structured training: warm-up, main workout, and cool-down.</p>
+<p>Bootcamp classes at Lydiard Park use the open terrain for circuit training, sprints, loaded carries, and functional movements. All equipment is provided. The classes operate on a tiered system so beginners and experienced athletes train side by side — everyone works at the right intensity for their level.</p>
+
+<h2>Strength Checkpoints</h2>
+<p>In addition to regular bootcamp classes, Frontline Fitness runs Strength Checkpoints at Lydiard Park — structured kettlebell sessions where performance is tracked over time. Participants are grouped by ability level (Grey, Blue, or Black tier) and work through programmed rounds against the clock. Your score is recorded so you can track improvement across sessions.</p>
+<p>Checkpoints are a step up from general bootcamp — they're designed to measure and develop specific physical qualities. A great option once you've got a few sessions under your belt.</p>
+
+<h2>Personal Training</h2>
+<p>One-to-one personal training sessions are also available at Lydiard Park for members who want individual coaching alongside their group classes. PT sessions are programmed around your specific goals and delivered in the same outdoor environment as the group classes.</p>
+
+<h2>Why Train at Lydiard Park?</h2>
+<p>Lydiard Park offers things no gym can match:</p>
+<ul>
+<li><strong>260 acres</strong> of open, managed parkland</li>
+<li><strong>Free parking</strong> on site</li>
+<li><strong>Year-round access</strong> — sessions run in all weather</li>
+<li><strong>Natural terrain</strong> — grass, inclines, open space — for training that transfers to real life</li>
+<li><strong>No gym fees</strong> on top of your membership</li>
+</ul>
+
+<h2>Getting Started</h2>
+<p>Your first fitness class at Lydiard Park is free. No commitment, no card required. See what's available and book directly through the <a href="/swindon-bootcamp">Swindon bootcamp page</a> or the homepage booking section.</p>
+<p>Frontline Fitness is based at Lydiard Park, Swindon, SN5 3PA. For questions, get in touch via the website.</p>
     `.trim(),
   },
 ]
