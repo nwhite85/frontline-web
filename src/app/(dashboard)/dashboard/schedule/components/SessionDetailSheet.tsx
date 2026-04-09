@@ -139,13 +139,13 @@ export function SessionDetailSheet({
   const [showBookClient, setShowBookClient] = useState(false)
   const [clients, setClients] = useState<{ id: string; name: string }[]>([])
   const [loadingClients, setLoadingClients] = useState(false)
-  const [bookClientId, setBookClientId] = useState('')
   const [bookTier, setBookTier] = useState('')
   const [bookBypass, setBookBypass] = useState(false)
   const [booking, setBooking] = useState(false)
   const [bookError, setBookError] = useState<string | null>(null)
   const [bookBypassable, setBookBypassable] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
+  const [bookClientIds, setBookClientIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!open || !session || type === 'appointment') { setInlineBookings([]); setKbSummary(null); return }
@@ -186,13 +186,36 @@ export function SessionDetailSheet({
       .finally(() => setLoadingClients(false))
   }, [showBookClient])
 
+  const refreshBookings = () => {
+    const s = session as any
+    let endpoint = ''
+    if (type === 'class') endpoint = `/api/class-bookings?classScheduleId=${s.id}`
+    else if (type === 'event') endpoint = `/api/event-bookings?eventId=${s.id}`
+    else if (type === 'challenge') endpoint = `/api/challenge-bookings?scheduleId=${s.id}`
+    if (!endpoint) return
+    fetch(endpoint).then(r => r.json()).then(d => {
+      const bookings = (d.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
+      setInlineBookings(bookings.map((b: any) => ({
+        id: b.id,
+        client_name: b.user_profiles?.name || 'Unknown',
+        booking_status: b.booking_status,
+        ability_tier: b.ability_tier ?? null,
+      })))
+      setKbSummary(d.kb_summary ?? null)
+    }).catch(() => {})
+  }
+
   const handleBookClient = async () => {
-    if (!bookClientId) return
+    if (bookClientIds.size === 0) return
     setBooking(true)
     setBookError(null)
     setBookBypassable(false)
-    try {
-      const body: any = { type, scheduleId: session?.id, clientId: bookClientId, bypass: bookBypass }
+    const ids = Array.from(bookClientIds)
+    const errors: string[] = []
+    let anyBypassable = false
+
+    for (const clientId of ids) {
+      const body: any = { type, scheduleId: session?.id, clientId, bypass: bookBypass }
       if (type === 'challenge' && bookTier) body.abilityTier = bookTier
       const res = await fetch('/api/trainer-book-client', {
         method: 'POST',
@@ -201,37 +224,29 @@ export function SessionDetailSheet({
       })
       const data = await res.json()
       if (!res.ok) {
-        setBookError(data.error || 'Failed to book')
-        setBookBypassable(!!data.bypassable)
-      } else {
-        toast.success('Client booked')
-        setShowBookClient(false)
-        setBookClientId('')
-        setBookTier('')
-        setBookBypass(false)
-        setBookError(null)
-        // Re-fetch bookings list
-        const s = session as any
-        let endpoint = ''
-        if (type === 'class') endpoint = `/api/class-bookings?classScheduleId=${s.id}`
-        else if (type === 'event') endpoint = `/api/event-bookings?eventId=${s.id}`
-        else if (type === 'challenge') endpoint = `/api/challenge-bookings?scheduleId=${s.id}`
-        if (endpoint) {
-          fetch(endpoint).then(r => r.json()).then(d => {
-            const bookings = (d.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
-            setInlineBookings(bookings.map((b: any) => ({
-              id: b.id,
-              client_name: b.user_profiles?.name || 'Unknown',
-              booking_status: b.booking_status,
-              ability_tier: b.ability_tier ?? null,
-            })))
-            setKbSummary(d.kb_summary ?? null)
-          }).catch(() => {})
-        }
-        onRefresh()
+        const name = clients.find(c => c.id === clientId)?.name ?? clientId
+        errors.push(`${name}: ${data.error || 'Failed'}`)
+        if (data.bypassable) anyBypassable = true
       }
-    } finally {
-      setBooking(false)
+    }
+
+    setBooking(false)
+
+    if (errors.length === 0) {
+      toast.success(ids.length === 1 ? 'Client booked' : `${ids.length} clients booked`)
+      setShowBookClient(false)
+      setBookClientIds(new Set())
+      setBookTier('')
+      setBookBypass(false)
+      setBookError(null)
+      refreshBookings()
+      onRefresh()
+    } else {
+      setBookError(errors.join('\n'))
+      setBookBypassable(anyBypassable)
+      // Still refresh to show any that did succeed
+      refreshBookings()
+      onRefresh()
     }
   }
 
@@ -457,22 +472,22 @@ export function SessionDetailSheet({
 
   return (
     <>
-    <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditing(false); setConfirmDelete(false); setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientId(''); setBookTier(''); setClientSearch('') } }}>
+    <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditing(false); setConfirmDelete(false); setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientIds(new Set()); setBookTier(''); setClientSearch('') } }}>
       <SheetContent className="w-full sm:max-w-md flex flex-col">
         {showBookClient ? (
           /* ── Book client page ── */
           <>
-            <SheetHeader className="pb-4">
+            <SheetHeader className="pb-3 shrink-0">
               <div className="flex items-center gap-3">
-                <button onClick={() => { setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientId(''); setBookTier(''); setClientSearch('') }} className="text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={() => { setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientIds(new Set()); setBookTier(''); setClientSearch('') }} className="text-muted-foreground hover:text-foreground transition-colors">
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                <SheetTitle className="text-lg font-semibold">Book a client</SheetTitle>
+                <SheetTitle className="text-lg font-semibold">Book clients</SheetTitle>
               </div>
             </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto flex flex-col gap-3 px-4 pb-2">
-              {/* Search */}
+            {/* Fixed controls — search, tier, error */}
+            <div className="px-4 flex flex-col gap-2 shrink-0 pb-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                 <Input
@@ -484,64 +499,91 @@ export function SessionDetailSheet({
                 />
               </div>
 
-              {/* Tier selector for challenges */}
               {type === 'challenge' && (
                 <div className="flex gap-2">
                   {(['', 'grey', 'blue', 'black'] as const).map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setBookTier(t)}
-                      className={`flex-1 text-xs py-1.5 rounded-md border transition-colors capitalize ${bookTier === t ? 'bg-foreground text-background border-foreground' : 'border-border hover:bg-muted'}`}
-                    >
+                    <button key={t} onClick={() => setBookTier(t)}
+                      className={`flex-1 text-xs py-1.5 rounded-md border transition-colors capitalize ${bookTier === t ? 'bg-foreground text-background border-foreground' : 'border-border hover:bg-muted'}`}>
                       {t || 'No tier'}
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Error */}
               {bookError && (
                 <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2.5 space-y-1.5">
-                  <p className="text-xs text-destructive">{bookError}</p>
+                  <p className="text-xs text-destructive whitespace-pre-line">{bookError}</p>
                   {bookBypassable && !bookBypass && (
                     <button className="text-xs text-amber-400 underline" onClick={() => setBookBypass(true)}>
-                      Bypass and book anyway
+                      Bypass checks and retry
                     </button>
                   )}
                   {bookBypass && <p className="text-xs text-amber-400 font-medium">Checks bypassed</p>}
                 </div>
               )}
-
-              {/* Client list */}
-              {loadingClients ? (
-                <p className="text-xs text-muted-foreground px-1">Loading clients…</p>
-              ) : (
-                <div className="flex flex-col divide-y divide-border rounded-lg border border-border overflow-hidden">
-                  {clients
-                    .filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()))
-                    .map(c => (
-                      <button
-                        key={c.id}
-                        onClick={() => { setBookClientId(c.id); setBookError(null); setBookBypassable(false); setBookBypass(false) }}
-                        className={`text-left px-3 py-2.5 text-sm transition-colors ${bookClientId === c.id ? 'bg-foreground/10 text-foreground font-medium' : 'hover:bg-muted text-foreground/80'}`}
-                      >
-                        {c.name}
-                      </button>
-                    ))}
-                  {clients.filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
-                    <p className="text-xs text-muted-foreground px-3 py-2.5">No clients match</p>
-                  )}
-                </div>
-              )}
             </div>
 
-            <SheetFooter className="pt-4 border-t">
-              <Button
-                className="w-full"
-                onClick={handleBookClient}
-                disabled={!bookClientId || booking}
-              >
-                {booking ? 'Booking…' : bookBypass ? `Book ${clients.find(c => c.id === bookClientId)?.name ?? ''} (bypassed)` : `Book ${clients.find(c => c.id === bookClientId)?.name ?? ''}`}
+            {/* Scrollable client list */}
+            <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-2">
+              {loadingClients ? (
+                <p className="text-xs text-muted-foreground">Loading clients…</p>
+              ) : (() => {
+                const filtered = clients.filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+                const allSelected = filtered.length > 0 && filtered.every(c => bookClientIds.has(c.id))
+                return (
+                  <div className="flex flex-col rounded-lg border border-border overflow-hidden divide-y divide-border">
+                    {/* Select all row */}
+                    <button
+                      onClick={() => {
+                        setBookClientIds(prev => {
+                          const next = new Set(prev)
+                          if (allSelected) filtered.forEach(c => next.delete(c.id))
+                          else filtered.forEach(c => next.add(c.id))
+                          return next
+                        })
+                        setBookError(null); setBookBypassable(false); setBookBypass(false)
+                      }}
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium hover:bg-muted transition-colors text-left"
+                    >
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${allSelected ? 'bg-foreground border-foreground' : 'border-border'}`}>
+                        {allSelected && <span className="text-background text-[10px] leading-none">✓</span>}
+                      </span>
+                      {allSelected ? 'Deselect all' : `Select all${filtered.length !== clients.length ? ` (${filtered.length})` : ''}`}
+                    </button>
+                    {filtered.map(c => {
+                      const selected = bookClientIds.has(c.id)
+                      return (
+                        <button key={c.id}
+                          onClick={() => {
+                            setBookClientIds(prev => { const next = new Set(prev); selected ? next.delete(c.id) : next.add(c.id); return next })
+                            setBookError(null); setBookBypassable(false); setBookBypass(false)
+                          }}
+                          className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors text-left ${selected ? 'bg-foreground/8 text-foreground' : 'hover:bg-muted text-foreground/80'}`}
+                        >
+                          <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-foreground border-foreground' : 'border-border'}`}>
+                            {selected && <span className="text-background text-[10px] leading-none">✓</span>}
+                          </span>
+                          {c.name}
+                        </button>
+                      )
+                    })}
+                    {filtered.length === 0 && (
+                      <p className="text-xs text-muted-foreground px-3 py-2.5">No clients match</p>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+
+            <SheetFooter className="pt-4 border-t shrink-0">
+              <Button className="w-full" onClick={handleBookClient} disabled={bookClientIds.size === 0 || booking}>
+                {booking
+                  ? 'Booking…'
+                  : bookClientIds.size === 0
+                  ? 'Select clients to book'
+                  : bookBypass
+                  ? `Book ${bookClientIds.size} client${bookClientIds.size > 1 ? 's' : ''} (bypassed)`
+                  : `Book ${bookClientIds.size} client${bookClientIds.size > 1 ? 's' : ''}`}
               </Button>
             </SheetFooter>
           </>
