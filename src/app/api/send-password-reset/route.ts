@@ -20,19 +20,28 @@ export async function POST(request: NextRequest) {
 
     const redirectUrl = `${(process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk').replace(/\/$/, '')}/update-password`
 
-    // Generate reset link via admin API — no Supabase email rate limits
-    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: { redirectTo: redirectUrl },
+    // Call Supabase admin API directly — the JS library sends redirectTo as camelCase
+    // in the body which the server ignores; direct fetch sends redirect_to (snake_case) correctly.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!.trim()
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!.trim()
+    const generateRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ type: 'recovery', email, redirect_to: redirectUrl }),
     })
 
-    if (error) {
-      logger.error('Error generating reset link:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!generateRes.ok) {
+      const errBody = await generateRes.json().catch(() => ({}))
+      logger.error('Error generating reset link:', errBody)
+      return NextResponse.json({ error: errBody?.message ?? 'Failed to generate link' }, { status: 500 })
     }
 
-    const actionLink = data?.properties?.action_link
+    const generateData = await generateRes.json()
+    const actionLink: string | undefined = generateData?.action_link
 
     // Send via Resend if API key is configured
     const resendKey = process.env.RESEND_API_KEY
