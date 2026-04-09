@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = createServerSupabaseClient()
 
-    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://frontlinefitness.co.uk'}/update-password`
+    const redirectUrl = `${(process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk').replace(/\/$/, '')}/update-password`
 
     // Generate reset link via admin API — no Supabase email rate limits
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
