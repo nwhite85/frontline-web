@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { Calendar, Clock, MapPin, Users, Trash2, Edit2, X, UserPlus } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, Trash2, Edit2, X, UserPlus, ArrowLeft, Search } from 'lucide-react'
 import type { SessionType } from './SessionCard'
 import { BookingsSheet } from './BookingsSheet'
 
@@ -145,6 +145,7 @@ export function SessionDetailSheet({
   const [booking, setBooking] = useState(false)
   const [bookError, setBookError] = useState<string | null>(null)
   const [bookBypassable, setBookBypassable] = useState(false)
+  const [clientSearch, setClientSearch] = useState('')
 
   useEffect(() => {
     if (!open || !session || type === 'appointment') { setInlineBookings([]); setKbSummary(null); return }
@@ -436,7 +437,8 @@ export function SessionDetailSheet({
   const getBookings = () => {
     if (type === 'appointment') return null
     const s = session as any
-    const current = s.current_bookings ?? 0
+    // Use real booking count once loaded; fall back to cached counter
+    const current = !loadingBookings ? inlineBookings.filter(b => b.booking_status !== 'cancelled').length : (s.current_bookings ?? 0)
     const max = s.max_capacity || s.class?.max_capacity || '∞'
     return `${current}/${max} booked`
   }
@@ -455,8 +457,97 @@ export function SessionDetailSheet({
 
   return (
     <>
-    <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditing(false); setConfirmDelete(false); setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientId(''); setBookTier('') } }}>
+    <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditing(false); setConfirmDelete(false); setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientId(''); setBookTier(''); setClientSearch('') } }}>
       <SheetContent className="w-full sm:max-w-md flex flex-col">
+        {showBookClient ? (
+          /* ── Book client page ── */
+          <>
+            <SheetHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => { setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientId(''); setBookTier(''); setClientSearch('') }} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <SheetTitle className="text-lg font-semibold">Book a client</SheetTitle>
+              </div>
+            </SheetHeader>
+
+            <div className="flex-1 overflow-y-auto flex flex-col gap-3 px-4 pb-2">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Search clients…"
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="pl-8 h-8 text-sm"
+                  autoFocus
+                />
+              </div>
+
+              {/* Tier selector for challenges */}
+              {type === 'challenge' && (
+                <div className="flex gap-2">
+                  {(['', 'grey', 'blue', 'black'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setBookTier(t)}
+                      className={`flex-1 text-xs py-1.5 rounded-md border transition-colors capitalize ${bookTier === t ? 'bg-foreground text-background border-foreground' : 'border-border hover:bg-muted'}`}
+                    >
+                      {t || 'No tier'}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Error */}
+              {bookError && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2.5 space-y-1.5">
+                  <p className="text-xs text-destructive">{bookError}</p>
+                  {bookBypassable && !bookBypass && (
+                    <button className="text-xs text-amber-400 underline" onClick={() => setBookBypass(true)}>
+                      Bypass and book anyway
+                    </button>
+                  )}
+                  {bookBypass && <p className="text-xs text-amber-400 font-medium">Checks bypassed</p>}
+                </div>
+              )}
+
+              {/* Client list */}
+              {loadingClients ? (
+                <p className="text-xs text-muted-foreground px-1">Loading clients…</p>
+              ) : (
+                <div className="flex flex-col divide-y divide-border rounded-lg border border-border overflow-hidden">
+                  {clients
+                    .filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+                    .map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => { setBookClientId(c.id); setBookError(null); setBookBypassable(false); setBookBypass(false) }}
+                        className={`text-left px-3 py-2.5 text-sm transition-colors ${bookClientId === c.id ? 'bg-foreground/10 text-foreground font-medium' : 'hover:bg-muted text-foreground/80'}`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  {clients.filter(c => !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
+                    <p className="text-xs text-muted-foreground px-3 py-2.5">No clients match</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <SheetFooter className="pt-4 border-t">
+              <Button
+                className="w-full"
+                onClick={handleBookClient}
+                disabled={!bookClientId || booking}
+              >
+                {booking ? 'Booking…' : bookBypass ? `Book ${clients.find(c => c.id === bookClientId)?.name ?? ''} (bypassed)` : `Book ${clients.find(c => c.id === bookClientId)?.name ?? ''}`}
+              </Button>
+            </SheetFooter>
+          </>
+        ) : (
+          /* ── Session detail page ── */
+          <>
         <SheetHeader className="pb-4">
           <div className="flex items-center justify-between">
             <Badge variant={typeVariants[type]} className="capitalize">
@@ -564,72 +655,6 @@ export function SessionDetailSheet({
                     ))}
                   </div>
                 )}
-              </div>
-            </>
-          )}
-
-          {/* Book client inline form */}
-          {showBookClient && type !== 'appointment' && (
-            <>
-              <Separator />
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium">Book a client</h4>
-                <div className="space-y-1">
-                  <Label className="text-xs">Client</Label>
-                  {loadingClients ? (
-                    <p className="text-xs text-muted-foreground">Loading clients…</p>
-                  ) : (
-                    <select
-                      value={bookClientId}
-                      onChange={(e) => { setBookClientId(e.target.value); setBookError(null); setBookBypassable(false) }}
-                      className="w-full h-8 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="">Select a client…</option>
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                {type === 'challenge' && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">Ability tier</Label>
-                    <select
-                      value={bookTier}
-                      onChange={(e) => setBookTier(e.target.value)}
-                      className="w-full h-8 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="">No tier</option>
-                      <option value="grey">Grey</option>
-                      <option value="blue">Blue</option>
-                      <option value="black">Black</option>
-                    </select>
-                  </div>
-                )}
-                {bookError && (
-                  <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2.5 space-y-2">
-                    <p className="text-xs text-destructive">{bookError}</p>
-                    {bookBypassable && !bookBypass && (
-                      <button
-                        className="text-xs text-amber-400 underline"
-                        onClick={() => setBookBypass(true)}
-                      >
-                        Bypass check and book anyway
-                      </button>
-                    )}
-                    {bookBypass && (
-                      <p className="text-xs text-amber-400 font-medium">Bypass enabled — checks will be skipped</p>
-                    )}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1 h-8 text-xs" onClick={() => { setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientId(''); setBookTier('') }}>
-                    Cancel
-                  </Button>
-                  <Button className="flex-1 h-8 text-xs" onClick={handleBookClient} disabled={!bookClientId || booking}>
-                    {booking ? 'Booking…' : bookBypass ? 'Book (bypassed)' : 'Book'}
-                  </Button>
-                </div>
               </div>
             </>
           )}
@@ -762,16 +787,15 @@ export function SessionDetailSheet({
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => { setShowBookClient(v => !v); setBookError(null); setBookBypass(false) }}
+                  onClick={() => { setShowBookClient(true); setBookError(null); setBookBypass(false) }}
                 >
                   <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-                  {showBookClient ? 'Cancel booking' : 'Book client'}
+                  Book client
                 </Button>
               )}
               <div className="flex gap-2 w-full">
                 <Button
                   variant="outline"
-
                   className="flex-1"
                   onClick={handleStartEdit}
                 >
@@ -780,7 +804,6 @@ export function SessionDetailSheet({
                 </Button>
                 <Button
                   variant="outline"
-
                   className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
                   onClick={() => setConfirmDelete(true)}
                 >
@@ -794,7 +817,6 @@ export function SessionDetailSheet({
             <div className="flex gap-2 w-full">
               <Button
                 variant="outline"
-               
                 className="flex-1"
                 onClick={() => setEditing(false)}
               >
@@ -802,7 +824,6 @@ export function SessionDetailSheet({
                 Cancel
               </Button>
               <Button
-               
                 className="flex-1"
                 onClick={handleSave}
                 disabled={saving}
@@ -812,6 +833,8 @@ export function SessionDetailSheet({
             </div>
           )}
         </SheetFooter>
+          </>
+        )}
       </SheetContent>
     </Sheet>
 
