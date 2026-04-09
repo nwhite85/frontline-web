@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { CookieConsent } from '@/components/CookieConsent'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { RecoveryRedirect } from '@/components/RecoveryRedirect'
 
 export const metadata: Metadata = {
   title: 'Frontline Fitness | Forces-Led Outdoor Training in Swindon',
@@ -129,6 +130,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         {children}
+        <RecoveryRedirect />
         <Analytics />
         <SpeedInsights />
         <Toaster position="bottom-left" />

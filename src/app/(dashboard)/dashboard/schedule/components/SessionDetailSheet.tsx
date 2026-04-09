@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { Calendar, Clock, MapPin, Users, Trash2, Edit2, X } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, Trash2, Edit2, X, UserPlus } from 'lucide-react'
 import type { SessionType } from './SessionCard'
 import { BookingsSheet } from './BookingsSheet'
 
@@ -135,6 +135,17 @@ export function SessionDetailSheet({
   const [kbSummary, setKbSummary] = useState<{ weight: string; needed: number; available: number }[] | null>(null)
   const [loadingBookings, setLoadingBookings] = useState(false)
 
+  // Book client state
+  const [showBookClient, setShowBookClient] = useState(false)
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([])
+  const [loadingClients, setLoadingClients] = useState(false)
+  const [bookClientId, setBookClientId] = useState('')
+  const [bookTier, setBookTier] = useState('')
+  const [bookBypass, setBookBypass] = useState(false)
+  const [booking, setBooking] = useState(false)
+  const [bookError, setBookError] = useState<string | null>(null)
+  const [bookBypassable, setBookBypassable] = useState(false)
+
   useEffect(() => {
     if (!open || !session || type === 'appointment') { setInlineBookings([]); setKbSummary(null); return }
     setLoadingBookings(true)
@@ -159,6 +170,69 @@ export function SessionDetailSheet({
       .catch(() => { setInlineBookings([]); setKbSummary(null) })
       .finally(() => setLoadingBookings(false))
   }, [open, session, type])
+
+  useEffect(() => {
+    if (!showBookClient || clients.length > 0) return
+    setLoadingClients(true)
+    supabase
+      .from('user_profiles')
+      .select('id, name')
+      .eq('user_type', 'client')
+      .order('name')
+      .then(({ data }) => {
+        setClients((data || []).map((c: any) => ({ id: c.id, name: c.name || 'Unknown' })))
+      })
+      .finally(() => setLoadingClients(false))
+  }, [showBookClient])
+
+  const handleBookClient = async () => {
+    if (!bookClientId) return
+    setBooking(true)
+    setBookError(null)
+    setBookBypassable(false)
+    try {
+      const body: any = { type, scheduleId: session?.id, clientId: bookClientId, bypass: bookBypass }
+      if (type === 'challenge' && bookTier) body.abilityTier = bookTier
+      const res = await fetch('/api/trainer-book-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setBookError(data.error || 'Failed to book')
+        setBookBypassable(!!data.bypassable)
+      } else {
+        toast.success('Client booked')
+        setShowBookClient(false)
+        setBookClientId('')
+        setBookTier('')
+        setBookBypass(false)
+        setBookError(null)
+        // Re-fetch bookings list
+        const s = session as any
+        let endpoint = ''
+        if (type === 'class') endpoint = `/api/class-bookings?classScheduleId=${s.id}`
+        else if (type === 'event') endpoint = `/api/event-bookings?eventId=${s.id}`
+        else if (type === 'challenge') endpoint = `/api/challenge-bookings?scheduleId=${s.id}`
+        if (endpoint) {
+          fetch(endpoint).then(r => r.json()).then(d => {
+            const bookings = (d.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
+            setInlineBookings(bookings.map((b: any) => ({
+              id: b.id,
+              client_name: b.user_profiles?.name || 'Unknown',
+              booking_status: b.booking_status,
+              ability_tier: b.ability_tier ?? null,
+            })))
+            setKbSummary(d.kb_summary ?? null)
+          }).catch(() => {})
+        }
+        onRefresh()
+      }
+    } finally {
+      setBooking(false)
+    }
+  }
 
   // Edit form state
   const [editTime, setEditTime] = useState('')
@@ -381,7 +455,7 @@ export function SessionDetailSheet({
 
   return (
     <>
-    <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditing(false); setConfirmDelete(false) } }}>
+    <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditing(false); setConfirmDelete(false); setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientId(''); setBookTier('') } }}>
       <SheetContent className="w-full sm:max-w-md flex flex-col">
         <SheetHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -490,6 +564,72 @@ export function SessionDetailSheet({
                     ))}
                   </div>
                 )}
+              </div>
+            </>
+          )}
+
+          {/* Book client inline form */}
+          {showBookClient && type !== 'appointment' && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">Book a client</h4>
+                <div className="space-y-1">
+                  <Label className="text-xs">Client</Label>
+                  {loadingClients ? (
+                    <p className="text-xs text-muted-foreground">Loading clients…</p>
+                  ) : (
+                    <select
+                      value={bookClientId}
+                      onChange={(e) => { setBookClientId(e.target.value); setBookError(null); setBookBypassable(false) }}
+                      className="w-full h-8 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="">Select a client…</option>
+                      {clients.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                {type === 'challenge' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Ability tier</Label>
+                    <select
+                      value={bookTier}
+                      onChange={(e) => setBookTier(e.target.value)}
+                      className="w-full h-8 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="">No tier</option>
+                      <option value="grey">Grey</option>
+                      <option value="blue">Blue</option>
+                      <option value="black">Black</option>
+                    </select>
+                  </div>
+                )}
+                {bookError && (
+                  <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2.5 space-y-2">
+                    <p className="text-xs text-destructive">{bookError}</p>
+                    {bookBypassable && !bookBypass && (
+                      <button
+                        className="text-xs text-amber-400 underline"
+                        onClick={() => setBookBypass(true)}
+                      >
+                        Bypass check and book anyway
+                      </button>
+                    )}
+                    {bookBypass && (
+                      <p className="text-xs text-amber-400 font-medium">Bypass enabled — checks will be skipped</p>
+                    )}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1 h-8 text-xs" onClick={() => { setShowBookClient(false); setBookError(null); setBookBypass(false); setBookClientId(''); setBookTier('') }}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1 h-8 text-xs" onClick={handleBookClient} disabled={!bookClientId || booking}>
+                    {booking ? 'Booking…' : bookBypass ? 'Book (bypassed)' : 'Book'}
+                  </Button>
+                </div>
               </div>
             </>
           )}
@@ -617,25 +757,37 @@ export function SessionDetailSheet({
 
         <SheetFooter className="pt-4 border-t flex-col gap-2 sm:flex-col">
           {!editing && !confirmDelete && (
-            <div className="flex gap-2 w-full">
-              <Button
-                variant="outline"
-               
-                className="flex-1"
-                onClick={handleStartEdit}
-              >
-                <Edit2 className="h-3.5 w-3.5 mr-1.5" />
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-               
-                className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                Delete
-              </Button>
+            <div className="flex flex-col gap-2 w-full">
+              {type !== 'appointment' && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => { setShowBookClient(v => !v); setBookError(null); setBookBypass(false) }}
+                >
+                  <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                  {showBookClient ? 'Cancel booking' : 'Book client'}
+                </Button>
+              )}
+              <div className="flex gap-2 w-full">
+                <Button
+                  variant="outline"
+
+                  className="flex-1"
+                  onClick={handleStartEdit}
+                >
+                  <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+
+                  className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                  Delete
+                </Button>
+              </div>
             </div>
           )}
           {editing && (
