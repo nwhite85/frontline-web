@@ -115,6 +115,38 @@ export async function POST(request: NextRequest) {
     const supabase = getAdminClient()
     const tier = abilityTier as Tier
 
+    // ── Membership / credit gate ──────────────────────────────────────────────
+    const { data: memberships } = await supabase
+      .from('client_memberships')
+      .select('id, class_credits_remaining, membership_plans(plan_type, includes_classes)')
+      .eq('client_id', clientId)
+      .eq('status', 'active')
+
+    const recurringMembership = (memberships || []).find((m: any) => {
+      const plan = m.membership_plans
+      return plan?.plan_type !== 'credit_package' && plan?.includes_classes
+    }) as any | undefined
+
+    const creditMembership = !recurringMembership
+      ? (memberships || []).find((m: any) => {
+          const plan = m.membership_plans
+          return plan?.plan_type === 'credit_package' && (m.class_credits_remaining ?? 0) > 0
+        }) as any | undefined
+      : undefined
+
+    if (!recurringMembership && !creditMembership) {
+      const hasExpiredCredits = (memberships || []).some((m: any) => m.membership_plans?.plan_type === 'credit_package')
+      return NextResponse.json({
+        error: hasExpiredCredits
+          ? 'You have no credits remaining. Please purchase a new credit pack.'
+          : 'You need an active membership or credits to book this session.',
+      }, { status: 403 })
+    }
+
+    const useCredits = !recurringMembership
+    const paymentStatus = useCredits ? 'credit' : 'included'
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Fetch schedule + challenge config
     const { data: schedule } = await supabase
       .from('challenge_schedules')
@@ -214,7 +246,7 @@ export async function POST(request: NextRequest) {
     if (existing && existing.booking_status === 'cancelled') {
       await supabase
         .from('challenge_bookings')
-        .update({ booking_status: 'confirmed', booking_date: new Date().toISOString(), ability_tier: tier || null })
+        .update({ booking_status: 'confirmed', booking_date: new Date().toISOString(), ability_tier: tier || null, payment_status: paymentStatus })
         .eq('id', existing.id)
     } else {
       await supabase.from('challenge_bookings').insert({
@@ -224,6 +256,7 @@ export async function POST(request: NextRequest) {
         booking_status: 'confirmed',
         booking_date: new Date().toISOString(),
         ability_tier: tier || null,
+        payment_status: paymentStatus,
       })
     }
 
@@ -239,7 +272,17 @@ export async function POST(request: NextRequest) {
       .update({ current_bookings: newTotal ?? 0 })
       .eq('id', challengeScheduleId)
 
-    logger.log(`Challenge booked: ${clientId} → ${challengeScheduleId} (tier: ${tier ?? 'none'})`)
+    // Deduct credit if using credit package
+    if (useCredits && creditMembership) {
+      const remaining = (creditMembership.class_credits_remaining ?? 1) - 1
+      await supabase
+        .from('client_memberships')
+        .update({ class_credits_remaining: remaining })
+        .eq('id', creditMembership.id)
+      logger.log(`Challenge booking: credit deducted for ${clientId} — ${remaining} remaining`)
+    }
+
+    logger.log(`Challenge booked: ${clientId} → ${challengeScheduleId} (tier: ${tier ?? 'none'}, ${paymentStatus})`)
     return NextResponse.json({ success: true, status: 'confirmed' })
 
   } catch (error: any) {

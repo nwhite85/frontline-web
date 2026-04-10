@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { logger } from '@/utils/logger'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://alvqlnqecjhemrgjmgqa.supabase.co'
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdnFsbnFlY2poZW1yZ2ptZ3FhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODU3ODM0MSwiZXhwIjoyMDg0MTU0MzQxfQ.tL0a6fsVtmmCOqAD1__yeUnFslhLlMWrTDObej7HL6g'
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (action === 'cancel') {
       const { data: booking, error: lookupError } = await supabase
         .from('challenge_bookings')
-        .select('id')
+        .select('id, payment_status')
         .eq('challenge_schedule_id', challengeScheduleId)
         .eq('client_id', clientId)
         .eq('booking_status', 'confirmed')
@@ -62,6 +63,28 @@ export async function POST(request: NextRequest) {
           .from('challenge_schedules')
           .update({ current_bookings: sched.current_bookings - 1 })
           .eq('id', challengeScheduleId)
+      }
+
+      // Restore credit if booking was paid by credits
+      if ((booking as any).payment_status === 'credit') {
+        const { data: memberships } = await supabase
+          .from('client_memberships')
+          .select('id, class_credits_remaining, membership_plans(plan_type)')
+          .eq('client_id', clientId)
+          .eq('status', 'active')
+
+        const creditMembership = (memberships || []).find(
+          (m: any) => m.membership_plans?.plan_type === 'credit_package'
+        ) as any | undefined
+
+        if (creditMembership) {
+          const restored = (creditMembership.class_credits_remaining ?? 0) + 1
+          await supabase
+            .from('client_memberships')
+            .update({ class_credits_remaining: restored })
+            .eq('id', creditMembership.id)
+          logger.log(`Challenge cancel: credit restored for ${clientId} — ${restored} remaining`)
+        }
       }
 
       return NextResponse.json({ success: true })

@@ -21,67 +21,88 @@ export async function POST(request: NextRequest) {
     const supabase = getAdminClient()
 
     // ── 1. Membership gate ──
-    const { data: membership } = await supabase
+    // Fetch all active memberships for this client
+    const { data: memberships } = await supabase
       .from('client_memberships')
-      .select('id, membership_plans(includes_classes, classes_per_week, classes_per_month)')
+      .select('id, class_credits_remaining, membership_plans(plan_type, includes_classes, classes_per_week, classes_per_month)')
       .eq('client_id', clientId)
       .eq('status', 'active')
-      .maybeSingle()
 
-    if (!membership) {
-      return NextResponse.json({ error: 'You need an active membership to book classes.' }, { status: 403 })
+    // Prefer a recurring membership that includes classes
+    const recurringMembership = (memberships || []).find((m: any) => {
+      const plan = m.membership_plans
+      return plan?.plan_type !== 'credit_package' && plan?.includes_classes
+    }) as any | undefined
+
+    // Fall back to a credit package with credits remaining
+    const creditMembership = !recurringMembership
+      ? (memberships || []).find((m: any) => {
+          const plan = m.membership_plans
+          return plan?.plan_type === 'credit_package' && (m.class_credits_remaining ?? 0) > 0
+        }) as any | undefined
+      : undefined
+
+    if (!recurringMembership && !creditMembership) {
+      const hasExpiredCredits = (memberships || []).some((m: any) => m.membership_plans?.plan_type === 'credit_package')
+      return NextResponse.json({
+        error: hasExpiredCredits
+          ? 'You have no credits remaining. Please purchase a new credit pack.'
+          : 'You need an active membership or credits to book classes.',
+      }, { status: 403 })
     }
 
-    const plan = (membership as any).membership_plans
-    if (plan && !plan.includes_classes) {
-      return NextResponse.json({ error: 'Your membership does not include classes.' }, { status: 403 })
-    }
+    const useCredits = !recurringMembership
 
-    if (plan?.classes_per_week) {
-      const now = new Date()
-      const day = now.getDay() === 0 ? 6 : now.getDay() - 1
-      const weekStart = new Date(now)
-      weekStart.setDate(now.getDate() - day)
-      weekStart.setHours(0, 0, 0, 0)
-      const weekEnd = new Date(weekStart)
-      weekEnd.setDate(weekStart.getDate() + 7)
+    // ── 2. Per-week / per-month limits (recurring memberships only) ──
+    if (recurringMembership) {
+      const plan = recurringMembership.membership_plans
 
-      const { count } = await supabase
-        .from('class_bookings')
-        .select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .neq('booking_status', 'cancelled')
-        .gte('booking_date', weekStart.toISOString())
-        .lt('booking_date', weekEnd.toISOString())
+      if (plan?.classes_per_week) {
+        const now = new Date()
+        const day = now.getDay() === 0 ? 6 : now.getDay() - 1
+        const weekStart = new Date(now)
+        weekStart.setDate(now.getDate() - day)
+        weekStart.setHours(0, 0, 0, 0)
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekStart.getDate() + 7)
 
-      if ((count ?? 0) >= plan.classes_per_week) {
-        return NextResponse.json(
-          { error: `You've used all ${plan.classes_per_week} classes for this week.` },
-          { status: 403 }
-        )
+        const { count } = await supabase
+          .from('class_bookings')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', clientId)
+          .neq('booking_status', 'cancelled')
+          .gte('booking_date', weekStart.toISOString())
+          .lt('booking_date', weekEnd.toISOString())
+
+        if ((count ?? 0) >= plan.classes_per_week) {
+          return NextResponse.json(
+            { error: `You've used all ${plan.classes_per_week} classes for this week.` },
+            { status: 403 }
+          )
+        }
+      } else if (plan?.classes_per_month) {
+        const now = new Date()
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+
+        const { count } = await supabase
+          .from('class_bookings')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', clientId)
+          .neq('booking_status', 'cancelled')
+          .gte('booking_date', monthStart.toISOString())
+          .lt('booking_date', monthEnd.toISOString())
+
+        if ((count ?? 0) >= plan.classes_per_month) {
+          return NextResponse.json(
+            { error: `You've used all ${plan.classes_per_month} classes for this month.` },
+            { status: 403 }
+          )
+        }
       }
-    } else if (plan?.classes_per_month) {
-      const now = new Date()
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-
-      const { count } = await supabase
-        .from('class_bookings')
-        .select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .neq('booking_status', 'cancelled')
-        .gte('booking_date', monthStart.toISOString())
-        .lt('booking_date', monthEnd.toISOString())
-
-      if ((count ?? 0) >= plan.classes_per_month) {
-        return NextResponse.json(
-          { error: `You've used all ${plan.classes_per_month} classes for this month.` },
-          { status: 403 }
-        )
-      }
     }
 
-    // ── 2. Fetch class schedule ──
+    // ── 3. Fetch class schedule ──
     const { data: schedule } = await supabase
       .from('class_schedules')
       .select('id, trainer_id, max_capacity, current_bookings, status')
@@ -97,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     const isFull = (schedule.max_capacity ?? 0) > 0 && (schedule.current_bookings ?? 0) >= (schedule.max_capacity ?? 0)
 
-    // ── 3. Check not already booked ──
+    // ── 4. Check not already booked ──
     const { data: existing } = await supabase
       .from('class_bookings')
       .select('id, booking_status')
@@ -109,13 +130,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You are already booked for this class.' }, { status: 400 })
     }
 
-    // ── 4. Insert or re-activate booking ──
+    const newStatus = isFull ? 'waitlist' : 'confirmed'
+    const paymentStatus = useCredits ? 'credit' : 'included'
+
+    // ── 5. Insert or re-activate booking ──
     if (existing && existing.booking_status === 'cancelled') {
       await supabase
         .from('class_bookings')
         .update({
-          booking_status: isFull ? 'waitlist' : 'confirmed',
+          booking_status: newStatus,
           booking_date: new Date().toISOString(),
+          payment_status: paymentStatus,
         })
         .eq('id', existing.id)
     } else {
@@ -125,8 +150,8 @@ export async function POST(request: NextRequest) {
           client_id: clientId,
           class_schedule_id: classScheduleId,
           trainer_id: schedule.trainer_id,
-          booking_status: isFull ? 'waitlist' : 'confirmed',
-          payment_status: 'included',
+          booking_status: newStatus,
+          payment_status: paymentStatus,
           amount_paid: 0,
           booking_date: new Date().toISOString(),
         })
@@ -140,10 +165,20 @@ export async function POST(request: NextRequest) {
         .eq('id', classScheduleId)
     }
 
-    logger.log(`Class booked: ${clientId} → ${classScheduleId} (${isFull ? 'waitlist' : 'confirmed'})`)
+    // ── 6. Deduct credit if using credit package ──
+    if (useCredits && creditMembership && newStatus === 'confirmed') {
+      const remaining = (creditMembership.class_credits_remaining ?? 1) - 1
+      await supabase
+        .from('client_memberships')
+        .update({ class_credits_remaining: remaining })
+        .eq('id', creditMembership.id)
+      logger.log(`Credit deducted for ${clientId} — ${remaining} remaining`)
+    }
+
+    logger.log(`Class booked: ${clientId} → ${classScheduleId} (${newStatus}, ${paymentStatus})`)
     return NextResponse.json({
       success: true,
-      status: isFull ? 'waitlist' : 'confirmed',
+      status: newStatus,
     })
   } catch (error: any) {
     logger.error('book-class error:', error)
