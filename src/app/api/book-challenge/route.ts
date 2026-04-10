@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
     if (existing && existing.booking_status === 'cancelled') {
       await supabase
         .from('challenge_bookings')
-        .update({ booking_status: 'confirmed', booking_date: new Date().toISOString(), ability_tier: tier || null, payment_status: paymentStatus })
+        .update({ booking_status: 'confirmed', booking_date: new Date().toISOString(), ability_tier: tier || null })
         .eq('id', existing.id)
     } else {
       await supabase.from('challenge_bookings').insert({
@@ -256,7 +256,6 @@ export async function POST(request: NextRequest) {
         booking_status: 'confirmed',
         booking_date: new Date().toISOString(),
         ability_tier: tier || null,
-        payment_status: paymentStatus,
       })
     }
 

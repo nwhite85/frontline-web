@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (action === 'cancel') {
       const { data: booking, error: lookupError } = await supabase
         .from('challenge_bookings')
-        .select('id, payment_status')
+        .select('id')
         .eq('challenge_schedule_id', challengeScheduleId)
         .eq('client_id', clientId)
         .eq('booking_status', 'confirmed')
@@ -65,26 +65,28 @@ export async function POST(request: NextRequest) {
           .eq('id', challengeScheduleId)
       }
 
-      // Restore credit if booking was paid by credits
-      if ((booking as any).payment_status === 'credit') {
-        const { data: memberships } = await supabase
+      // Restore credit if client has a credit package and no recurring membership
+      // (challenge_bookings has no payment_status column, so we infer from membership type)
+      const { data: memberships } = await supabase
+        .from('client_memberships')
+        .select('id, class_credits_remaining, membership_plans(plan_type, includes_classes)')
+        .eq('client_id', clientId)
+        .eq('status', 'active')
+
+      const hasRecurring = (memberships || []).some(
+        (m: any) => m.membership_plans?.plan_type !== 'credit_package' && m.membership_plans?.includes_classes
+      )
+      const creditMembership = !hasRecurring
+        ? (memberships || []).find((m: any) => m.membership_plans?.plan_type === 'credit_package') as any | undefined
+        : undefined
+
+      if (creditMembership) {
+        const restored = (creditMembership.class_credits_remaining ?? 0) + 1
+        await supabase
           .from('client_memberships')
-          .select('id, class_credits_remaining, membership_plans(plan_type)')
-          .eq('client_id', clientId)
-          .eq('status', 'active')
-
-        const creditMembership = (memberships || []).find(
-          (m: any) => m.membership_plans?.plan_type === 'credit_package'
-        ) as any | undefined
-
-        if (creditMembership) {
-          const restored = (creditMembership.class_credits_remaining ?? 0) + 1
-          await supabase
-            .from('client_memberships')
-            .update({ class_credits_remaining: restored })
-            .eq('id', creditMembership.id)
-          logger.log(`Challenge cancel: credit restored for ${clientId} — ${restored} remaining`)
-        }
+          .update({ class_credits_remaining: restored })
+          .eq('id', creditMembership.id)
+        logger.log(`Challenge cancel: credit restored for ${clientId} — ${restored} remaining`)
       }
 
       return NextResponse.json({ success: true })
