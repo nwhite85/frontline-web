@@ -214,6 +214,26 @@ export async function POST(req: NextRequest) {
       logger.error('[Signup Client] Welcome email failed (non-blocking):', emailError);
     }
 
+    // Notify Nick of new landing-page signup (not for dashboard-added clients)
+    if (!fromDashboard) {
+      try {
+        await sendTransactionalEmail({
+          to: 'nick@frontlinefitness.co.uk',
+          subject: `New signup: ${name}`,
+          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px">
+            <h2 style="margin:0 0 8px">New member signup</h2>
+            <p style="color:#666;margin:0 0 16px">Someone just signed up from the landing page.</p>
+            <table style="font-size:14px;border-collapse:collapse;width:100%">
+              <tr><td style="padding:6px 0;color:#888;width:100px">Name</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
+              <tr><td style="padding:6px 0;color:#888">Email</td><td style="padding:6px 0">${email}</td></tr>
+              ${phone ? `<tr><td style="padding:6px 0;color:#888">Phone</td><td style="padding:6px 0">${phone}</td></tr>` : ''}
+            </table>
+            <p style="margin:16px 0 0;font-size:13px;color:#aaa">Awaiting payment — not yet active.</p>
+          </div>`,
+        })
+      } catch { /* non-blocking */ }
+    }
+
     logger.log('Client created successfully as lead');
     return NextResponse.json({
       success: true,

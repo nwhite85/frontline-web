@@ -151,6 +151,46 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       logger.error(`Plan ${planId} not found — membership not assigned`)
     }
   }
+
+  // Notify Nick of new payment
+  try {
+    const { Resend } = await import('resend')
+    const resendKey = process.env.RESEND_API_KEY
+    if (resendKey) {
+      const resend = new Resend(resendKey)
+      const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'Frontline Fitness <nick@frontlinefitness.co.uk>'
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('name, email')
+        .eq('id', userId)
+        .maybeSingle()
+
+      const clientName = (profile as any)?.name ?? 'Unknown'
+      const clientEmail = (profile as any)?.email ?? ''
+      const planName = session.metadata?.plan_name ?? 'Unknown plan'
+      const amount = ((session.amount_total ?? 0) / 100).toFixed(2)
+
+      await resend.emails.send({
+        from: fromEmail,
+        to: 'nick@frontlinefitness.co.uk',
+        replyTo: clientEmail || undefined,
+        subject: `Payment received: ${clientName} — ${planName}`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px">
+          <h2 style="margin:0 0 8px">Payment received</h2>
+          <p style="color:#666;margin:0 0 16px">A new membership payment has been confirmed.</p>
+          <table style="font-size:14px;border-collapse:collapse;width:100%">
+            <tr><td style="padding:6px 0;color:#888;width:100px">Name</td><td style="padding:6px 0;font-weight:600">${clientName}</td></tr>
+            ${clientEmail ? `<tr><td style="padding:6px 0;color:#888">Email</td><td style="padding:6px 0">${clientEmail}</td></tr>` : ''}
+            <tr><td style="padding:6px 0;color:#888">Plan</td><td style="padding:6px 0">${planName}</td></tr>
+            <tr><td style="padding:6px 0;color:#888">Amount</td><td style="padding:6px 0;font-weight:600">£${amount}</td></tr>
+          </table>
+        </div>`,
+      })
+    }
+  } catch (err) {
+    logger.error('Failed to send payment notification to Nick:', err)
+  }
 }
 
 async function handleShopOrderCompleted(session: Stripe.Checkout.Session) {
