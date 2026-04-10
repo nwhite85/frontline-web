@@ -285,8 +285,8 @@ export default function ShopPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
             {filtered.map(product => (
               <div key={product.id} className="group flex flex-col rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.07] hover:border-white/15 transition-colors">
-                {/* Image */}
-                <div className="aspect-[2/3] bg-white/[0.05] overflow-hidden relative">
+                {/* Image — links to product page */}
+                <a href={`/shop/${product.id}`} className="block aspect-[2/3] bg-white/[0.05] overflow-hidden relative">
                   {product.image_url ? (
                     <>
                       <img
@@ -309,16 +309,16 @@ export default function ShopPage() {
                       <ShoppingBag size={32} className="text-white opacity-10" />
                     </div>
                   )}
-                </div>
+                </a>
                 {/* Info */}
                 <div className="p-3 flex flex-col gap-2 flex-1">
                   {isNew(product.created_at) && (
                     <span className="text-[9px] font-bold uppercase tracking-widest text-brand-blue">New</span>
                   )}
-                  <p className="text-sm font-semibold text-white leading-tight">
+                  <a href={`/shop/${product.id}`} className="text-sm font-semibold text-white leading-tight hover:text-white/80 transition-colors">
                     {product.name}{product.category && product.category !== 'accessories' ? ` (${CATEGORY_LABELS[product.category] ?? product.category})` : ''}
-                  </p>
-                  
+                  </a>
+
                   {product.purchasable ? (
                     <button
                       onClick={() => addToCart(product)}
@@ -345,11 +345,11 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Product picker bottom sheet */}
+      {/* Product picker — bottom sheet on mobile, right drawer on desktop */}
       {picker && (
-        <div className="fixed inset-0 z-[60] flex flex-col justify-end" style={{ touchAction: 'none' }}>
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end lg:flex-row lg:justify-end" style={{ touchAction: 'none' }}>
           <div className="absolute inset-0 bg-black/70" onClick={() => setPicker(null)} />
-          <div className="relative bg-[#0d1420] border-t border-white/10 rounded-t-2xl px-5 pt-5 pb-8 flex flex-col gap-5 max-h-[85vh] overflow-y-auto">
+          <div className="relative bg-[#0d1420] border-t border-white/10 rounded-t-2xl lg:rounded-none lg:border-t-0 lg:border-l px-5 pt-5 pb-8 flex flex-col gap-5 max-h-[85vh] lg:max-h-full lg:h-full lg:w-[380px] overflow-y-auto">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-4 items-center">
                 {picker.product.image_url && (
