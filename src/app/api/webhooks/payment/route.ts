@@ -155,6 +155,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // Notify Nick of new payment
   try {
     const { Resend } = await import('resend')
+    const { trainerNewPaymentEmail } = await import('@/utils/emailTemplates')
     const resendKey = process.env.RESEND_API_KEY
     if (resendKey) {
       const resend = new Resend(resendKey)
@@ -169,23 +170,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       const clientName = (profile as any)?.name ?? 'Unknown'
       const clientEmail = (profile as any)?.email ?? ''
       const planName = session.metadata?.plan_name ?? 'Unknown plan'
-      const amount = ((session.amount_total ?? 0) / 100).toFixed(2)
+      const planType = session.metadata?.plan_type ?? 'recurring'
+      const amount = `£${((session.amount_total ?? 0) / 100).toFixed(2)}`
 
+      const notif = trainerNewPaymentEmail({ clientName, clientEmail: clientEmail || undefined, planName, amount, planType })
       await resend.emails.send({
         from: fromEmail,
         to: 'nick@frontlinefitness.co.uk',
         replyTo: clientEmail || undefined,
-        subject: `Payment received: ${clientName} — ${planName}`,
-        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px">
-          <h2 style="margin:0 0 8px">Payment received</h2>
-          <p style="color:#666;margin:0 0 16px">A new membership payment has been confirmed.</p>
-          <table style="font-size:14px;border-collapse:collapse;width:100%">
-            <tr><td style="padding:6px 0;color:#888;width:100px">Name</td><td style="padding:6px 0;font-weight:600">${clientName}</td></tr>
-            ${clientEmail ? `<tr><td style="padding:6px 0;color:#888">Email</td><td style="padding:6px 0">${clientEmail}</td></tr>` : ''}
-            <tr><td style="padding:6px 0;color:#888">Plan</td><td style="padding:6px 0">${planName}</td></tr>
-            <tr><td style="padding:6px 0;color:#888">Amount</td><td style="padding:6px 0;font-weight:600">£${amount}</td></tr>
-          </table>
-        </div>`,
+        subject: notif.subject,
+        html: notif.html,
+        text: notif.text,
       })
     }
   } catch (err) {
@@ -195,6 +190,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
 async function handleShopOrderCompleted(session: Stripe.Checkout.Session) {
   const { Resend } = await import('resend')
+  const { trainerShopOrderEmail, shopOrderCustomerEmail } = await import('@/utils/emailTemplates')
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
 
@@ -208,50 +204,24 @@ async function handleShopOrderCompleted(session: Stripe.Checkout.Session) {
 
   const total = (session.amount_total ?? 0) / 100
 
-  const itemsHtml = items.map(i =>
-    `<tr>
-      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb">${i.name}</td>
-      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280">${[i.color, i.size].filter(Boolean).join(' / ') || '—'}</td>
-      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:center">${i.qty}</td>
-      <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right">£${(i.price * i.qty).toFixed(2)}</td>
-    </tr>`
-  ).join('')
-
-  const tableHtml = `<table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
-    <thead><tr style="color:#6b7280;font-size:12px;text-transform:uppercase">
-      <th style="text-align:left;padding-bottom:8px">Item</th>
-      <th style="text-align:left;padding-bottom:8px">Options</th>
-      <th style="text-align:center;padding-bottom:8px">Qty</th>
-      <th style="text-align:right;padding-bottom:8px">Price</th>
-    </tr></thead>
-    <tbody>${itemsHtml}</tbody>
-  </table>
-  <p style="font-weight:700;margin:16px 0 0;text-align:right">Total: £${total.toFixed(2)}</p>`
-
-  // Notify Nick
+  // Notify Nick — branded template
+  const notif = trainerShopOrderEmail({ customerName, customerEmail: customerEmail || undefined, items, total })
   await resend.emails.send({
     from: fromEmail,
     to: 'nick@frontlinefitness.co.uk',
     replyTo: customerEmail || undefined,
-    subject: `New shop order from ${customerName} — £${total.toFixed(2)}`,
-    html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px">
-      <h2 style="margin:0 0 8px">New shop order — paid</h2>
-      <p style="color:#666;margin:0 0 24px"><strong>${customerName}</strong>${customerEmail ? ` — ${customerEmail}` : ''}</p>
-      ${tableHtml}
-    </div>`,
+    subject: notif.subject,
+    html: notif.html,
   })
 
-  // Confirm to customer
+  // Confirm to customer — branded
   if (customerEmail) {
+    const confirm = shopOrderCustomerEmail({ customerName, items, total })
     await resend.emails.send({
       from: fromEmail,
       to: customerEmail,
-      subject: 'Your Frontline Fitness order — payment confirmed',
-      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px">
-        <h2 style="margin:0 0 8px">Payment confirmed!</h2>
-        <p style="color:#666;margin:0 0 24px">Hi ${customerName}, your order is confirmed. Nick will be in touch to arrange collection at the park.</p>
-        ${tableHtml}
-      </div>`,
+      subject: confirm.subject,
+      html: confirm.html,
     })
   }
 

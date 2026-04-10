@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
-import { welcomeEmail } from '@/utils/emailTemplates';
+import { welcomeEmail, trainerNewSignupEmail } from '@/utils/emailTemplates';
 import { sendTransactionalEmail } from '@/utils/sendTransactionalEmail';
 import { z } from 'zod';
 
@@ -217,20 +217,8 @@ export async function POST(req: NextRequest) {
     // Notify Nick of new landing-page signup (not for dashboard-added clients)
     if (!fromDashboard) {
       try {
-        await sendTransactionalEmail({
-          to: 'nick@frontlinefitness.co.uk',
-          subject: `New signup: ${name}`,
-          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px">
-            <h2 style="margin:0 0 8px">New member signup</h2>
-            <p style="color:#666;margin:0 0 16px">Someone just signed up from the landing page.</p>
-            <table style="font-size:14px;border-collapse:collapse;width:100%">
-              <tr><td style="padding:6px 0;color:#888;width:100px">Name</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
-              <tr><td style="padding:6px 0;color:#888">Email</td><td style="padding:6px 0">${email}</td></tr>
-              ${phone ? `<tr><td style="padding:6px 0;color:#888">Phone</td><td style="padding:6px 0">${phone}</td></tr>` : ''}
-            </table>
-            <p style="margin:16px 0 0;font-size:13px;color:#aaa">Awaiting payment — not yet active.</p>
-          </div>`,
-        })
+        const notif = trainerNewSignupEmail({ name, email, phone })
+        await sendTransactionalEmail({ to: 'nick@frontlinefitness.co.uk', subject: notif.subject, html: notif.html, text: notif.text })
       } catch { /* non-blocking */ }
     }
 

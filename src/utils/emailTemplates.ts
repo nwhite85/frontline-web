@@ -331,6 +331,156 @@ export function trainerNewTrialistEmail(data: TrialistBookingData & { email: str
   return { subject, html, text };
 }
 
+// ─── Trainer: New Signup Notification ───────────────────────────────────────
+
+export interface TrainerNewSignupData {
+  name: string
+  email: string
+  phone?: string
+  planName?: string
+}
+
+export function trainerNewSignupEmail(data: TrainerNewSignupData): { subject: string; html: string; text: string } {
+  const subject = `New signup: ${data.name}`
+
+  const html = baseLayout(`
+    <div class="body">
+      <h2>New Member Signup</h2>
+      <p>Someone just signed up from the website. They haven't paid yet — account is pending activation.</p>
+      <div class="detail-card">
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
+          <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600;width:100px">Name</td><td style="padding:6px 0;font-weight:500">${data.name}</td></tr>
+          <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Email</td><td style="padding:6px 0;font-weight:500"><a href="mailto:${data.email}" style="color:${BRAND.primary}">${data.email}</a></td></tr>
+          ${data.phone ? `<tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Phone</td><td style="padding:6px 0;font-weight:500">${data.phone}</td></tr>` : ''}
+          ${data.planName ? `<tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Plan</td><td style="padding:6px 0;font-weight:500">${data.planName}</td></tr>` : ''}
+        </table>
+      </div>
+    </div>
+  `, subject)
+
+  const text = `New signup: ${data.name}\n\nEmail: ${data.email}${data.phone ? `\nPhone: ${data.phone}` : ''}${data.planName ? `\nPlan: ${data.planName}` : ''}\n\nAccount is pending payment.`
+
+  return { subject, html, text }
+}
+
+// ─── Trainer: New Payment Notification ──────────────────────────────────────
+
+export interface TrainerNewPaymentData {
+  clientName: string
+  clientEmail?: string
+  planName: string
+  amount: string // e.g. "£55.00"
+  planType?: string // "credit_package" | "recurring"
+}
+
+export function trainerNewPaymentEmail(data: TrainerNewPaymentData): { subject: string; html: string; text: string } {
+  const subject = `Payment received: ${data.clientName} — ${data.planName}`
+  const isPack = data.planType === 'credit_package'
+
+  const html = baseLayout(`
+    <div class="body">
+      <h2>Payment Received</h2>
+      <p>A new ${isPack ? 'credit pack purchase' : 'membership payment'} has been confirmed via Stripe.</p>
+      <div class="detail-card">
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
+          <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600;width:100px">Name</td><td style="padding:6px 0;font-weight:500">${data.clientName}</td></tr>
+          ${data.clientEmail ? `<tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Email</td><td style="padding:6px 0;font-weight:500"><a href="mailto:${data.clientEmail}" style="color:${BRAND.primary}">${data.clientEmail}</a></td></tr>` : ''}
+          <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Plan</td><td style="padding:6px 0;font-weight:500">${data.planName}</td></tr>
+          <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Amount</td><td style="padding:6px 0;font-weight:600;color:${BRAND.primary}">${data.amount}</td></tr>
+        </table>
+      </div>
+      <p style="font-size:13px;color:${BRAND.textMuted}">Payment processed via Stripe. Account ${isPack ? 'credits have been' : 'membership has been'} activated.</p>
+    </div>
+  `, subject)
+
+  const text = `Payment received: ${data.clientName}\n\nPlan: ${data.planName}\nAmount: ${data.amount}${data.clientEmail ? `\nEmail: ${data.clientEmail}` : ''}`
+
+  return { subject, html, text }
+}
+
+// ─── Trainer: Shop Order Notification ───────────────────────────────────────
+
+export interface TrainerShopOrderData {
+  customerName: string
+  customerEmail?: string
+  items: Array<{ name: string; color?: string | null; size?: string | null; qty: number; price: number }>
+  total: number
+}
+
+export function shopOrderCustomerEmail(data: { customerName: string; items: TrainerShopOrderData['items']; total: number }): { subject: string; html: string } {
+  const subject = 'Your Frontline Fitness order — payment confirmed'
+
+  const itemRows = data.items.map(i => `
+    <tr>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND.border};font-weight:500">${i.name}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND.border};color:${BRAND.textMuted}">${[i.color, i.size].filter(Boolean).join(' / ') || '—'}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND.border};text-align:center">${i.qty}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND.border};text-align:right;font-weight:600">£${(i.price * i.qty).toFixed(2)}</td>
+    </tr>`).join('')
+
+  const html = baseLayout(`
+    <div class="body">
+      <h2>Order Confirmed!</h2>
+      <p>Hi ${data.customerName},</p>
+      <p>Your order is confirmed and payment received. Nick will be in touch to arrange collection at the park.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin:16px 0">
+        <thead>
+          <tr style="color:${BRAND.textMuted};font-size:11px;text-transform:uppercase;letter-spacing:0.5px">
+            <th style="text-align:left;padding-bottom:8px;font-weight:600">Item</th>
+            <th style="text-align:left;padding-bottom:8px;font-weight:600">Options</th>
+            <th style="text-align:center;padding-bottom:8px;font-weight:600">Qty</th>
+            <th style="text-align:right;padding-bottom:8px;font-weight:600">Price</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+      <p style="text-align:right;font-weight:700;font-size:16px;color:${BRAND.primary}">Total: £${data.total.toFixed(2)}</p>
+    </div>
+  `, subject)
+
+  return { subject, html }
+}
+
+export function trainerShopOrderEmail(data: TrainerShopOrderData): { subject: string; html: string } {
+  const subject = `New shop order from ${data.customerName} — £${data.total.toFixed(2)}`
+
+  const itemRows = data.items.map(i => `
+    <tr>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND.border};font-weight:500">${i.name}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND.border};color:${BRAND.textMuted}">${[i.color, i.size].filter(Boolean).join(' / ') || '—'}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND.border};text-align:center">${i.qty}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND.border};text-align:right;font-weight:600">£${(i.price * i.qty).toFixed(2)}</td>
+    </tr>`).join('')
+
+  const html = baseLayout(`
+    <div class="body">
+      <h2>New Shop Order</h2>
+      <p>A new order has been placed and payment confirmed.</p>
+      <div class="detail-card">
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
+          <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600;width:100px">Customer</td><td style="padding:6px 0;font-weight:500">${data.customerName}</td></tr>
+          ${data.customerEmail ? `<tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Email</td><td style="padding:6px 0;font-weight:500"><a href="mailto:${data.customerEmail}" style="color:${BRAND.primary}">${data.customerEmail}</a></td></tr>` : ''}
+        </table>
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin:16px 0">
+        <thead>
+          <tr style="color:${BRAND.textMuted};font-size:11px;text-transform:uppercase;letter-spacing:0.5px">
+            <th style="text-align:left;padding-bottom:8px;font-weight:600">Item</th>
+            <th style="text-align:left;padding-bottom:8px;font-weight:600">Options</th>
+            <th style="text-align:center;padding-bottom:8px;font-weight:600">Qty</th>
+            <th style="text-align:right;padding-bottom:8px;font-weight:600">Price</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+      <p style="text-align:right;font-weight:700;font-size:16px;margin:8px 0 0;color:${BRAND.primary}">Total: £${data.total.toFixed(2)}</p>
+      <p style="font-size:13px;color:${BRAND.textMuted};margin-top:16px">Arrange collection at the park when you see the customer next.</p>
+    </div>
+  `, subject)
+
+  return { subject, html }
+}
+
 // ─── Email sending helper ────────────────────────────────────────────────────
 
 // ─── Password Reset ─────────────────────────────────────────────────────────
