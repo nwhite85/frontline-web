@@ -146,6 +146,13 @@ export function SessionDetailSheet({
   const [bookBypassable, setBookBypassable] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
   const [bookClientIds, setBookClientIds] = useState<Set<string>>(new Set())
+  const [editingTierId, setEditingTierId] = useState<string | null>(null)
+
+  const handleTierChange = async (bookingId: string, newTier: string | null) => {
+    setEditingTierId(null)
+    setInlineBookings(prev => prev.map(b => b.id === bookingId ? { ...b, ability_tier: newTier } : b))
+    await supabase.from('challenge_bookings').update({ ability_tier: newTier }).eq('id', bookingId)
+  }
 
   useEffect(() => {
     if (!open || !session || type === 'appointment') { setInlineBookings([]); setKbSummary(null); return }
@@ -686,8 +693,27 @@ export function SessionDetailSheet({
                       <div key={b.id} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
                         <span className="text-foreground">{b.client_name}</span>
                         <div className="flex items-center gap-1.5">
-                          {b.ability_tier && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize bg-muted text-muted-foreground">{b.ability_tier}</span>
+                          {type === 'challenge' && editingTierId === b.id ? (
+                            <div className="flex items-center gap-1">
+                              {(['grey', 'blue', 'black'] as const).map(t => (
+                                <button key={t} onClick={() => handleTierChange(b.id, t)}
+                                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize border transition-colors ${b.ability_tier === t ? 'bg-foreground text-background border-foreground' : 'bg-muted text-muted-foreground border-border hover:bg-muted/70'}`}>
+                                  {t}
+                                </button>
+                              ))}
+                              <button onClick={() => setEditingTierId(null)} className="text-[10px] text-muted-foreground hover:text-foreground ml-0.5">✕</button>
+                            </div>
+                          ) : (
+                            <>
+                              {type === 'challenge' ? (
+                                <button onClick={() => setEditingTierId(b.id)}
+                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize bg-muted text-muted-foreground hover:bg-muted/70 transition-colors">
+                                  {b.ability_tier || 'no tier'}
+                                </button>
+                              ) : b.ability_tier ? (
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize bg-muted text-muted-foreground">{b.ability_tier}</span>
+                              ) : null}
+                            </>
                           )}
                           {b.booking_status === 'waitlist' && (
                             <span className="text-[10px] text-amber-500">waitlist</span>
