@@ -52,18 +52,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: updateError.message }, { status: 500 })
       }
 
-      // Decrement current_bookings
-      const { data: sched } = await supabase
+      // Recount confirmed bookings (same as book endpoint — avoids drift)
+      const { count: newTotal } = await supabase
+        .from('challenge_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('challenge_schedule_id', challengeScheduleId)
+        .neq('booking_status', 'cancelled')
+      await supabase
         .from('challenge_schedules')
-        .select('current_bookings')
+        .update({ current_bookings: newTotal ?? 0 })
         .eq('id', challengeScheduleId)
-        .single()
-      if (sched && sched.current_bookings > 0) {
-        await supabase
-          .from('challenge_schedules')
-          .update({ current_bookings: sched.current_bookings - 1 })
-          .eq('id', challengeScheduleId)
-      }
 
       // Restore credit if client has a credit package and no recurring membership
       // (challenge_bookings has no payment_status column, so we infer from membership type)
