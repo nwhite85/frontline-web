@@ -377,7 +377,7 @@ export default function WorkoutsPage() {
       const { data, error: err } = await supabase
         .from('workouts')
         // @ts-ignore
-        .insert({ title: 'Untitled Workout', trainer_id: user.id, workout_type: 'strength' })
+        .insert({ title: 'Untitled Workout', trainer_id: user.id, workout_type: 'strength', is_template: true })
         .select('id').single()
       if (err) throw err
       // @ts-ignore
