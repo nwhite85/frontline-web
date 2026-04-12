@@ -1057,10 +1057,23 @@ export default function WorkoutBuilderPage() {
     }
     const handleSaveAsTemplate = async () => {
       clearTimeout(saveTimer.current)
+      // Save the instance as-is first
       await doSave(title, items)
+      // Create a separate template copy — instance stays in the program unchanged
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('workouts').update({ is_template: true, template_id: null })
-        .eq('id', workoutId).eq('trainer_id', user?.id)
+      const db = supabase as any
+      const { data: tmpl } = await db.from('workouts').insert({
+        title, weight_unit: weightUnit, workout_type: workoutType,
+        trainer_id: user?.id, is_template: true,
+      }).select('id').single()
+      if (tmpl?.id) {
+        const { data: exs } = await db.from('workout_exercises').select('*').eq('workout_id', workoutId)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (exs?.length) await db.from('workout_exercises').insert(exs.map(({ id: _id, workout_id: _wid, ...rest }: any) => ({ ...rest, workout_id: tmpl.id })))
+        const { data: nts } = await db.from('workout_notes').select('*').eq('workout_id', workoutId)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (nts?.length) await db.from('workout_notes').insert(nts.map(({ id: _id, workout_id: _wid, ...rest }: any) => ({ ...rest, workout_id: tmpl.id })))
+      }
       router.push(returnTo ?? '/dashboard/workouts')
     }
     setActions(
