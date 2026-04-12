@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { Plus, Settings, MoreHorizontal, Copy, Trash2, Moon, ChevronDown, Dumbbell, ClipboardPaste } from 'lucide-react'
+import { Plus, Settings, MoreHorizontal, Trash2, Moon, ChevronDown, Dumbbell, ClipboardPaste } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 
@@ -154,26 +154,17 @@ function DayCell({ slot, week, day, workouts, onAssign, onRest, onClear, onCopy,
           >
             {slot!.workoutTitle}
           </button>
-          {/* Copy icon — always visible */}
-          <button
-            onClick={e => { e.stopPropagation(); onCopy(week, day); toast.success('Copied — click a cell to paste') }}
-            className="shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-muted text-muted-foreground transition-colors"
-            title="Copy"
-          >
-            <Copy className="h-3 w-3" />
-          </button>
-          {/* Change / remove menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-              <button className="shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-muted text-muted-foreground opacity-0 group-hover/cell:opacity-100 transition-opacity">
+              <button className="shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-muted text-muted-foreground transition-colors">
                 <MoreHorizontal className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={e => { e.stopPropagation(); setPickerOpen(true) }}>Change workout</DropdownMenuItem>
-              <DropdownMenuItem onClick={async e => { e.stopPropagation(); await onRest(week, day) }}>Mark as rest</DropdownMenuItem>
+              <DropdownMenuItem onClick={e => { e.stopPropagation(); onCopy(week, day); toast.success('Copied — click a cell to paste') }}>Copy</DropdownMenuItem>
+              <DropdownMenuItem onClick={e => { e.stopPropagation(); setPickerOpen(true) }}>Replace</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={async e => { e.stopPropagation(); await onClear(week, day) }}>Remove</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={async e => { e.stopPropagation(); await onClear(week, day) }}>Delete</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
