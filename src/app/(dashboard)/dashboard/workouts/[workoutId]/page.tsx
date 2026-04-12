@@ -772,12 +772,14 @@ function AddBar({
 // ─── Settings Dropdown ────────────────────────────────────────────────────────
 
 function SettingsMenu({
-  weightUnit, cols, onSetWeightUnit, onToggleCol,
+  weightUnit, cols, onSetWeightUnit, onToggleCol, workoutType, onSetWorkoutType,
 }: {
   weightUnit: 'lbs' | 'kg'
   cols: VisibleCols
   onSetWeightUnit: (u: 'lbs' | 'kg') => void
   onToggleCol: (k: keyof VisibleCols) => void
+  workoutType: 'strength' | 'circuit'
+  onSetWorkoutType: (t: 'strength' | 'circuit') => void
 }) {
   return (
     <DropdownMenu>
@@ -787,6 +789,13 @@ function SettingsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuLabel className="text-xs">Workout type</DropdownMenuLabel>
+        {(['strength', 'circuit'] as const).map(t => (
+          <DropdownMenuCheckboxItem key={t} className="text-xs" checked={workoutType === t} onCheckedChange={() => onSetWorkoutType(t)}>
+            {t === 'strength' ? 'Strength' : 'Circuit'}
+          </DropdownMenuCheckboxItem>
+        ))}
+        <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs">Weight unit</DropdownMenuLabel>
         <DropdownMenuCheckboxItem className="text-xs" checked={weightUnit === 'kg'} onCheckedChange={() => onSetWeightUnit(weightUnit === 'kg' ? 'lbs' : 'kg')}>
           Kilograms (kg)
@@ -1037,9 +1046,21 @@ export default function WorkoutBuilderPage() {
   }, [title, items, setHeaderTabs])
 
   useEffect(() => {
-    const handleDone = async () => {
+    const handleSave = async () => {
       clearTimeout(saveTimer.current)
       await doSave(title, items)
+      router.push(returnTo ?? '/dashboard/workouts')
+    }
+    const handleCancel = () => {
+      clearTimeout(saveTimer.current)
+      router.push(returnTo ?? '/dashboard/workouts')
+    }
+    const handleSaveAsTemplate = async () => {
+      clearTimeout(saveTimer.current)
+      await doSave(title, items)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('workouts').update({ is_template: true, template_id: null })
+        .eq('id', workoutId).eq('trainer_id', user?.id)
       router.push(returnTo ?? '/dashboard/workouts')
     }
     setActions(
@@ -1059,41 +1080,43 @@ export default function WorkoutBuilderPage() {
         <Button variant="outline" size="icon" className="h-8 w-8 bg-card" disabled={!canRedo} onClick={redo}>
           <Redo2 className="h-3.5 w-3.5" />
         </Button>
-        <div className="flex rounded-md border border-input overflow-hidden h-8">
-          {(['strength', 'circuit'] as const).map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={async () => {
-                  setWorkoutType(t)
-                  // Save immediately — can't use triggerAutoSave here because
-                  // workoutType state update is async and doSave would use stale value
-                  setSaveStatus('saving')
-                  try {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    await (supabase as any).from('workouts').update({ workout_type: t })
-                      .eq('id', workoutId).eq('trainer_id', user?.id)
-                    setSaveStatus('saved')
-                    setTimeout(() => setSaveStatus('idle'), 2000)
-                  } catch { setSaveStatus('error') }
-                }}
-              className={cn(
-                'px-2.5 text-xs font-medium transition-colors',
-                workoutType === t ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {t === 'strength' ? 'Strength' : 'Circuit'}
-            </button>
-          ))}
-        </div>
         <SettingsMenu weightUnit={weightUnit} cols={cols}
           onSetWeightUnit={u => { setWeightUnit(u); triggerAutoSave(title, items) }}
-          onToggleCol={k => setCols(c => ({ ...c, [k]: !c[k] }))} />
-        <Button variant="outline" className="bg-card h-8" onClick={handleDone}>Done</Button>
+          onToggleCol={k => setCols(c => ({ ...c, [k]: !c[k] }))}
+          workoutType={workoutType}
+          onSetWorkoutType={async (t) => {
+            setWorkoutType(t)
+            setSaveStatus('saving')
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (supabase as any).from('workouts').update({ workout_type: t })
+                .eq('id', workoutId).eq('trainer_id', user?.id)
+              setSaveStatus('saved')
+              setTimeout(() => setSaveStatus('idle'), 2000)
+            } catch { setSaveStatus('error') }
+          }} />
+        <Button variant="outline" className="bg-card h-8" onClick={handleCancel}>Cancel</Button>
+        {isInstance ? (
+          <div className="flex h-8">
+            <Button variant="outline" className="bg-card rounded-r-none border-r-0 h-8" onClick={handleSave}>Save</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="bg-card rounded-l-none h-8 px-1.5">
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="text-xs" onClick={handleSaveAsTemplate}>Save as template</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : (
+          <Button variant="outline" className="bg-card h-8" onClick={handleSave}>Save</Button>
+        )}
       </div>
     )
     return () => setActions(null)
-  }, [setActions, canUndo, canRedo, saveStatus, weightUnit, cols, title, items, workoutType, triggerAutoSave])
+  }, [setActions, canUndo, canRedo, saveStatus, weightUnit, cols, title, items, workoutType, triggerAutoSave, isInstance, workoutId, user, router, returnTo, doSave])
 
   // ── Mutations ──
   const updateItem = (index: number, field: string, val: unknown) => {
