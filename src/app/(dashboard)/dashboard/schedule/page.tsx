@@ -332,9 +332,8 @@ export default function SchedulePage() {
       }
 
       // Transform class schedules
-      if (classResult.data) {
-        setClassSchedules(
-          classResult.data.map(cls => {
+      const freshClassSchedules: ClassSchedule[] = classResult.data
+        ? classResult.data.map(cls => {
             const cs = cls as ClassScheduleRow
             return {
               id: cs.id,
@@ -351,8 +350,8 @@ export default function SchedulePage() {
               class: cs.class as unknown as Class | undefined,
             } as ClassSchedule
           })
-        )
-      }
+        : []
+      setClassSchedules(freshClassSchedules)
 
       setEvents(eventsResult.data || [])
       setClients(clientsResult.data || [])
@@ -362,9 +361,8 @@ export default function SchedulePage() {
       setChallenges(challengesResult.data || [])
 
       // Transform challenge schedules
-      if (challengeResult.data) {
-        setChallengeSchedules(
-          challengeResult.data.map(ch => {
+      const freshChallengeSchedules: ChallengeSchedule[] = challengeResult.data
+        ? challengeResult.data.map(ch => {
             const cs = ch as ChallengeScheduleRow
             return {
               id: cs.id,
@@ -380,8 +378,22 @@ export default function SchedulePage() {
               challenge: cs.challenge as unknown as Challenge | undefined,
             } as ChallengeSchedule
           })
-        )
-      }
+        : []
+      setChallengeSchedules(freshChallengeSchedules)
+
+      // Keep the open detail sheet in sync with fresh session data
+      setDetailSheet(prev => {
+        if (!prev) return prev
+        if (prev.type === 'class') {
+          const fresh = freshClassSchedules.find(s => s.id === prev.session.id)
+          return fresh ? { ...prev, session: fresh } : prev
+        }
+        if (prev.type === 'challenge') {
+          const fresh = freshChallengeSchedules.find(s => s.id === prev.session.id)
+          return fresh ? { ...prev, session: fresh } : prev
+        }
+        return prev
+      })
     } catch (err: any) {
       toast.error('Failed to load schedule')
     }
