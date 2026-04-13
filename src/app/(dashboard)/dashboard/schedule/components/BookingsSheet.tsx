@@ -89,13 +89,13 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
         if (error) throw error
         data = rows || []
 
-        // Also fetch trialist bookings and merge in
-        const { data: trialists } = await (supabase as any)
-          .from('trialist_bookings')
-          .select('id, first_name, last_name, email, status, created_at')
-          .eq('class_schedule_id', scheduleId)
-          .eq('status', 'confirmed')
-        for (const t of (trialists ?? [])) {
+        // Also fetch trialist bookings via API (RLS blocks direct client access)
+        let trialists: any[] = []
+        try {
+          const res = await fetch(`/api/trialist-bookings?scheduleId=${scheduleId}`)
+          if (res.ok) trialists = await res.json()
+        } catch { /* ignore */ }
+        for (const t of trialists) {
           data.push({
             id: t.id,
             client_id: null,
