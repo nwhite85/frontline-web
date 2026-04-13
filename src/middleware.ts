@@ -27,6 +27,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/challenge-availability',
   '/api/create-shop-checkout',
   '/api/shop-order',
+  '/api/trialist-bookings',
   // Note: /api/shop-orders (GET) is dashboard-only, stays protected
 ]
 
