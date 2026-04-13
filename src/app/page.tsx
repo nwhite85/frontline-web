@@ -5,6 +5,7 @@ import { LandingSchedule } from '@/components/landing/LandingSchedule'
 import { LandingPricing } from '@/components/landing/LandingPricing'
 import { LandingBooking } from '@/components/landing/LandingBooking'
 import { LandingLevels } from '@/components/landing/LandingLevels'
+import { LandingLocation } from '@/components/landing/LandingLocation'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import {
   getCachedMembershipPlans,
@@ -61,6 +62,7 @@ export default async function LandingPage() {
       <LandingLevels />
       <LandingPricing initialPlans={plans} />
       <LandingBooking initialOptions={bookingOptions} />
+      <LandingLocation />
       {/* <LandingTestimonials /> — hidden until reviews come in */}
       <LandingFooter />
     </div>
