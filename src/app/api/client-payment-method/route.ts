@@ -20,19 +20,21 @@ export async function GET(request: NextRequest) {
 
     const supabase = getAdminClient()
 
-    // Look up the Stripe customer ID from user_profiles
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('stripe_customer_id')
-      .eq('id', clientId)
-      .single()
+    // Look up the Stripe customer ID — new signups store it on user_profiles,
+    // client-app signups store it in stripe_customers table
+    const [{ data: profile }, { data: stripeCustomerRow }] = await Promise.all([
+      supabase.from('user_profiles').select('stripe_customer_id').eq('id', clientId).single(),
+      supabase.from('stripe_customers').select('stripe_customer_id').eq('user_id', clientId).single(),
+    ])
 
-    if (!profile?.stripe_customer_id) {
+    const stripeCustomerId = profile?.stripe_customer_id ?? stripeCustomerRow?.stripe_customer_id ?? null
+
+    if (!stripeCustomerId) {
       return NextResponse.json({ paymentMethod: null })
     }
 
     // Fetch default payment method from Stripe
-    const stripeCustomer = await stripe.customers.retrieve(profile.stripe_customer_id, {
+    const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId, {
       expand: ['invoice_settings.default_payment_method'],
     })
 
@@ -45,7 +47,7 @@ export async function GET(request: NextRequest) {
     if (!defaultPm || typeof defaultPm === 'string') {
       // No default — try listing payment methods instead
       const methods = await stripe.paymentMethods.list({
-        customer: profile.stripe_customer_id,
+        customer: stripeCustomerId,
         type: 'card',
         limit: 1,
       })
