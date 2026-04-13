@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
+import { useSimpleAuth } from '@/contexts/SimpleAuthContext'
 import { toast } from 'sonner'
 import { Calendar, Clock, MapPin, Users, Trash2, Edit2, X, UserPlus, ArrowLeft, Search } from 'lucide-react'
 import type { SessionType } from './SessionCard'
@@ -125,6 +126,7 @@ export function SessionDetailSheet({
   type,
   onRefresh,
 }: SessionDetailSheetProps) {
+  const { user } = useSimpleAuth()
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -318,6 +320,8 @@ export function SessionDetailSheet({
           const total = h * 60 + m + mins
           return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
         }
+        const cls = session as ClassSchedule
+        const oldCap = cls.max_capacity ?? cls.class?.max_capacity ?? 0
         const { error } = await supabase
           .from('class_schedules')
           .update({
@@ -328,6 +332,26 @@ export function SessionDetailSheet({
           })
           .eq('id', session.id)
         if (error) throw error
+        // If cap increased, promote waitlisted clients into the new spots
+        if (editMaxCapacity > oldCap && user?.id) {
+          const currentConfirmed = cls.current_bookings ?? 0
+          const availableSpots = editMaxCapacity - currentConfirmed
+          if (availableSpots > 0) {
+            const { data: waitlisted } = await supabase
+              .from('class_bookings')
+              .select('id')
+              .eq('class_schedule_id', session.id)
+              .eq('booking_status', 'waitlist')
+              .order('created_at', { ascending: true })
+              .limit(availableSpots)
+            for (const booking of (waitlisted ?? [])) {
+              await supabase.rpc('promote_specific_waitlist_client', {
+                booking_id: booking.id,
+                trainer_id_param: user.id,
+              })
+            }
+          }
+        }
       } else if (type === 'event') {
         const { error } = await supabase
           .from('events')

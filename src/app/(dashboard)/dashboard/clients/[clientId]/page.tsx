@@ -269,15 +269,14 @@ function ProfileHeader({ client, loading, refreshKey, onEdit, onAddMembership, o
       supabase.from('client_memberships').select('*, membership_plans(name, price, billing_period)').eq('client_id', client.id).eq('status', 'active').maybeSingle(),
       supabase.from('client_package_purchases').select('sessions_remaining, session_packages(total_sessions, is_unlimited)').eq('client_id', client.id).eq('status', 'active'),
       supabase.from('client_programs').select('program:programs(title)').eq('client_id', client.id).eq('status', 'active'),
-    ]).then(([mem, pkg, prog]) => {
+      fetch(`/api/client-payment-method?clientId=${client.id}`).then(r => r.json()).catch(() => ({ paymentMethod: null })),
+    ]).then(([mem, pkg, prog, pmRes]) => {
       const membership = mem.status === 'fulfilled' ? mem.value.data : null
       const packages = pkg.status === 'fulfilled' ? (pkg.value.data || []) : []
       const programs = prog.status === 'fulfilled'
         ? (prog.value.data || []).map((p: any) => p.program).filter(Boolean)
         : []
-      const stored = typeof window !== 'undefined' ? localStorage.getItem(`payment-methods-${client.id}`) : null
-      const methods = stored ? JSON.parse(stored) : []
-      const defaultPaymentMethod = methods.find((m: any) => m.isDefault) ?? methods[0] ?? null
+      const defaultPaymentMethod = pmRes.status === 'fulfilled' ? (pmRes.value as any)?.paymentMethod ?? null : null
       const sessionRemaining = packages.reduce((s: number, p: any) => {
         if (p.session_packages?.is_unlimited) return s
         return s + (p.sessions_remaining ?? 0)

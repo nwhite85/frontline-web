@@ -87,6 +87,24 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
           .order('booking_date', { ascending: false })
         if (error) throw error
         data = rows || []
+
+        // Also fetch trialist bookings and merge in
+        const { data: trialists } = await (supabase as any)
+          .from('trialist_bookings')
+          .select('id, first_name, last_name, email, status, created_at')
+          .eq('class_schedule_id', scheduleId)
+          .eq('status', 'confirmed')
+        for (const t of (trialists ?? [])) {
+          data.push({
+            id: t.id,
+            client_id: null,
+            booking_status: 'confirmed',
+            booking_date: t.created_at,
+            client_name: `${t.first_name} ${t.last_name} (Trial)`,
+            client_email: t.email,
+            _is_trialist: true,
+          })
+        }
       } else if (type === 'event' && eventId) {
         const { data: rows, error } = await supabase
           .from('event_bookings')
@@ -126,7 +144,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
 
       if (autoCheckin && sessionPast) {
         const table = type === 'class' ? 'class_bookings' : type === 'challenge' ? 'challenge_bookings' : 'event_bookings'
-        const confirmedIds = data.filter(b => b.booking_status === 'confirmed').map(b => b.id)
+        const confirmedIds = data.filter(b => b.booking_status === 'confirmed' && !b._is_trialist).map(b => b.id)
         if (confirmedIds.length > 0) {
           await supabase.from(table).update({ booking_status: 'attended', checked_in_at: new Date().toISOString() }).in('id', confirmedIds)
           data = data.map(b => confirmedIds.includes(b.id) ? { ...b, booking_status: 'attended', checked_in_at: new Date().toISOString() } : b)
@@ -135,8 +153,8 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
 
       setBookings(data.map(b => ({
         ...b,
-        client_name: profiles.find(p => p.id === b.client_id)?.name || 'Unknown',
-        client_email: profiles.find(p => p.id === b.client_id)?.email || '',
+        client_name: b._is_trialist ? b.client_name : (profiles.find(p => p.id === b.client_id)?.name || 'Unknown'),
+        client_email: b._is_trialist ? b.client_email : (profiles.find(p => p.id === b.client_id)?.email || ''),
       })))
     } catch (err) {
       logger.error('Error fetching bookings:', err)

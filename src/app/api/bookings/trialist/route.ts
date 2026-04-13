@@ -108,6 +108,12 @@ export async function POST(request: NextRequest) {
       }
 
       logger.log('Server: Successfully added trialist booking:', data);
+
+      // Increment current_bookings on the class schedule
+      const { data: sched } = await supabase.from('class_schedules').select('current_bookings').eq('id', classScheduleId).single()
+      if (sched) {
+        await supabase.from('class_schedules').update({ current_bookings: (sched.current_bookings ?? 0) + 1 }).eq('id', classScheduleId)
+      }
     } catch (error) {
       logger.error('[Trialist Booking] Exception inserting booking:', error);
       return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 });

@@ -28,7 +28,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } 
 import { Switch } from '@/components/ui/switch'
 import { EmptyState } from '@/components/ui/empty-state'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
-import { Search, Plus, MoreHorizontal, ShoppingBag, Tag, ShoppingCart, Image } from 'lucide-react'
+import { Search, Plus, MoreHorizontal, ShoppingBag, Tag, ShoppingCart, Image, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Product {
@@ -86,10 +86,19 @@ const EMPTY_FORM = {
   hidden: false,
 }
 
-function OrdersTab({ orders, loading, onLoad }: {
+const ORDER_STATUSES = [
+  { key: 'ordered',          label: 'Order Placed',      badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' },
+  { key: 'supplies_ordered', label: 'Supplies Ordered',  badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' },
+  { key: 'ready',            label: 'Ready to Deliver',  badge: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300' },
+  { key: 'delivered',        label: 'Delivered',         badge: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' },
+] as const
+
+function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
   orders: Array<{ id: string; name: string; email: string; total: number; items: Array<{ name: string; color?: string | null; size?: string | null; qty: number; price: number }>; created: number; payment_status: string }>
   loading: boolean
   onLoad: () => void
+  statuses: Record<string, string>
+  onStatusChange: (sessionId: string, status: string) => Promise<void>
 }) {
   const [refunding, setRefunding] = useState<string | null>(null)
   const [refunded, setRefunded] = useState<Set<string>>(new Set())
@@ -127,43 +136,71 @@ function OrdersTab({ orders, loading, onLoad }: {
 
   return (
     <div className="flex flex-col gap-3">
-      {orders.map(order => (
-        <Card key={order.id} className="py-0">
-          <CardContent className="p-4 flex flex-col gap-2">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">{order.name}</p>
-                <p className="text-xs text-muted-foreground">{order.email}</p>
+      {orders.map(order => {
+        const currentStatus = statuses[order.id] ?? 'ordered'
+        const statusMeta = ORDER_STATUSES.find(s => s.key === currentStatus) ?? ORDER_STATUSES[0]
+        const isRefunded = refunded.has(order.id) || order.payment_status === 'refunded'
+        return (
+          <Card key={order.id} className="py-0">
+            <CardContent className="p-4 flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{order.name}</p>
+                  <p className="text-xs text-muted-foreground">{order.email}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="text-right">
+                    <p className="text-sm font-semibold">£{order.total.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(order.created * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                  {!isRefunded && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        {ORDER_STATUSES.filter(s => s.key !== currentStatus).map(s => (
+                          <DropdownMenuItem key={s.key} className="text-xs" onClick={() => onStatusChange(order.id, s.key)}>
+                            <ChevronRight className="h-3 w-3 mr-1.5 opacity-50" />
+                            {s.label}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-xs text-destructive focus:text-destructive"
+                          disabled={refunding === order.id}
+                          onClick={() => handleRefund(order.id)}
+                        >
+                          {refunding === order.id ? 'Refunding…' : 'Refund'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-semibold">£{order.total.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">{new Date(order.created * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              <div className="flex flex-col gap-1">
+                {order.items.map((item, i) => (
+                  <p key={i} className="text-xs text-muted-foreground">
+                    {item.name}{[item.color, item.size].filter(Boolean).length > 0 ? ` — ${[item.color, item.size].filter(Boolean).join(' / ')}` : ''}{item.qty > 1 ? ` ×${item.qty}` : ''}
+                  </p>
+                ))}
               </div>
-            </div>
-            <div className="flex flex-col gap-1">
-              {order.items.map((item, i) => (
-                <p key={i} className="text-xs text-muted-foreground">
-                  {item.name}{[item.color, item.size].filter(Boolean).length > 0 ? ` — ${[item.color, item.size].filter(Boolean).join(' / ')}` : ''}{item.qty > 1 ? ` ×${item.qty}` : ''}
-                </p>
-              ))}
-            </div>
-            {refundError[order.id] && <p className="text-xs text-destructive">{refundError[order.id]}</p>}
-            {refunded.has(order.id) || order.payment_status === 'refunded' ? (
-              <p className="text-xs text-muted-foreground">Refunded ✓</p>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-7 self-start text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                onClick={() => handleRefund(order.id)}
-                disabled={refunding === order.id}
-              >
-                {refunding === order.id ? 'Refunding…' : 'Refund'}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+              <div className="flex items-center gap-2">
+                {isRefunded ? (
+                  <span className="text-xs text-muted-foreground">Refunded ✓</span>
+                ) : (
+                  <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full', statusMeta.badge)}>
+                    {statusMeta.label}
+                  </span>
+                )}
+              </div>
+              {refundError[order.id] && <p className="text-xs text-destructive">{refundError[order.id]}</p>}
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }
@@ -184,6 +221,7 @@ export default function ShopPage() {
     created: number; payment_status: string;
   }>>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
+  const [orderStatuses, setOrderStatuses] = useState<Record<string, string>>({})
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -626,12 +664,36 @@ export default function ShopPage() {
           <OrdersTab
             orders={orders}
             loading={ordersLoading}
+            statuses={orderStatuses}
+            onStatusChange={async (sessionId, status) => {
+              setOrderStatuses(prev => ({ ...prev, [sessionId]: status }))
+              await (supabase as any).from('shop_order_statuses').upsert(
+                { session_id: sessionId, trainer_id: user?.id, status, updated_at: new Date().toISOString() },
+                { onConflict: 'session_id' }
+              )
+            }}
             onLoad={async () => {
               if (orders.length > 0 || ordersLoading) return
               setOrdersLoading(true)
               try {
                 const res = await fetch('/api/shop-orders')
-                if (res.ok) setOrders(await res.json())
+                if (res.ok) {
+                  const data = await res.json()
+                  setOrders(data)
+                  // Load statuses for these orders
+                  if (data.length && user?.id) {
+                    const ids = data.map((o: any) => o.id)
+                    const { data: rows } = await (supabase as any)
+                      .from('shop_order_statuses')
+                      .select('session_id, status')
+                      .in('session_id', ids)
+                    if (rows) {
+                      const map: Record<string, string> = {}
+                      for (const r of rows) map[r.session_id] = r.status
+                      setOrderStatuses(map)
+                    }
+                  }
+                }
               } catch { /* ignore */ } finally { setOrdersLoading(false) }
             }}
           />
