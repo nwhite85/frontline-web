@@ -237,6 +237,11 @@ export function welcomeEmail(data: WelcomeEmailData): { subject: string; html: s
           </td>
         </tr>
       </table>
+      <div style="background:${BRAND.bgLight};border-radius:8px;padding:16px 20px;margin:24px 0 8px;border-left:4px solid ${BRAND.primary}">
+        <p style="margin:0 0 6px;font-weight:600;font-size:13px;color:${BRAND.textMuted};text-transform:uppercase;letter-spacing:0.5px">Where to find us</p>
+        <p style="margin:0 0 4px;font-weight:500;color:${BRAND.textDark}">Lydiard Park, Swindon, SN5 3PA</p>
+        <a href="https://maps.app.goo.gl/NGKG5PJqeb2HNFFR9" style="color:${BRAND.primary};font-size:13px;text-decoration:none;font-weight:600">Get directions →</a>
+      </div>
       ${data.passwordSetupUrl ? `
       <div style="text-align:center;margin:28px 0 8px">
         <a href="${data.passwordSetupUrl}" class="btn" style="color:#ffffff">Set Your Password</a>
@@ -297,6 +302,11 @@ export function trialistBookingEmail(data: TrialistBookingData): { subject: stri
         <li>Water bottle</li>
         <li>Trainers / comfortable workout clothes</li>
       </ul>
+      <div style="background:${BRAND.bgLight};border-radius:8px;padding:16px 20px;margin:20px 0;border-left:4px solid ${BRAND.primary}">
+        <p style="margin:0 0 6px;font-weight:600;font-size:13px;color:${BRAND.textMuted};text-transform:uppercase;letter-spacing:0.5px">Where to find us</p>
+        <p style="margin:0 0 4px;font-weight:500;color:${BRAND.textDark}">Lydiard Park, Swindon, SN5 3PA</p>
+        <a href="https://maps.app.goo.gl/NGKG5PJqeb2HNFFR9" style="color:${BRAND.primary};font-size:13px;text-decoration:none;font-weight:600">Get directions →</a>
+      </div>
       <p>If you need to cancel or have any questions, just reply to this email.</p>
       <p>See you there!</p>
       ${data.trainerName ? `<p style="color:${BRAND.textMuted}">— ${data.trainerName}, Frontline Fitness</p>` : `<p style="color:${BRAND.textMuted}">— Frontline Fitness</p>`}
