@@ -89,10 +89,10 @@ const EMPTY_FORM = {
 }
 
 const ORDER_STATUSES = [
-  { key: 'ordered',          label: 'Order Placed',      badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' },
-  { key: 'supplies_ordered', label: 'Supplies Ordered',  badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' },
-  { key: 'ready',            label: 'Ready to Deliver',  badge: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300' },
-  { key: 'delivered',        label: 'Delivered',         badge: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' },
+  { key: 'ordered',          label: 'Order Placed',      badge: 'border border-yellow-400 text-yellow-700 bg-yellow-50 dark:border-yellow-600 dark:text-yellow-400 dark:bg-yellow-950/40' },
+  { key: 'supplies_ordered', label: 'Supplies Ordered',  badge: 'border border-blue-400 text-blue-700 bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:bg-blue-950/40' },
+  { key: 'ready',            label: 'Ready to Deliver',  badge: 'border border-orange-400 text-orange-700 bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:bg-orange-950/40' },
+  { key: 'delivered',        label: 'Delivered',         badge: 'border border-green-400 text-green-700 bg-green-50 dark:border-green-600 dark:text-green-400 dark:bg-green-950/40' },
 ] as const
 
 function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
