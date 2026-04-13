@@ -89,10 +89,10 @@ const EMPTY_FORM = {
 }
 
 const ORDER_STATUSES = [
-  { key: 'ordered',          label: 'Order Placed',      badge: 'border border-yellow-400 text-yellow-700 bg-yellow-50 dark:border-yellow-600 dark:text-yellow-400 dark:bg-yellow-950/40' },
-  { key: 'supplies_ordered', label: 'Supplies Ordered',  badge: 'border border-blue-400 text-blue-700 bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:bg-blue-950/40' },
-  { key: 'ready',            label: 'Ready to Deliver',  badge: 'border border-orange-400 text-orange-700 bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:bg-orange-950/40' },
-  { key: 'delivered',        label: 'Delivered',         badge: 'border border-green-400 text-green-700 bg-green-50 dark:border-green-600 dark:text-green-400 dark:bg-green-950/40' },
+  { key: 'ordered',          label: 'Order Placed',     style: { border: '1px solid #eab308', color: '#713f12', background: '#fefce8' } },
+  { key: 'supplies_ordered', label: 'Supplies Ordered', style: { border: '1px solid #3b82f6', color: '#1e3a8a', background: '#eff6ff' } },
+  { key: 'ready',            label: 'Ready to Deliver', style: { border: '1px solid #f97316', color: '#7c2d12', background: '#fff7ed' } },
+  { key: 'delivered',        label: 'Delivered',        style: { border: '1px solid #22c55e', color: '#14532d', background: '#f0fdf4' } },
 ] as const
 
 function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
@@ -252,7 +252,7 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
                 {isRefunded ? (
                   <span className="text-xs text-muted-foreground">Refunded ✓</span>
                 ) : (
-                  <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full', statusMeta.badge)}>
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={statusMeta.style}>
                     {statusMeta.label}
                   </span>
                 )}

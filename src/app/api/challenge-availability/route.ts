@@ -14,33 +14,45 @@ const VALID_TIERS = ['grey', 'blue', 'black'] as const
 type Tier = typeof VALID_TIERS[number]
 type TierStatus = 'available' | 'full'
 
-// Returns true if adding one person of this tier+gender would exceed KB stock
+// Generic check for gender-split equipment pools (kettlebells, power bags, etc.)
+function equipmentPoolFull(
+  stock: Record<string, number>,
+  itemsPerPerson: number,
+  tiers: Record<Tier, { female: string; male: string }>,
+  tier: Tier,
+  gender: 'male' | 'female',
+  bookings: Array<{ ability_tier: string | null; gender: string | null }>
+): boolean {
+  const usage: Record<string, number> = {}
+  for (const b of bookings) {
+    const t = b.ability_tier as Tier | null
+    if (!t || !tiers[t]) continue
+    const g = b.gender === 'male' ? 'male' : 'female'
+    const weight = tiers[t][g]
+    usage[weight] = (usage[weight] || 0) + itemsPerPerson
+  }
+  const tierCfg = tiers[tier]
+  if (!tierCfg) return false
+  const weight = tierCfg[gender]
+  return (usage[weight] ?? 0) + itemsPerPerson > (stock[weight] ?? 0)
+}
+
 function strengthFull(
   tc: any,
   tier: Tier,
   gender: 'male' | 'female',
   bookings: Array<{ ability_tier: string | null; gender: string | null }>
 ): boolean {
-  const kbs = tc.kettlebells as Record<string, number>
-  const tiers = tc.tiers as Record<Tier, { female: string; male: string }>
-  const kbsPerPerson = (tc.kbs_per_person as number) ?? 2
+  return equipmentPoolFull(tc.kettlebells, (tc.kbs_per_person as number) ?? 2, tc.tiers, tier, gender, bookings)
+}
 
-  const weightUsage: Record<string, number> = {}
-  for (const b of bookings) {
-    const t = b.ability_tier as Tier | null
-    if (!t || !tiers[t]) continue
-    const g = b.gender === 'male' ? 'male' : 'female'
-    const weight = tiers[t][g]
-    weightUsage[weight] = (weightUsage[weight] || 0) + kbsPerPerson
-  }
-
-  const tierCfg = tiers[tier]
-  if (!tierCfg) return false
-  const weight = tierCfg[gender]
-
-  // Only check the KB pool relevant to this tier+gender — other pools are not this person's concern
-  const currentUsage = weightUsage[weight] ?? 0
-  return (currentUsage + kbsPerPerson) > (kbs[weight] ?? 0)
+function endurancePowerbagFull(
+  tc: any,
+  tier: Tier,
+  gender: 'male' | 'female',
+  bookings: Array<{ ability_tier: string | null; gender: string | null }>
+): boolean {
+  return equipmentPoolFull(tc.powerbags, (tc.bags_per_person as number) ?? 1, tc.tiers, tier, gender, bookings)
 }
 
 function speedFull(tc: any, totalCount: number): boolean {
@@ -157,6 +169,8 @@ export async function GET(request: NextRequest) {
       let full = false
       if (tc.kettlebells) {
         full = strengthFull(tc, tier, gender, bookingsForCheck)
+      } else if (tc.powerbags) {
+        full = endurancePowerbagFull(tc, tier, gender, bookingsForCheck)
       } else if (tc.total_ropes != null) {
         full = speedFull(tc, totalCount)
       } else if (tc.total_risers != null) {

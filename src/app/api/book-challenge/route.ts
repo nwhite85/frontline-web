@@ -16,39 +16,52 @@ type Tier = typeof VALID_TIERS[number]
 
 // ─── Resource capacity checkers ──────────────────────────────────────────────
 
+function checkEquipmentPool(
+  stock: Record<string, number>,
+  itemsPerPerson: number,
+  tiers: Record<Tier, { female: string; male: string }>,
+  tier: Tier,
+  gender: string | null,
+  bookings: Array<{ ability_tier: string | null; gender: string | null }>,
+  equipmentName: string
+): string | null {
+  const usage: Record<string, number> = {}
+  for (const b of bookings) {
+    const t = b.ability_tier as Tier | null
+    if (!t || !tiers[t]) continue
+    const g = b.gender === 'male' ? 'male' : 'female'
+    const weight = tiers[t][g]
+    usage[weight] = (usage[weight] || 0) + itemsPerPerson
+  }
+  const tierCfg = tiers[tier]
+  if (!tierCfg) return null
+  const g = gender === 'male' ? 'male' : 'female'
+  const weight = tierCfg[g]
+  const currentUsage = usage[weight] ?? 0
+  const available = stock[weight] ?? 0
+  if (currentUsage + itemsPerPerson > available) {
+    const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
+    return `${tierLabel} tier is full — not enough ${weight} ${equipmentName} available (${available} in stock, ${currentUsage + itemsPerPerson} needed).`
+  }
+  return null
+}
+
 function checkStrength(
   tc: any,
   tier: Tier,
   gender: string | null,
   bookings: Array<{ ability_tier: string | null; gender: string | null }>
 ): string | null {
-  const kbs = tc.kettlebells as Record<string, number>
-  const tiers = tc.tiers as Record<Tier, { female: string; male: string }>
-  const kbsPerPerson = tc.kbs_per_person as number ?? 2
+  return checkEquipmentPool(tc.kettlebells, tc.kbs_per_person ?? 2, tc.tiers, tier, gender, bookings, 'kettlebells')
+}
 
-  // Calculate current KB usage from existing bookings
-  const weightUsage: Record<string, number> = {}
-  for (const b of bookings) {
-    const t = b.ability_tier as Tier | null
-    if (!t || !tiers[t]) continue
-    const g = b.gender === 'male' ? 'male' : 'female'
-    const weight = tiers[t][g]
-    weightUsage[weight] = (weightUsage[weight] || 0) + kbsPerPerson
-  }
-
-  // Only check the pool for this new booking's tier+gender
-  const newTierCfg = tiers[tier]
-  if (!newTierCfg) return null
-  const newGender = gender === 'male' ? 'male' : 'female'
-  const newWeight = newTierCfg[newGender]
-  const currentUsage = weightUsage[newWeight] ?? 0
-  const stock = kbs[newWeight] ?? 0
-
-  if (currentUsage + kbsPerPerson > stock) {
-    const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
-    return `${tierLabel} tier is full — not enough ${newWeight} kettlebells available (${stock} in stock, ${currentUsage + kbsPerPerson} needed).`
-  }
-  return null
+function checkEndurancePowerbag(
+  tc: any,
+  tier: Tier,
+  gender: string | null,
+  bookings: Array<{ ability_tier: string | null; gender: string | null }>
+): string | null {
+  return checkEquipmentPool(tc.powerbags, tc.bags_per_person ?? 1, tc.tiers, tier, gender, bookings, 'power bags')
 }
 
 function checkSpeed(tc: any, totalCount: number): string | null {
@@ -217,6 +230,8 @@ export async function POST(request: NextRequest) {
       // Determine which challenge type based on config shape
       if (tc.kettlebells) {
         blockMsg = checkStrength(tc, tier, clientGender, bookingsForCheck)
+      } else if (tc.powerbags) {
+        blockMsg = checkEndurancePowerbag(tc, tier, clientGender, bookingsForCheck)
       } else if (tc.total_ropes != null) {
         blockMsg = checkSpeed(tc, totalCount)
       } else if (tc.total_risers != null) {
