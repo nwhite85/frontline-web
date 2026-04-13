@@ -126,6 +126,31 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
     }
   }
 
+  const [markingAll, setMarkingAll] = useState(false)
+
+  // Aggregate items from all "ordered" status orders
+  const pendingOrders = orders.filter(o =>
+    !refunded.has(o.id) && o.payment_status !== 'refunded' && (statuses[o.id] ?? 'ordered') === 'ordered'
+  )
+  const supplierLines = (() => {
+    const map: Record<string, { name: string; color?: string | null; size?: string | null; qty: number }> = {}
+    for (const order of pendingOrders) {
+      for (const item of order.items) {
+        const key = [item.name, item.color, item.size].filter(Boolean).join('|')
+        if (map[key]) map[key].qty += item.qty
+        else map[key] = { name: item.name, color: item.color, size: item.size, qty: item.qty }
+      }
+    }
+    return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
+  })()
+
+  const handleMarkAllOrdered = async () => {
+    if (!pendingOrders.length) return
+    setMarkingAll(true)
+    await Promise.all(pendingOrders.map(o => onStatusChange(o.id, 'supplies_ordered')))
+    setMarkingAll(false)
+  }
+
   if (loading) return (
     <div className="flex flex-col gap-2">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
   )
@@ -136,6 +161,38 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Supplier summary card */}
+      {pendingOrders.length > 0 && (
+        <Card className="py-0 border-yellow-200 dark:border-yellow-800">
+          <CardContent className="p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold">Needs Ordering</p>
+                <p className="text-xs text-muted-foreground">{pendingOrders.length} order{pendingOrders.length !== 1 ? 's' : ''} waiting on supplies</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-7 shrink-0"
+                onClick={handleMarkAllOrdered}
+                disabled={markingAll}
+              >
+                {markingAll ? 'Updating…' : 'Mark all as Supplies Ordered'}
+              </Button>
+            </div>
+            <div className="border-t pt-3 flex flex-col gap-1.5">
+              {supplierLines.map((line, i) => (
+                <div key={i} className="flex items-center justify-between text-xs">
+                  <span className="text-foreground">
+                    {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
+                  </span>
+                  <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {orders.map(order => {
         const currentStatus = statuses[order.id] ?? 'ordered'
         const statusMeta = ORDER_STATUSES.find(s => s.key === currentStatus) ?? ORDER_STATUSES[0]
