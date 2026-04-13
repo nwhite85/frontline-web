@@ -4,7 +4,7 @@ import { logger } from '@/utils/logger'
 import { rateLimit } from '@/utils/rateLimit'
 
 interface OrderItem {
-  product: { id: string; name: string; price: number }
+  product: { id: string; name: string; price: number; product_code?: string }
   size: string | null
   color: string | null
   qty: number
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
         customer_name: name,
         order_items: JSON.stringify(items.map(i => ({
           name: i.product.name,
+          product_code: i.product.product_code ?? null,
           color: i.color,
           size: i.size,
           qty: i.qty,

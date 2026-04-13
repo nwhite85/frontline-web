@@ -34,6 +34,7 @@ import { toast } from 'sonner'
 interface Product {
   id: string
   name: string
+  product_code?: string
   price: number
   category: 'mens' | 'womens' | 'unisex' | 'accessories'
   type: 'hoodie' | 'vest' | 'tshirt' | 'shorts' | 'jacket' | 'leggings' | 'bra' | 'cap' | 'other'
@@ -73,6 +74,7 @@ const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
 const EMPTY_FORM = {
   name: '',
+  product_code: '',
   price: '',
   category: 'mens' as Product['category'],
   type: 'tshirt' as Product['type'],
@@ -133,12 +135,12 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
     !refunded.has(o.id) && o.payment_status !== 'refunded' && (statuses[o.id] ?? 'ordered') === 'ordered'
   )
   const supplierLines = (() => {
-    const map: Record<string, { name: string; color?: string | null; size?: string | null; qty: number }> = {}
+    const map: Record<string, { name: string; product_code?: string; color?: string | null; size?: string | null; qty: number }> = {}
     for (const order of pendingOrders) {
       for (const item of order.items) {
         const key = [item.name, item.color, item.size].filter(Boolean).join('|')
         if (map[key]) map[key].qty += item.qty
-        else map[key] = { name: item.name, color: item.color, size: item.size, qty: item.qty }
+        else map[key] = { name: item.name, product_code: (item as any).product_code, color: item.color, size: item.size, qty: item.qty }
       }
     }
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
@@ -167,7 +169,7 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
           <CardContent className="p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold">Needs Ordering</p>
+                <p className="text-sm font-semibold">Awaiting Order</p>
                 <p className="text-xs text-muted-foreground">{pendingOrders.length} order{pendingOrders.length !== 1 ? 's' : ''} waiting on supplies</p>
               </div>
               <Button
@@ -185,6 +187,7 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
                 <div key={i} className="flex items-center justify-between text-xs">
                   <span className="text-foreground">
                     {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
+                    {line.product_code && <span className="text-muted-foreground ml-1.5">({line.product_code})</span>}
                   </span>
                   <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
                 </div>
@@ -411,6 +414,7 @@ export default function ShopPage() {
       : product.image_url ? [product.image_url] : []
     setForm({
       name: product.name,
+      product_code: product.product_code || '',
       price: product.price.toString(),
       category: product.category,
       type: product.type,
@@ -422,7 +426,7 @@ export default function ShopPage() {
       active: product.active,
       purchasable: product.purchasable ?? true,
       hidden: product.hidden ?? false,
-    })
+    } as any)
     setFormError(null)
     setPendingImageFiles([])
     setPendingImagePreviews([])
@@ -490,6 +494,7 @@ export default function ShopPage() {
 
       const payload = {
         name: form.name,
+        product_code: (form as any).product_code?.trim() || null,
         price,
         category: form.category,
         type: form.type,
@@ -605,6 +610,7 @@ export default function ShopPage() {
                   <TableRow className="bg-muted/30">
                     <TableHead className="text-xs font-medium w-14">Image</TableHead>
                     <TableHead className="text-xs font-medium">Name</TableHead>
+                    <TableHead className="text-xs font-medium">Code</TableHead>
                     <TableHead className="text-xs font-medium">Category</TableHead>
                     <TableHead className="text-xs font-medium">Price</TableHead>
                     <TableHead className="text-xs font-medium">Sizes</TableHead>
@@ -633,6 +639,7 @@ export default function ShopPage() {
                         <p className="text-sm font-medium">{product.name}</p>
                         <p className="text-xs text-muted-foreground capitalize">{TYPE_LABELS[product.type] || product.type}</p>
                       </TableCell>
+                      <TableCell className="py-2 text-xs text-muted-foreground font-mono">{product.product_code || '—'}</TableCell>
                       <TableCell className="py-2">
                         <Badge variant="outline" className="text-xs capitalize">
                           {CATEGORY_LABELS[product.category] ?? product.category}
@@ -806,24 +813,35 @@ export default function ShopPage() {
             <Separator />
 
             <div className="grid gap-3">
-              <div className="grid gap-1.5">
-                <Label className="text-xs">Product Name *</Label>
-                <Input
-                  placeholder="e.g. Training Hoodie"
-                  value={form.name}
-                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs">Price (£) *</Label>
-                <Input
-                  type="number"
-                  placeholder="e.g. 45.00"
-                  value={form.price}
-                  onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
-                  className="h-8 text-sm"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5 col-span-2">
+                  <Label className="text-xs">Product Name *</Label>
+                  <Input
+                    placeholder="e.g. Training Hoodie"
+                    value={form.name}
+                    onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label className="text-xs">Product Code</Label>
+                  <Input
+                    placeholder="e.g. FL-HOD-001"
+                    value={(form as any).product_code || ''}
+                    onChange={e => setForm(p => ({ ...p, product_code: e.target.value }))}
+                    className="h-8 text-sm font-mono"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label className="text-xs">Price (£) *</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 45.00"
+                    value={form.price}
+                    onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
