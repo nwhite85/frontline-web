@@ -165,16 +165,25 @@ export function SessionDetailSheet({
     else if (type === 'event') endpoint = `/api/event-bookings?eventId=${s.id}`
     else if (type === 'challenge') endpoint = `/api/challenge-bookings?scheduleId=${s.id}`
     if (!endpoint) { setLoadingBookings(false); return }
-    fetch(endpoint)
-      .then(r => r.json())
-      .then(data => {
+    const trialistPromise = type === 'class'
+      ? fetch(`/api/trialist-bookings?scheduleId=${s.id}`).then(r => r.ok ? r.json() : []).catch(() => [])
+      : Promise.resolve([])
+    Promise.all([fetch(endpoint).then(r => r.json()), trialistPromise])
+      .then(([data, trialists]) => {
         const bookings = (data.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
-        setInlineBookings(bookings.map((b: any) => ({
+        const mapped = bookings.map((b: any) => ({
           id: b.id,
           client_name: b.user_profiles?.name || 'Unknown',
           booking_status: b.booking_status,
           ability_tier: b.ability_tier ?? null,
-        })))
+        }))
+        const trialMapped = (trialists as any[]).map(t => ({
+          id: t.id,
+          client_name: `${t.first_name} ${t.last_name} (Trial)`,
+          booking_status: 'confirmed',
+          ability_tier: null,
+        }))
+        setInlineBookings([...mapped, ...trialMapped])
         setKbSummary(data.kb_summary ?? null)
       })
       .catch(() => { setInlineBookings([]); setKbSummary(null) })
@@ -202,16 +211,27 @@ export function SessionDetailSheet({
     else if (type === 'event') endpoint = `/api/event-bookings?eventId=${s.id}`
     else if (type === 'challenge') endpoint = `/api/challenge-bookings?scheduleId=${s.id}`
     if (!endpoint) return
-    fetch(endpoint).then(r => r.json()).then(d => {
-      const bookings = (d.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
-      setInlineBookings(bookings.map((b: any) => ({
-        id: b.id,
-        client_name: b.user_profiles?.name || 'Unknown',
-        booking_status: b.booking_status,
-        ability_tier: b.ability_tier ?? null,
-      })))
-      setKbSummary(d.kb_summary ?? null)
-    }).catch(() => {})
+    const trialistPromise = type === 'class'
+      ? fetch(`/api/trialist-bookings?scheduleId=${s.id}`).then(r => r.ok ? r.json() : []).catch(() => [])
+      : Promise.resolve([])
+    Promise.all([fetch(endpoint).then(r => r.json()), trialistPromise])
+      .then(([d, trialists]) => {
+        const bookings = (d.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
+        const mapped = bookings.map((b: any) => ({
+          id: b.id,
+          client_name: b.user_profiles?.name || 'Unknown',
+          booking_status: b.booking_status,
+          ability_tier: b.ability_tier ?? null,
+        }))
+        const trialMapped = (trialists as any[]).map(t => ({
+          id: t.id,
+          client_name: `${t.first_name} ${t.last_name} (Trial)`,
+          booking_status: 'confirmed',
+          ability_tier: null,
+        }))
+        setInlineBookings([...mapped, ...trialMapped])
+        setKbSummary(d.kb_summary ?? null)
+      }).catch(() => {})
   }
 
   const handleBookClient = async () => {
