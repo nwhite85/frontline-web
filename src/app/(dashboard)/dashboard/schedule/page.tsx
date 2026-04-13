@@ -403,6 +403,12 @@ export default function SchedulePage() {
     if (user) { refreshData(); fetchUnbilledCount() }
   }, [user, selectedWeek])
 
+  // Auto-refresh every 60 seconds so booking counts stay live
+  useEffect(() => {
+    if (!user) return
+    const interval = setInterval(() => { refreshData() }, 60_000)
+    return () => clearInterval(interval)
+  }, [user, refreshData])
 
   // Inject top bar controls
   useEffect(() => {
