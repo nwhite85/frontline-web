@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Users, Search, CheckCircle, Clock, X, UserPlus } from 'lucide-react'
+import { Users, Search, CheckCircle, Clock, X, UserPlus, Trash2 } from 'lucide-react'
 import { logger } from '@/utils/logger'
 
 interface Booking {
@@ -65,6 +65,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
   const [clientSearch, setClientSearch] = useState('')
   const [addingId, setAddingId] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
 
   const fetchAutoCheckinSetting = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -260,6 +261,36 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
     }
   }
 
+  const removeBooking = async (booking: Booking & { _is_trialist?: boolean }) => {
+    const name = booking.client_name?.replace(' (Trial)', '') || 'this person'
+    if (!confirm(`Remove ${name} from this session?`)) return
+    setRemovingId(booking.id)
+    try {
+      if ((booking as any)._is_trialist) {
+        const { error } = await (supabase as any).from('trialist_bookings').delete().eq('id', booking.id)
+        if (error) throw error
+        // Decrement current_bookings
+        if (scheduleId) {
+          const { data: sched } = await supabase.from('class_schedules').select('current_bookings').eq('id', scheduleId).single()
+          if (sched) {
+            await supabase.from('class_schedules').update({ current_bookings: Math.max(0, (sched.current_bookings ?? 1) - 1) }).eq('id', scheduleId)
+          }
+        }
+      } else {
+        const table = type === 'class' ? 'class_bookings' : type === 'challenge' ? 'challenge_bookings' : 'event_bookings'
+        const { error } = await supabase.from(table).delete().eq('id', booking.id)
+        if (error) throw error
+        await syncBookingCount()
+      }
+      await fetchBookings()
+      toast.success(`${name} removed`)
+    } catch (err) {
+      toast.error('Failed to remove booking')
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
   const confirmedCount = bookings.filter(b => b.booking_status === 'confirmed' || b.booking_status === 'attended').length
   const tierCounts = {
     grey: bookings.filter(b => b.ability_tier === 'grey' && b.booking_status !== 'cancelled').length,
@@ -406,6 +437,15 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
                       ) : (
                         <span className="h-6 w-16 invisible" />
                       )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        disabled={removingId === booking.id}
+                        onClick={() => removeBooking(booking as any)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
                 )
