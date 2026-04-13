@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
       const plan = recurringMembership.membership_plans
 
       if (plan?.classes_per_week) {
+        // Count by scheduled_date (class week), not booking_date (when booked)
+        // so that booking ahead for next week doesn't consume this week's allowance
         const now = new Date()
         const day = now.getDay() === 0 ? 6 : now.getDay() - 1
         const weekStart = new Date(now)
@@ -65,14 +67,25 @@ export async function POST(request: NextRequest) {
         weekStart.setHours(0, 0, 0, 0)
         const weekEnd = new Date(weekStart)
         weekEnd.setDate(weekStart.getDate() + 7)
+        const weekStartDate = weekStart.toISOString().split('T')[0]
+        const weekEndDate = weekEnd.toISOString().split('T')[0]
 
-        const { count } = await supabase
-          .from('class_bookings')
-          .select('id', { count: 'exact', head: true })
-          .eq('client_id', clientId)
-          .neq('booking_status', 'cancelled')
-          .gte('booking_date', weekStart.toISOString())
-          .lt('booking_date', weekEnd.toISOString())
+        const { data: weekSchedules } = await supabase
+          .from('class_schedules')
+          .select('id')
+          .gte('scheduled_date', weekStartDate)
+          .lt('scheduled_date', weekEndDate)
+
+        const weekScheduleIds = (weekSchedules || []).map((s: any) => s.id)
+
+        const { count } = weekScheduleIds.length > 0
+          ? await supabase
+              .from('class_bookings')
+              .select('id', { count: 'exact', head: true })
+              .eq('client_id', clientId)
+              .neq('booking_status', 'cancelled')
+              .in('class_schedule_id', weekScheduleIds)
+          : { count: 0 }
 
         if ((count ?? 0) >= plan.classes_per_week) {
           return NextResponse.json(
@@ -81,17 +94,27 @@ export async function POST(request: NextRequest) {
           )
         }
       } else if (plan?.classes_per_month) {
+        // Count by scheduled_date (class month), not booking_date
         const now = new Date()
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+        const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+        const monthEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0]
 
-        const { count } = await supabase
-          .from('class_bookings')
-          .select('id', { count: 'exact', head: true })
-          .eq('client_id', clientId)
-          .neq('booking_status', 'cancelled')
-          .gte('booking_date', monthStart.toISOString())
-          .lt('booking_date', monthEnd.toISOString())
+        const { data: monthSchedules } = await supabase
+          .from('class_schedules')
+          .select('id')
+          .gte('scheduled_date', monthStartDate)
+          .lt('scheduled_date', monthEndDate)
+
+        const monthScheduleIds = (monthSchedules || []).map((s: any) => s.id)
+
+        const { count } = monthScheduleIds.length > 0
+          ? await supabase
+              .from('class_bookings')
+              .select('id', { count: 'exact', head: true })
+              .eq('client_id', clientId)
+              .neq('booking_status', 'cancelled')
+              .in('class_schedule_id', monthScheduleIds)
+          : { count: 0 }
 
         if ((count ?? 0) >= plan.classes_per_month) {
           return NextResponse.json(
