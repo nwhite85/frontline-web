@@ -1517,6 +1517,12 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [pmName, setPmName] = useState('')
   const [pmSaving, setPmSaving] = useState(false)
 
+  // Migrate to Stripe billing
+  const [showMigrateSheet, setShowMigrateSheet] = useState(false)
+  const [migrateDate, setMigrateDate] = useState('')
+  const [migrating, setMigrating] = useState(false)
+  const [migrateError, setMigrateError] = useState<string | null>(null)
+
   const detectCardType = (n: string) => {
     const v = n.replace(/\s/g, '')
     if (v.startsWith('4')) return 'Visa'
@@ -1552,7 +1558,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
     const results = await Promise.allSettled([
       supabase.from('client_payments').select('id, amount, status, payment_date, description').eq('client_id', clientId).order('payment_date', { ascending: false }).limit(30),
       supabase.from('client_package_purchases').select('*, session_packages(name, total_sessions, is_unlimited)').eq('client_id', clientId).eq('status', 'active'),
-      supabase.from('client_memberships').select('*, membership_plans(name, price, billing_period)').eq('client_id', clientId).eq('status', 'active').maybeSingle(),
+      (supabase as any).from('client_memberships').select('*, membership_plans(name, price, billing_period)').eq('client_id', clientId).eq('status', 'active').maybeSingle(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase as any).from('appointments').select('id, appointment_date, start_time, appointment_type, payment_status')
         .eq('client_id', clientId)
@@ -1599,12 +1605,55 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
     } finally { setAddingMembership(false) }
   }
 
+  const handleMigrateToStripe = async () => {
+    if (!migrateDate) { setMigrateError('Please set a billing date'); return }
+    setMigrating(true); setMigrateError(null)
+    try {
+      const res = await fetch('/api/migrate-to-stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, billingDate: migrateDate }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(`Stripe billing active — first charge ${data.trialUntil ? `on ${data.trialUntil}` : 'immediately'}`)
+      setShowMigrateSheet(false)
+      await loadBilling()
+      onMutated?.()
+    } catch (err: any) {
+      setMigrateError(err.message || 'Failed to migrate')
+    } finally { setMigrating(false) }
+  }
+
   if (loading) return <div className="flex flex-col gap-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
   const memPlan = activeMembership?.membership_plans
+  const hasStripeSubscription = !!activeMembership?.stripe_subscription_id
   const total = payments.filter(p => p.status === 'completed').reduce((s, p) => s + p.amount, 0)
 
   return (
     <div className="flex flex-col gap-4">
+
+      {/* ── Membership Billing ── */}
+      {memPlan && !memPlan.is_comp && (
+        <div className="rounded-lg border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{memPlan.name}</p>
+              <p className="text-xs text-muted-foreground">£{memPlan.price?.toFixed(2)} / {memPlan.billing_period ?? 'monthly'}</p>
+            </div>
+            {hasStripeSubscription ? (
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Stripe Active</span>
+            ) : (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setShowMigrateSheet(true); setMigrateDate(''); setMigrateError(null) }}>
+                Move to Stripe Billing
+              </Button>
+            )}
+          </div>
+          {activeMembership?.next_billing_date && (
+            <p className="text-xs text-muted-foreground mt-1">Next billing: {new Date(activeMembership.next_billing_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+          )}
+        </div>
+      )}
 
       {/* ── Session Packages ── */}
       {packages.length > 0 && (
@@ -1800,6 +1849,42 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
               </div>
             )}
           </SheetBody>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Move to Stripe Billing Sheet ── */}
+      <Sheet open={showMigrateSheet} onOpenChange={v => { setShowMigrateSheet(v); if (!v) setMigrateError(null) }}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Move to Stripe Billing</SheetTitle>
+          </SheetHeader>
+          <SheetBody>
+            <p className="text-sm text-muted-foreground">
+              This will create a Stripe subscription for <strong>{memPlan?.name}</strong> at <strong>£{memPlan?.price?.toFixed(2)}/month</strong>.
+              Set the billing date to match their existing payment date on PushPress.
+            </p>
+            <div className="grid gap-1.5 mt-4">
+              <Label>First billing date</Label>
+              <Input
+                type="date"
+                value={migrateDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={e => { setMigrateDate(e.target.value); setMigrateError(null) }}
+              />
+              <p className="text-xs text-muted-foreground">If this date is in the future, no charge is made until then. The subscription renews monthly from this date.</p>
+            </div>
+            {migrateError && <p className="text-sm text-destructive">{migrateError}</p>}
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mt-2">
+              <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Before confirming</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Cancel their PushPress subscription first to avoid double billing.</p>
+            </div>
+          </SheetBody>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setShowMigrateSheet(false)}>Cancel</Button>
+            <Button onClick={handleMigrateToStripe} disabled={migrating || !migrateDate}>
+              {migrating ? 'Setting up…' : 'Activate Stripe Billing'}
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 
