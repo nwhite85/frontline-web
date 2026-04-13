@@ -135,12 +135,12 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
     !refunded.has(o.id) && o.payment_status !== 'refunded' && (statuses[o.id] ?? 'ordered') === 'ordered'
   )
   const supplierLines = (() => {
-    const map: Record<string, { name: string; product_code?: string; color?: string | null; size?: string | null; qty: number }> = {}
+    const map: Record<string, { name: string; product_code?: string; category?: string; color?: string | null; size?: string | null; qty: number }> = {}
     for (const order of pendingOrders) {
       for (const item of order.items) {
-        const key = [item.name, item.color, item.size].filter(Boolean).join('|')
+        const key = [(item as any).category, item.name, item.color, item.size].filter(Boolean).join('|')
         if (map[key]) map[key].qty += item.qty
-        else map[key] = { name: item.name, product_code: (item as any).product_code, color: item.color, size: item.size, qty: item.qty }
+        else map[key] = { name: item.name, product_code: (item as any).product_code, category: (item as any).category, color: item.color, size: item.size, qty: item.qty }
       }
     }
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
@@ -188,6 +188,7 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
                   <span className="text-foreground">
                     {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
                     {line.product_code && <span className="text-muted-foreground ml-1.5">({line.product_code})</span>}
+                    {line.category && <span className="text-muted-foreground ml-1.5 capitalize">[{CATEGORY_LABELS[line.category] ?? line.category}]</span>}
                   </span>
                   <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
                 </div>
@@ -243,7 +244,7 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
               <div className="flex flex-col gap-1">
                 {order.items.map((item, i) => (
                   <p key={i} className="text-xs text-muted-foreground">
-                    {item.name}{[item.color, item.size].filter(Boolean).length > 0 ? ` — ${[item.color, item.size].filter(Boolean).join(' / ')}` : ''}{item.qty > 1 ? ` ×${item.qty}` : ''}
+                    {item.name}{[item.color, item.size].filter(Boolean).length > 0 ? ` — ${[item.color, item.size].filter(Boolean).join(' / ')}` : ''}{item.qty > 1 ? ` ×${item.qty}` : ''}{(item as any).category && <span className="text-muted-foreground ml-1"> [{CATEGORY_LABELS[(item as any).category] ?? (item as any).category}]</span>}
                   </p>
                 ))}
               </div>
