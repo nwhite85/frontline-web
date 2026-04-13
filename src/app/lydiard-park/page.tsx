@@ -42,7 +42,7 @@ const jsonLd = {
 
 const faqs = [
   { q: 'Where exactly in Lydiard Park are sessions held?', a: 'Sessions meet at the main car park entrance on Lydiard Park (SN5 3PA). The coach will be visible — look for the group gathering near the open grass area. Exact details are confirmed when you book.' },
-  { q: 'Is parking available at Lydiard Park?', a: 'Yes, there is a free car park at Lydiard Park with ample space. It is well signposted from the main road.' },
+  { q: 'Is parking available at Lydiard Park?', a: 'Yes, there is a car park at Lydiard Park with ample space. It is well signposted from the main road.' },
   { q: 'What happens if it rains?', a: 'Sessions run in all weathers — rain, cold, and wind included. This is outdoor training, not a gym class. Dress appropriately for conditions and sessions will go ahead. Only extreme weather (lightning etc) results in cancellation, and you will always be notified in advance.' },
   { q: 'Is Lydiard Park suitable for beginners?', a: 'Yes. The flat, open terrain at Lydiard Park makes it ideal for all fitness levels. Sessions are fully coached and all exercises can be modified to suit beginners. Many of our most committed members started with no fitness background at all.' },
 ]
@@ -104,7 +104,7 @@ export default function LydiardParkPage() {
             {[
               { icon: Trees, title: '260 Acres of Parkland', desc: 'Open space to spread out, sprint, and move freely without the constraints of a gym floor.' },
               { icon: Wind, title: 'Year-Round Training', desc: 'Sessions run in all conditions. The open park environment and natural terrain is what makes the training effective.' },
-              { icon: Sun, title: 'Free to Access', desc: 'Lydiard Park is publicly accessible with free parking — no gym door to walk through, no overpriced smoothie bar.' },
+              { icon: Sun, title: 'Publicly Accessible', desc: 'Lydiard Park is open to the public — no gym door to walk through, no overpriced smoothie bar.' },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-6">
                 <Icon size={20} className="text-brand-blue opacity-70 mb-3" />
@@ -127,7 +127,7 @@ export default function LydiardParkPage() {
           <h2 className="text-3xl font-bold uppercase tracking-tight text-white mb-6">Location &amp; Parking</h2>
           <div className="max-w-xl space-y-3 text-white/60 text-sm leading-relaxed mb-6">
             <p><span className="text-white font-medium">Address:</span> Lydiard Park, Swindon, SN5 3PA</p>
-            <p><span className="text-white font-medium">Parking:</span> Free car park on site, well signposted from the A3102 and M4 junction 16.</p>
+            <p><span className="text-white font-medium">Parking:</span> Car park on site, well signposted from the A3102 and M4 junction 16.</p>
             <p><span className="text-white font-medium">Meeting point:</span> Confirmed with your booking — typically near the main car park on the open grass.</p>
           </div>
           <a
