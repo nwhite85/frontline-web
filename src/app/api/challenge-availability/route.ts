@@ -130,6 +130,7 @@ export async function GET(request: NextRequest) {
         mode: 'simple',
         tiers: { grey: full ? 'full' : 'available', blue: full ? 'full' : 'available', black: full ? 'full' : 'available' },
         sessionFull: full,
+        maxCapacity: maxCap > 0 ? maxCap : null,
       })
     }
 
@@ -183,7 +184,30 @@ export async function GET(request: NextRequest) {
 
     const sessionFull = VALID_TIERS.every(t => tierResult[t] === 'full')
 
-    return NextResponse.json({ mode: 'resource', tiers: tierResult, sessionFull })
+    // ── Compute equipment-based display capacity for progress bar ──
+    let maxCapacity: number | null = null
+    if (tc.kettlebells) {
+      // Sum floor(stock / kbs_per_person) for each unique weight
+      const kbsPerPerson = (tc.kbs_per_person as number) ?? 2
+      const stock = tc.kettlebells as Record<string, number>
+      maxCapacity = Object.values(stock).reduce((sum, qty) => sum + Math.floor(qty / kbsPerPerson), 0)
+    } else if (tc.powerbags) {
+      // Sum floor(stock / bags_per_person) for each unique weight
+      const bagsPerPerson = (tc.bags_per_person as number) ?? 1
+      const stock = tc.powerbags as Record<string, number>
+      maxCapacity = Object.values(stock).reduce((sum, qty) => sum + Math.floor(qty / bagsPerPerson), 0)
+    } else if (tc.total_ropes != null) {
+      maxCapacity = (tc.total_ropes as number) * (tc.people_per_rope as number)
+    } else if (tc.tiers) {
+      // Simple per-tier stock (endurance simple / power fallback)
+      const tierStocks = VALID_TIERS.map(t => (tc.tiers[t]?.stock as number | undefined) ?? 0)
+      const total = tierStocks.reduce((a, b) => a + b, 0)
+      maxCapacity = total > 0 ? total : (schedule.max_capacity ?? null)
+    } else {
+      maxCapacity = schedule.max_capacity ?? null
+    }
+
+    return NextResponse.json({ mode: 'resource', tiers: tierResult, sessionFull, maxCapacity })
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to check availability' }, { status: 500 })
