@@ -94,7 +94,8 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
         try {
           const res = await fetch(`/api/trialist-bookings?scheduleId=${scheduleId}`)
           if (res.ok) trialists = await res.json()
-        } catch { /* ignore */ }
+          else logger.error('[BookingsSheet] trialist fetch failed:', res.status, await res.text())
+        } catch (e) { logger.error('[BookingsSheet] trialist fetch error:', e) }
         for (const t of trialists) {
           data.push({
             id: t.id,
