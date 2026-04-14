@@ -118,12 +118,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       }
 
       // Build membership row
+      const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null
       const membershipRow: Record<string, unknown> = {
         client_id: userId,
         membership_plan_id: planId,
         trainer_id: plan.trainer_id,
         status: 'active',
         start_date: new Date().toISOString().split('T')[0],
+        ...(subscriptionId && !isCreditPackage ? { stripe_subscription_id: subscriptionId } : {}),
       }
 
       // For credit packages: set credits and expiry
