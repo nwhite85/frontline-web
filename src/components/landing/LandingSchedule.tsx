@@ -113,10 +113,12 @@ export function LandingSchedule({ initialSchedules, sampleSchedules }: { initial
   })
   const [useFallback, setUseFallback] = useState(!initialSchedules || initialSchedules.length === 0)
   const [selectedDay, setSelectedDay] = useState(0)
+  const [fetchedOffsets] = useState<Set<number>>(() => new Set(initialSchedules && initialSchedules.length > 0 ? [0] : []))
 
   // Only fetch from client when navigating to a week not covered by server data
   const fetchWeek = async (offset: number) => {
-    if (offset === 0 && initialSchedules && initialSchedules.length > 0) return // already have it
+    if (fetchedOffsets.has(offset)) return // already fetched this week
+    fetchedOffsets.add(offset)
     const start = new Date()
     start.setDate(start.getDate() + offset * 7)
     const end = new Date(start)
@@ -147,7 +149,7 @@ export function LandingSchedule({ initialSchedules, sampleSchedules }: { initial
       setScheduleMap(prev => {
         const next = new Map(prev)
         const newEntries = buildMapFromRaw(combined)
-        newEntries.forEach((v, k) => next.set(k, [...(next.get(k) ?? []), ...v]))
+        newEntries.forEach((v, k) => next.set(k, v))
         return next
       })
       setUseFallback(false)
