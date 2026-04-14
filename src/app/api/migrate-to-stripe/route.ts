@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // ── Fetch current active membership + plan ────────────────────────────────
     const { data: membership } = await supabase
       .from('client_memberships')
-      .select('id, membership_plan_id, membership_plans(id, name, price, stripe_price_id)')
+      .select('id, membership_plan_id, membership_plans(id, name, price)')
       .eq('client_id', clientId)
       .eq('status', 'active')
       .single()
@@ -45,7 +45,11 @@ export async function POST(request: NextRequest) {
     if (!plan) return NextResponse.json({ error: 'Membership plan not found' }, { status: 404 })
 
     // ── Get or create Stripe price ────────────────────────────────────────────
-    let stripePriceId = plan.stripe_price_id as string | null
+    // Look up an existing active price for this plan by metadata, or create one
+    const existingPrices = await stripe.prices.list({ limit: 100, active: true })
+    let stripePriceId = existingPrices.data.find(
+      p => p.metadata?.plan_id === plan.id && p.recurring?.interval === 'month'
+    )?.id ?? null
 
     if (!stripePriceId) {
       // Find or create Stripe product + price
@@ -65,7 +69,6 @@ export async function POST(request: NextRequest) {
         metadata: { plan_id: plan.id },
       })
       stripePriceId = price.id
-      await supabase.from('membership_plans').update({ stripe_price_id: stripePriceId }).eq('id', plan.id)
       logger.log(`Created Stripe price ${stripePriceId} for plan ${plan.name}`)
     }
 
