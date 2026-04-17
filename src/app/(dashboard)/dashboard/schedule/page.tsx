@@ -306,17 +306,27 @@ export default function SchedulePage() {
           .order('name'),
       ])
 
-      // Build a live booking count map from actual non-cancelled class_bookings
+      // Build a live booking count map from actual non-cancelled class_bookings + trialists
       const classScheduleIds = (classResult.data || []).map((c: any) => c.id)
       const liveClassBookingCounts: Record<string, number> = {}
       if (classScheduleIds.length > 0) {
-        const { data: liveBookings } = await supabase
-          .from('class_bookings')
-          .select('class_schedule_id')
-          .in('class_schedule_id', classScheduleIds)
-          .neq('booking_status', 'cancelled')
+        const [{ data: liveBookings }, { data: liveTrialists }] = await Promise.all([
+          supabase
+            .from('class_bookings')
+            .select('class_schedule_id')
+            .in('class_schedule_id', classScheduleIds)
+            .neq('booking_status', 'cancelled'),
+          supabase
+            .from('trialist_bookings')
+            .select('class_schedule_id')
+            .in('class_schedule_id', classScheduleIds)
+            .eq('status', 'confirmed'),
+        ])
         for (const b of (liveBookings || []) as { class_schedule_id: string }[]) {
           liveClassBookingCounts[b.class_schedule_id] = (liveClassBookingCounts[b.class_schedule_id] || 0) + 1
+        }
+        for (const t of (liveTrialists || []) as { class_schedule_id: string }[]) {
+          liveClassBookingCounts[t.class_schedule_id] = (liveClassBookingCounts[t.class_schedule_id] || 0) + 1
         }
       }
 
