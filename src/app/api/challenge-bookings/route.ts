@@ -110,6 +110,26 @@ export async function GET(request: NextRequest) {
         if (items.length > 0) sections.push({ label: 'Powerbags needed', items })
       }
 
+      // Dumbbells — Endurance Checkpoint (separate tier mapping)
+      if (tierCapacity.dumbbell_tiers && tierCapacity.dumbbells) {
+        const count: Record<string, number> = {}
+        for (const booking of result) {
+          const tier = booking.ability_tier as string | null
+          const gender = booking.user_profiles?.gender as string | null
+          if (!tier) continue
+          const tierWeights = tierCapacity.dumbbell_tiers[tier]
+          if (!tierWeights) continue
+          const weight: string = gender === 'male' ? (tierWeights.male ?? tierWeights.female) : (tierWeights.female ?? tierWeights.male)
+          if (!weight) continue
+          count[weight] = (count[weight] || 0) + 1
+        }
+        const items = Object.keys(tierCapacity.dumbbells)
+          .sort((a, b) => parseFloat(a) - parseFloat(b))
+          .filter(w => (count[w] || 0) > 0)
+          .map(w => ({ weight: w, needed: count[w] || 0, available: tierCapacity.dumbbells[w] }))
+        if (items.length > 0) sections.push({ label: 'Dumbbells needed', items })
+      }
+
       // Battle ropes — Speed Checkpoint
       if (tierCapacity.total_ropes != null && tierCapacity.people_per_rope) {
         const ropesNeeded = Math.ceil(result.length / tierCapacity.people_per_rope)
