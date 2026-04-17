@@ -24,7 +24,24 @@ function ClassesTab() {
         .gte('scheduled_date', today)
         .order('scheduled_date', { ascending: true })
         .order('start_time', { ascending: true })
-      setSchedules((data as ClassSchedule[]) ?? [])
+      const rows = (data as ClassSchedule[]) ?? []
+
+      // Replace cached current_bookings with a live count from actual non-cancelled bookings
+      if (rows.length > 0) {
+        const ids = rows.map(s => s.id)
+        const { data: liveBookings } = await supabase
+          .from('class_bookings')
+          .select('class_schedule_id')
+          .in('class_schedule_id', ids)
+          .neq('booking_status', 'cancelled')
+        const counts: Record<string, number> = {}
+        for (const b of (liveBookings || []) as { class_schedule_id: string }[]) {
+          counts[b.class_schedule_id] = (counts[b.class_schedule_id] || 0) + 1
+        }
+        setSchedules(rows.map(s => ({ ...s, current_bookings: counts[s.id] ?? 0 })))
+      } else {
+        setSchedules(rows)
+      }
       setLoading(false)
     }
     load()

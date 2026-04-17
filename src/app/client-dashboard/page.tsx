@@ -712,7 +712,23 @@ function ClassesTab({ userId }: { userId: string }) {
         .in('booking_status', ['confirmed', 'waitlist']),
     ])
 
-    setSchedules((schedData as ClassSchedule[]) ?? [])
+    const schedRows = (schedData as ClassSchedule[]) ?? []
+    // Replace cached current_bookings with a live count from actual non-cancelled bookings
+    if (schedRows.length > 0) {
+      const ids = schedRows.map(s => s.id)
+      const { data: liveCounts } = await supabase
+        .from('class_bookings')
+        .select('class_schedule_id')
+        .in('class_schedule_id', ids)
+        .neq('booking_status', 'cancelled')
+      const countMap: Record<string, number> = {}
+      for (const b of (liveCounts || []) as { class_schedule_id: string }[]) {
+        countMap[b.class_schedule_id] = (countMap[b.class_schedule_id] || 0) + 1
+      }
+      setSchedules(schedRows.map(s => ({ ...s, current_bookings: countMap[s.id] ?? 0 })))
+    } else {
+      setSchedules(schedRows)
+    }
     const map: Record<string, string> = {}
     for (const b of ((bData as { class_schedule_id: string; booking_status: string }[]) ?? [])) {
       map[b.class_schedule_id] = b.booking_status
@@ -1081,8 +1097,23 @@ function CheckpointsTab({ userId }: { userId: string }) {
     }
     setBookedChallengeIds(ids)
 
-    // Use current_bookings from DB directly — authoritative count updated by booking API
-    setReviewClasses((rcData as ClassSchedule[]) ?? [])
+    // Use live booking counts rather than cached current_bookings column
+    const rcRows = (rcData as ClassSchedule[]) ?? []
+    if (rcRows.length > 0) {
+      const rcIds = rcRows.map(s => s.id)
+      const { data: rcLive } = await supabase
+        .from('class_bookings')
+        .select('class_schedule_id')
+        .in('class_schedule_id', rcIds)
+        .neq('booking_status', 'cancelled')
+      const rcCountMap: Record<string, number> = {}
+      for (const b of (rcLive || []) as { class_schedule_id: string }[]) {
+        rcCountMap[b.class_schedule_id] = (rcCountMap[b.class_schedule_id] || 0) + 1
+      }
+      setReviewClasses(rcRows.map(s => ({ ...s, current_bookings: rcCountMap[s.id] ?? 0 })))
+    } else {
+      setReviewClasses(rcRows)
+    }
     const classMap: Record<string, string> = {}
     for (const b of ((rbData as { class_schedule_id: string; booking_status: string }[]) ?? [])) {
       classMap[b.class_schedule_id] = b.booking_status

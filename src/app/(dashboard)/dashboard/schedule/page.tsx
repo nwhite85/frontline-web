@@ -306,6 +306,20 @@ export default function SchedulePage() {
           .order('name'),
       ])
 
+      // Build a live booking count map from actual non-cancelled class_bookings
+      const classScheduleIds = (classResult.data || []).map((c: any) => c.id)
+      const liveClassBookingCounts: Record<string, number> = {}
+      if (classScheduleIds.length > 0) {
+        const { data: liveBookings } = await supabase
+          .from('class_bookings')
+          .select('class_schedule_id')
+          .in('class_schedule_id', classScheduleIds)
+          .neq('booking_status', 'cancelled')
+        for (const b of (liveBookings || []) as { class_schedule_id: string }[]) {
+          liveClassBookingCounts[b.class_schedule_id] = (liveClassBookingCounts[b.class_schedule_id] || 0) + 1
+        }
+      }
+
       // Transform appointments
       if (appointmentResult.data) {
         type AptRow = Tables['appointments']['Row']
@@ -344,7 +358,7 @@ export default function SchedulePage() {
               time: cs.start_time || '',
               location: cs.location ?? cs.class?.location ?? undefined,
               max_capacity: cs.max_capacity ?? cs.class?.max_capacity ?? undefined,
-              current_bookings: cs.current_bookings || 0,
+              current_bookings: liveClassBookingCounts[cs.id] ?? cs.current_bookings ?? 0,
               status: cs.status || 'scheduled',
               trainer_id: cs.trainer_id,
               class: cs.class as unknown as Class | undefined,
