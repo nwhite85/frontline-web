@@ -28,7 +28,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } 
 import { Switch } from '@/components/ui/switch'
 import { EmptyState } from '@/components/ui/empty-state'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
-import { Search, Plus, MoreHorizontal, ShoppingBag, Tag, ShoppingCart, Image, ChevronRight } from 'lucide-react'
+import { Search, Plus, MoreHorizontal, ShoppingBag, Tag, ShoppingCart, Image, ChevronRight, Archive } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Product {
@@ -95,16 +95,19 @@ const ORDER_STATUSES = [
   { key: 'delivered',        label: 'Delivered',        style: { border: '1px solid #22c55e', color: '#14532d', background: '#f0fdf4' } },
 ] as const
 
-function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
+function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archivedIds, onToggleArchive }: {
   orders: Array<{ id: string; name: string; email: string; total: number; items: Array<{ name: string; color?: string | null; size?: string | null; qty: number; price: number }>; created: number; payment_status: string }>
   loading: boolean
   onLoad: () => void
   statuses: Record<string, string>
   onStatusChange: (sessionId: string, status: string) => Promise<void>
+  archivedIds: Set<string>
+  onToggleArchive: (id: string) => void
 }) {
   const [refunding, setRefunding] = useState<string | null>(null)
   const [refunded, setRefunded] = useState<Set<string>>(new Set())
   const [refundError, setRefundError] = useState<Record<string, string>>({})
+  const [showArchive, setShowArchive] = useState(false)
 
   useEffect(() => { onLoad() }, [])
 
@@ -161,10 +164,36 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
     <EmptyState icon={ShoppingCart} title="No orders yet" description="Paid shop orders will appear here." />
   )
 
+  const activeOrders = orders.filter(o => !archivedIds.has(o.id))
+  const archivedOrders = orders.filter(o => archivedIds.has(o.id))
+  const visibleOrders = showArchive ? archivedOrders : activeOrders
+
   return (
     <div className="flex flex-col gap-3">
-      {/* Supplier summary card */}
-      {pendingOrders.length > 0 && (
+      {/* Active / Archive toggle */}
+      {archivedOrders.length > 0 && (
+        <div className="flex items-center gap-1 self-start">
+          <button
+            onClick={() => setShowArchive(false)}
+            className={cn('px-3 py-1 text-xs rounded-full border transition-colors', !showArchive ? 'bg-foreground text-background border-foreground font-medium' : 'border-border text-muted-foreground hover:text-foreground')}
+          >
+            Active ({activeOrders.length})
+          </button>
+          <button
+            onClick={() => setShowArchive(true)}
+            className={cn('px-3 py-1 text-xs rounded-full border transition-colors', showArchive ? 'bg-foreground text-background border-foreground font-medium' : 'border-border text-muted-foreground hover:text-foreground')}
+          >
+            Archive ({archivedOrders.length})
+          </button>
+        </div>
+      )}
+
+      {visibleOrders.length === 0 && (
+        <EmptyState icon={showArchive ? Archive : ShoppingCart} title={showArchive ? 'Archive is empty' : 'All done'} description={showArchive ? 'Archived orders will appear here.' : 'No active orders.'} />
+      )}
+
+      {/* Supplier summary card — active view only */}
+      {!showArchive && pendingOrders.length > 0 && (
         <Card className="py-0 border-yellow-200 dark:border-yellow-800">
           <CardContent className="p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
@@ -197,7 +226,7 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
           </CardContent>
         </Card>
       )}
-      {orders.map(order => {
+      {visibleOrders.map(order => {
         const currentStatus = statuses[order.id] ?? 'ordered'
         const statusMeta = ORDER_STATUSES.find(s => s.key === currentStatus) ?? ORDER_STATUSES[0]
         const isRefunded = refunded.has(order.id) || order.payment_status === 'refunded'
@@ -214,21 +243,21 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
                     <p className="text-sm font-semibold">£{order.total.toFixed(2)}</p>
                     <p className="text-xs text-muted-foreground">{new Date(order.created * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                   </div>
-                  {!isRefunded && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                          <MoreHorizontal className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        {ORDER_STATUSES.filter(s => s.key !== currentStatus).map(s => (
-                          <DropdownMenuItem key={s.key} className="text-xs" onClick={() => onStatusChange(order.id, s.key)}>
-                            <ChevronRight className="h-3 w-3 mr-1.5 opacity-50" />
-                            {s.label}
-                          </DropdownMenuItem>
-                        ))}
-                        <DropdownMenuSeparator />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {!isRefunded && ORDER_STATUSES.filter(s => s.key !== currentStatus).map(s => (
+                        <DropdownMenuItem key={s.key} className="text-xs" onClick={() => onStatusChange(order.id, s.key)}>
+                          <ChevronRight className="h-3 w-3 mr-1.5 opacity-50" />
+                          {s.label}
+                        </DropdownMenuItem>
+                      ))}
+                      {!isRefunded && <DropdownMenuSeparator />}
+                      {!isRefunded && (
                         <DropdownMenuItem
                           className="text-xs text-destructive focus:text-destructive"
                           disabled={refunding === order.id}
@@ -236,9 +265,17 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange }: {
                         >
                           {refunding === order.id ? 'Refunding…' : 'Refund'}
                         </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                      )}
+                      {isRefunded && <DropdownMenuSeparator />}
+                      <DropdownMenuItem
+                        className="text-xs"
+                        onClick={() => onToggleArchive(order.id)}
+                      >
+                        <Archive className="h-3 w-3 mr-1.5 opacity-50" />
+                        {archivedIds.has(order.id) ? 'Unarchive' : 'Archive'}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
               <div className="flex flex-col gap-1">
@@ -284,6 +321,30 @@ export default function ShopPage() {
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [orderStatuses, setOrderStatuses] = useState<Record<string, string>>({})
 
+  // Archived order IDs — persisted to localStorage
+  const [archivedIds, setArchivedIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    try { return new Set(JSON.parse(localStorage.getItem('shop-archived-orders') || '[]')) } catch { return new Set() }
+  })
+  const saveArchived = (next: Set<string>) => {
+    setArchivedIds(next)
+    try { localStorage.setItem('shop-archived-orders', JSON.stringify([...next])) } catch {}
+  }
+  const handleToggleArchive = (id: string) => {
+    const next = new Set(archivedIds)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    saveArchived(next)
+  }
+  const handleArchiveComplete = () => {
+    const next = new Set(archivedIds)
+    for (const order of orders) {
+      const status = orderStatuses[order.id] ?? 'ordered'
+      const isRefunded = order.payment_status === 'refunded'
+      if (status === 'delivered' || isRefunded) next.add(order.id)
+    }
+    saveArchived(next)
+  }
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -306,8 +367,20 @@ export default function ShopPage() {
   // Inject top bar actions + search
   useEffect(() => {
     const label = activeTab === 'products' ? 'Add Product' : activeTab === 'categories' ? 'Add Category' : ''
+    const archivableCount = orders.filter(o => {
+      const status = orderStatuses[o.id] ?? 'ordered'
+      return !archivedIds.has(o.id) && (status === 'delivered' || o.payment_status === 'refunded')
+    }).length
     setActions(
-      label ? (
+      activeTab === 'orders' ? (
+        archivableCount > 0 ? (
+          <Button variant="outline" className="bg-card" onClick={handleArchiveComplete}>
+            <Archive className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
+            <span className="hidden lg:inline">Archive Complete ({archivableCount})</span>
+            <span className="lg:hidden">{archivableCount}</span>
+          </Button>
+        ) : null
+      ) : label ? (
         <Button variant="outline" className="bg-card" onClick={activeTab === 'products' ? handleOpenAdd : undefined}>
           <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
           <span className="hidden lg:inline">{label}</span>
@@ -326,7 +399,7 @@ export default function ShopPage() {
       </div>
     )
     return () => { setActions(null); setHeaderTabs(null) }
-  }, [setActions, setHeaderTabs, activeTab])
+  }, [setActions, setHeaderTabs, activeTab, orders, orderStatuses, archivedIds])
 
   useEffect(() => {
     if (activeTab !== 'products') {
@@ -730,6 +803,8 @@ export default function ShopPage() {
             orders={orders}
             loading={ordersLoading}
             statuses={orderStatuses}
+            archivedIds={archivedIds}
+            onToggleArchive={handleToggleArchive}
             onStatusChange={async (sessionId, status) => {
               setOrderStatuses(prev => ({ ...prev, [sessionId]: status }))
               await (supabase as any).from('shop_order_statuses').upsert(
