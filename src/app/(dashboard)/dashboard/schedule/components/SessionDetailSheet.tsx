@@ -163,7 +163,7 @@ export function SessionDetailSheet({
   }
 
   useEffect(() => {
-    if (!open || !session || type === 'appointment') { setInlineBookings([]); setKbSummary(null); return }
+    if (!open || !session || type === 'appointment') { setInlineBookings([]); setEquipmentSummary(null); return }
     setLoadingBookings(true)
     const s = session as any
     const sessionDate: string = s.scheduled_date || s.start_date || ''
