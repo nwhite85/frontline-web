@@ -1133,7 +1133,7 @@ export default function ShopPage() {
             {/* Product picker */}
             <div className="flex flex-col gap-2">
               <Label className="text-xs">Add Products</Label>
-              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+              <div className="flex flex-col gap-2">
                 {products.filter(p => p.active).map(p => (
                   <div key={p.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border">
                     <div className="min-w-0">
