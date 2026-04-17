@@ -62,34 +62,104 @@ export async function GET(request: NextRequest) {
       }))
     }
 
-    // Compute KB equipment summary if tier_capacity has the right shape
-    let kb_summary: { weight: string; needed: number; available: number }[] | null = null
-    if (tierCapacity?.tiers && tierCapacity?.kettlebells) {
-      const kbCount: Record<string, number> = {}
-      for (const booking of result) {
-        const tier = booking.ability_tier as string | null
-        const gender = booking.user_profiles?.gender as string | null
-        if (!tier) continue
-        const tierWeights = tierCapacity.tiers[tier]
-        if (!tierWeights) continue
-        // Use gender-specific weight; fall back to female weight if unknown
-        const weight: string = gender === 'male' ? (tierWeights.male ?? tierWeights.female) : (tierWeights.female ?? tierWeights.male)
-        if (!weight) continue
-        kbCount[weight] = (kbCount[weight] || 0) + (tierCapacity.kbs_per_person ?? 1)
+    // Compute equipment summary for any checkpoint type
+    type EquipmentItem = { weight: string; needed: number; available: number }
+    type EquipmentSection = { label: string; items: EquipmentItem[] }
+    let equipment_summary: EquipmentSection[] | null = null
+
+    if (tierCapacity) {
+      const sections: EquipmentSection[] = []
+
+      // Kettlebells — Strength Checkpoint
+      if (tierCapacity.tiers && tierCapacity.kettlebells) {
+        const count: Record<string, number> = {}
+        for (const booking of result) {
+          const tier = booking.ability_tier as string | null
+          const gender = booking.user_profiles?.gender as string | null
+          if (!tier) continue
+          const tierWeights = tierCapacity.tiers[tier]
+          if (!tierWeights) continue
+          const weight: string = gender === 'male' ? (tierWeights.male ?? tierWeights.female) : (tierWeights.female ?? tierWeights.male)
+          if (!weight) continue
+          count[weight] = (count[weight] || 0) + (tierCapacity.kbs_per_person ?? 1)
+        }
+        const items = Object.keys(tierCapacity.kettlebells)
+          .sort((a, b) => parseFloat(a) - parseFloat(b))
+          .filter(w => (count[w] || 0) > 0)
+          .map(w => ({ weight: w, needed: count[w] || 0, available: tierCapacity.kettlebells[w] }))
+        if (items.length > 0) sections.push({ label: 'Kettlebells needed', items })
       }
-      // Build summary in weight order
-      const allWeights = Object.keys(tierCapacity.kettlebells).sort((a, b) => parseFloat(a) - parseFloat(b))
-      kb_summary = allWeights
-        .filter(w => (kbCount[w] || 0) > 0 || tierCapacity.kettlebells[w] > 0)
-        .map(w => ({
-          weight: w,
-          needed: kbCount[w] || 0,
-          available: tierCapacity.kettlebells[w] || 0,
-        }))
-        .filter(s => s.needed > 0)
+
+      // Powerbags — Endurance Checkpoint
+      if (tierCapacity.tiers && tierCapacity.powerbags) {
+        const count: Record<string, number> = {}
+        for (const booking of result) {
+          const tier = booking.ability_tier as string | null
+          const gender = booking.user_profiles?.gender as string | null
+          if (!tier) continue
+          const tierWeights = tierCapacity.tiers[tier]
+          if (!tierWeights) continue
+          const weight: string = gender === 'male' ? (tierWeights.male ?? tierWeights.female) : (tierWeights.female ?? tierWeights.male)
+          if (!weight) continue
+          count[weight] = (count[weight] || 0) + (tierCapacity.bags_per_person ?? 1)
+        }
+        const items = Object.keys(tierCapacity.powerbags)
+          .sort((a, b) => parseFloat(a) - parseFloat(b))
+          .filter(w => (count[w] || 0) > 0)
+          .map(w => ({ weight: w, needed: count[w] || 0, available: tierCapacity.powerbags[w] }))
+        if (items.length > 0) sections.push({ label: 'Powerbags needed', items })
+      }
+
+      // Battle ropes — Speed Checkpoint
+      if (tierCapacity.total_ropes != null && tierCapacity.people_per_rope) {
+        const ropesNeeded = Math.ceil(result.length / tierCapacity.people_per_rope)
+        if (ropesNeeded > 0) {
+          sections.push({ label: 'Ropes needed', items: [{ weight: 'Battle rope', needed: ropesNeeded, available: tierCapacity.total_ropes }] })
+        }
+      }
+
+      // Medicine balls + risers — Power Checkpoint
+      if (tierCapacity.balls) {
+        const ballCount: Record<string, { needed: number; available: number }> = {}
+        for (const booking of result) {
+          const tier = booking.ability_tier as string | null
+          if (!tier) continue
+          const ballInfo = (tierCapacity.balls as any)[tier]
+          if (!ballInfo) continue
+          const key = ballInfo.weight as string
+          if (!ballCount[key]) ballCount[key] = { needed: 0, available: ballInfo.stock }
+          ballCount[key].needed += 1
+        }
+        const ballItems = Object.entries(ballCount)
+          .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+          .filter(([, v]) => v.needed > 0)
+          .map(([w, v]) => ({ weight: w, needed: v.needed, available: v.available }))
+        if (ballItems.length > 0) sections.push({ label: 'Medicine balls needed', items: ballItems })
+
+        // Risers
+        if (tierCapacity.tiers && tierCapacity.total_risers != null) {
+          const tierGroups: Record<string, number> = {}
+          for (const booking of result) {
+            const tier = booking.ability_tier as string | null
+            if (!tier) continue
+            tierGroups[tier] = (tierGroups[tier] || 0) + 1
+          }
+          let totalRisersNeeded = 0
+          for (const [tier, tierCount] of Object.entries(tierGroups)) {
+            const tierInfo = (tierCapacity.tiers as any)[tier]
+            if (!tierInfo?.group_size || !tierInfo?.risers_per_group) continue
+            totalRisersNeeded += Math.ceil((tierCount as number) / tierInfo.group_size) * tierInfo.risers_per_group
+          }
+          if (totalRisersNeeded > 0) {
+            sections.push({ label: 'Risers needed', items: [{ weight: 'Risers', needed: totalRisersNeeded, available: tierCapacity.total_risers }] })
+          }
+        }
+      }
+
+      if (sections.length > 0) equipment_summary = sections
     }
 
-    return NextResponse.json({ bookings: result, kb_summary })
+    return NextResponse.json({ bookings: result, equipment_summary })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to fetch bookings'
     return NextResponse.json({ error: msg }, { status: 500 })

@@ -134,7 +134,7 @@ export function SessionDetailSheet({
   const [showBookings, setShowBookings] = useState(false)
   const [saving, setSaving] = useState(false)
   const [inlineBookings, setInlineBookings] = useState<{ id: string; client_id?: string; client_name: string; booking_status: string; ability_tier?: string | null; is_birthday?: boolean }[]>([])
-  const [kbSummary, setKbSummary] = useState<{ weight: string; needed: number; available: number }[] | null>(null)
+  const [equipmentSummary, setEquipmentSummary] = useState<{ label: string; items: { weight: string; needed: number; available: number }[] }[] | null>(null)
   const [loadingBookings, setLoadingBookings] = useState(false)
 
   // Book client state
@@ -211,9 +211,9 @@ export function SessionDetailSheet({
         }
 
         setInlineBookings([...mapped, ...trialMapped])
-        setKbSummary(data.kb_summary ?? null)
+        setEquipmentSummary(data.equipment_summary ?? null)
       })
-      .catch(() => { setInlineBookings([]); setKbSummary(null) })
+      .catch(() => { setInlineBookings([]); setEquipmentSummary(null) })
       .finally(() => setLoadingBookings(false))
   }, [open, session, type])
 
@@ -277,7 +277,7 @@ export function SessionDetailSheet({
         }
 
         setInlineBookings([...mapped, ...trialMapped])
-        setKbSummary(d.kb_summary ?? null)
+        setEquipmentSummary(d.equipment_summary ?? null)
       }).catch(() => {})
   }
 
@@ -731,20 +731,24 @@ export function SessionDetailSheet({
             </>
           )}
 
-          {/* KB equipment summary — challenges with kettlebell tier_capacity */}
-          {kbSummary && kbSummary.length > 0 && (
+          {/* Equipment summary — challenges with tier_capacity */}
+          {equipmentSummary && equipmentSummary.length > 0 && (
             <>
               <Separator />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Kettlebells needed</p>
-                <div className="flex flex-wrap gap-2">
-                  {kbSummary.map(({ weight, needed, available }) => (
-                    <div key={weight} className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border ${needed > available ? 'border-red-500/40 bg-red-500/10 text-red-400' : 'border-white/10 bg-white/[0.03] text-foreground'}`}>
-                      <span className="font-semibold">{weight}</span>
-                      <span className={needed > available ? 'text-red-400' : 'text-muted-foreground'}>{needed}/{available}</span>
+              <div className="flex flex-col gap-3">
+                {equipmentSummary.map(section => (
+                  <div key={section.label}>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{section.label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {section.items.map(({ weight, needed, available }) => (
+                        <div key={weight} className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border ${needed > available ? 'border-red-500/40 bg-red-500/10 text-red-400' : 'border-white/10 bg-white/[0.03] text-foreground'}`}>
+                          <span className="font-semibold">{weight}</span>
+                          <span className={needed > available ? 'text-red-400' : 'text-muted-foreground'}>{needed}/{available}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </>
           )}
