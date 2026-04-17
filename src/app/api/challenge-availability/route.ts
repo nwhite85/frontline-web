@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     // Fetch schedule + challenge config
     const { data: schedule } = await supabase
       .from('challenge_schedules')
-      .select('id, max_capacity, current_bookings, status, challenge:challenge_id(id, tier_capacity)')
+      .select('id, max_capacity, current_bookings, status, is_locked, locked_kit, challenge:challenge_id(id, tier_capacity)')
       .eq('id', scheduleId)
       .single()
 
@@ -119,7 +119,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ mode: 'cancelled', tiers: { grey: 'full', blue: 'full', black: 'full' }, sessionFull: true })
     }
 
+    const isLocked = !!(schedule as any).is_locked
+    const lockedKit = (schedule as any).locked_kit as Record<string, Record<string, number>> | null
     const tc = (schedule as any).challenge?.tier_capacity as any
+
+    // When locked, override equipment stocks with locked_kit snapshot
+    if (isLocked && lockedKit && tc) {
+      if (lockedKit.kettlebells && tc.kettlebells) tc.kettlebells = lockedKit.kettlebells
+      if (lockedKit.powerbags && tc.powerbags) tc.powerbags = lockedKit.powerbags
+      if (lockedKit.dumbbells && tc.dumbbells) tc.dumbbells = lockedKit.dumbbells
+      if (lockedKit.ropes && tc.total_ropes != null) tc.total_ropes = Object.values(lockedKit.ropes)[0] ?? 0
+    }
 
     // ── Non-resource mode: simple headcount ──
     if (!tc?.mode || tc.mode !== 'resource') {
@@ -207,7 +217,7 @@ export async function GET(request: NextRequest) {
       maxCapacity = schedule.max_capacity ?? null
     }
 
-    return NextResponse.json({ mode: 'resource', tiers: tierResult, sessionFull, maxCapacity })
+    return NextResponse.json({ mode: 'resource', tiers: tierResult, sessionFull, maxCapacity, isLocked })
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to check availability' }, { status: 500 })

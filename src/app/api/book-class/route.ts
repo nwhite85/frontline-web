@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     // ── 3. Fetch class schedule ──
     const { data: schedule } = await supabase
       .from('class_schedules')
-      .select('id, trainer_id, max_capacity, current_bookings, status')
+      .select('id, trainer_id, max_capacity, current_bookings, status, is_locked, locked_capacity')
       .eq('id', classScheduleId)
       .single()
 
@@ -139,7 +139,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This class has been cancelled.' }, { status: 400 })
     }
 
-    const isFull = (schedule.max_capacity ?? 0) > 0 && (schedule.current_bookings ?? 0) >= (schedule.max_capacity ?? 0)
+    // When locked, use locked_capacity as the cap instead of max_capacity
+    const effectiveCap = (schedule as any).is_locked && (schedule as any).locked_capacity != null
+      ? (schedule as any).locked_capacity as number
+      : (schedule.max_capacity ?? 0)
+    const isFull = effectiveCap > 0 && (schedule.current_bookings ?? 0) >= effectiveCap
 
     // ── 4. Check not already booked ──
     const { data: existing } = await supabase

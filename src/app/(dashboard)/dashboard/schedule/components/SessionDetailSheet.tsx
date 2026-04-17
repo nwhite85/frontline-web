@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { supabase } from '@/lib/supabase'
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext'
 import { toast } from 'sonner'
-import { Calendar, Clock, MapPin, Users, Trash2, Edit2, X, UserPlus, ArrowLeft, Search } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, Trash2, Edit2, X, UserPlus, ArrowLeft, Search, Lock, LockOpen } from 'lucide-react'
 import type { SessionType } from './SessionCard'
 import { BookingsSheet } from './BookingsSheet'
 
@@ -135,6 +135,8 @@ export function SessionDetailSheet({
   const [saving, setSaving] = useState(false)
   const [inlineBookings, setInlineBookings] = useState<{ id: string; client_id?: string; client_name: string; booking_status: string; ability_tier?: string | null; is_birthday?: boolean }[]>([])
   const [equipmentSummary, setEquipmentSummary] = useState<{ label: string; items: { weight: string; needed: number; available: number }[] }[] | null>(null)
+  const [isLocked, setIsLocked] = useState(false)
+  const [locking, setLocking] = useState(false)
   const [loadingBookings, setLoadingBookings] = useState(false)
 
   // Book client state
@@ -163,7 +165,7 @@ export function SessionDetailSheet({
   }
 
   useEffect(() => {
-    if (!open || !session || type === 'appointment') { setInlineBookings([]); setEquipmentSummary(null); return }
+    if (!open || !session || type === 'appointment') { setInlineBookings([]); setEquipmentSummary(null); setIsLocked(false); return }
     setLoadingBookings(true)
     const s = session as any
     const sessionDate: string = s.scheduled_date || s.start_date || ''
@@ -212,8 +214,9 @@ export function SessionDetailSheet({
 
         setInlineBookings([...mapped, ...trialMapped])
         setEquipmentSummary(data.equipment_summary ?? null)
+        setIsLocked(data.is_locked ?? false)
       })
-      .catch(() => { setInlineBookings([]); setEquipmentSummary(null) })
+      .catch(() => { setInlineBookings([]); setEquipmentSummary(null); setIsLocked(false) })
       .finally(() => setLoadingBookings(false))
   }, [open, session, type])
 
@@ -278,7 +281,29 @@ export function SessionDetailSheet({
 
         setInlineBookings([...mapped, ...trialMapped])
         setEquipmentSummary(d.equipment_summary ?? null)
+        setIsLocked(d.is_locked ?? false)
       }).catch(() => {})
+  }
+
+  const handleToggleLock = async () => {
+    if (!session) return
+    setLocking(true)
+    try {
+      const res = await fetch('/api/lock-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleId: (session as any).id, type, lock: !isLocked }),
+      })
+      if (res.ok) {
+        setIsLocked(!isLocked)
+        if (!isLocked) refreshBookings() // re-fetch to show updated kit summary
+        toast.success(!isLocked ? 'Session locked' : 'Session unlocked')
+      } else {
+        toast.error('Failed to update lock status')
+      }
+    } finally {
+      setLocking(false)
+    }
   }
 
   const handleBookClient = async () => {
@@ -950,14 +975,27 @@ export function SessionDetailSheet({
           {!editing && !confirmDelete && (
             <div className="flex flex-col gap-2 w-full">
               {type !== 'appointment' && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => { setShowBookClient(true); setBookError(null); setBookBypass(false) }}
-                >
-                  <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-                  Book client
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    className={`w-full ${isLocked ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10' : 'border-white/10 hover:bg-white/[0.06]'}`}
+                    onClick={handleToggleLock}
+                    disabled={locking}
+                  >
+                    {isLocked
+                      ? <><Lock className="h-3.5 w-3.5 mr-1.5" />Session locked — tap to unlock</>
+                      : <><LockOpen className="h-3.5 w-3.5 mr-1.5" />Lockdown session</>
+                    }
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => { setShowBookClient(true); setBookError(null); setBookBypass(false) }}
+                  >
+                    <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                    Book client
+                  </Button>
+                </>
               )}
               <div className="flex gap-2 w-full">
                 <Button

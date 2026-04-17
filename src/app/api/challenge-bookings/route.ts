@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = getAdminClient()
 
-    // Fetch bookings and challenge tier_capacity in parallel
+    // Fetch bookings and challenge schedule config in parallel
     const [bookingsRes, scheduleRes] = await Promise.all([
       supabase
         .from('challenge_bookings')
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         .in('booking_status', ['booked', 'confirmed']),
       supabase
         .from('challenge_schedules')
-        .select('challenges(tier_capacity)')
+        .select('is_locked, locked_kit, challenges(tier_capacity)')
         .eq('id', scheduleId)
         .single(),
     ])
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
 
     const rows = bookingsRes.data || []
     const tierCapacity = (scheduleRes.data as any)?.challenges?.tier_capacity ?? null
+    const isLocked = !!(scheduleRes.data as any)?.is_locked
 
     let result = rows as any[]
 
@@ -179,7 +180,7 @@ export async function GET(request: NextRequest) {
       if (sections.length > 0) equipment_summary = sections
     }
 
-    return NextResponse.json({ bookings: result, equipment_summary })
+    return NextResponse.json({ bookings: result, equipment_summary, is_locked: isLocked })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to fetch bookings'
     return NextResponse.json({ error: msg }, { status: 500 })
