@@ -84,6 +84,11 @@ export async function GET(request: NextRequest) {
           if (!weight) continue
           count[weight] = (count[weight] || 0) + (tierCapacity.kbs_per_person ?? 1)
         }
+        // Round up to nearest pair_size if configured (e.g. pair_size: 2 for partner workouts)
+        const pairSize = tierCapacity.pair_size as number | undefined
+        if (pairSize && pairSize > 1) {
+          for (const w of Object.keys(count)) count[w] = Math.ceil(count[w] / pairSize) * pairSize
+        }
         const items = Object.keys(tierCapacity.kettlebells)
           .sort((a, b) => parseFloat(a) - parseFloat(b))
           .filter(w => (count[w] || 0) > 0)

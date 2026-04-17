@@ -91,7 +91,8 @@ export async function POST(req: NextRequest) {
 
     function countByWeight(
       tierMap: Record<string, { male: string; female: string }>,
-      itemsPerPerson: number
+      itemsPerPerson: number,
+      pairSize?: number
     ): Record<string, number> {
       const count: Record<string, number> = {}
       for (const b of enriched) {
@@ -102,11 +103,17 @@ export async function POST(req: NextRequest) {
         if (!weight) continue
         count[weight] = (count[weight] || 0) + itemsPerPerson
       }
+      // Round up each weight to nearest pair_size if specified
+      if (pairSize && pairSize > 1) {
+        for (const w of Object.keys(count)) {
+          count[w] = Math.ceil(count[w] / pairSize) * pairSize
+        }
+      }
       return count
     }
 
     if (tc.kettlebells && tc.tiers) {
-      locked_kit.kettlebells = countByWeight(tc.tiers, (tc.kbs_per_person as number) ?? 2)
+      locked_kit.kettlebells = countByWeight(tc.tiers, (tc.kbs_per_person as number) ?? 1, tc.pair_size as number | undefined)
     }
     if (tc.powerbags && tc.tiers) {
       locked_kit.powerbags = countByWeight(tc.tiers, (tc.bags_per_person as number) ?? 1)
