@@ -133,7 +133,7 @@ export function SessionDetailSheet({
   const [deleteMode, setDeleteMode] = useState<'single' | 'future'>('single')
   const [showBookings, setShowBookings] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [inlineBookings, setInlineBookings] = useState<{ id: string; client_name: string; booking_status: string; ability_tier?: string | null }[]>([])
+  const [inlineBookings, setInlineBookings] = useState<{ id: string; client_id?: string; client_name: string; booking_status: string; ability_tier?: string | null; is_birthday?: boolean }[]>([])
   const [kbSummary, setKbSummary] = useState<{ weight: string; needed: number; available: number }[] | null>(null)
   const [loadingBookings, setLoadingBookings] = useState(false)
 
@@ -156,10 +156,17 @@ export function SessionDetailSheet({
     await supabase.from('challenge_bookings').update({ ability_tier: newTier }).eq('id', bookingId)
   }
 
+  // Check if a date_of_birth (YYYY-MM-DD) falls on the same month/day as sessionDate (YYYY-MM-DD)
+  const isBirthday = (dob: string | null, sessionDate: string): boolean => {
+    if (!dob || !sessionDate) return false
+    return dob.slice(5) === sessionDate.slice(5) // MM-DD comparison
+  }
+
   useEffect(() => {
     if (!open || !session || type === 'appointment') { setInlineBookings([]); setKbSummary(null); return }
     setLoadingBookings(true)
     const s = session as any
+    const sessionDate: string = s.scheduled_date || s.start_date || ''
     let endpoint = ''
     if (type === 'class') endpoint = `/api/class-bookings?classScheduleId=${s.id}`
     else if (type === 'event') endpoint = `/api/event-bookings?eventId=${s.id}`
@@ -169,20 +176,40 @@ export function SessionDetailSheet({
       ? fetch(`/api/trialist-bookings?scheduleId=${s.id}`).then(r => r.ok ? r.json() : []).catch(() => [])
       : Promise.resolve([])
     Promise.all([fetch(endpoint).then(r => r.json()), trialistPromise])
-      .then(([data, trialists]) => {
+      .then(async ([data, trialists]) => {
         const bookings = (data.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
         const mapped = bookings.map((b: any) => ({
           id: b.id,
+          client_id: b.client_id ?? undefined,
           client_name: b.user_profiles?.name || 'Unknown',
           booking_status: b.booking_status,
           ability_tier: b.ability_tier ?? null,
+          is_birthday: false,
         }))
         const trialMapped = (trialists as any[]).map(t => ({
           id: t.id,
           client_name: `${t.first_name} ${t.last_name} (Trial)`,
           booking_status: 'confirmed',
           ability_tier: null,
+          is_birthday: false,
         }))
+
+        // Fetch DOBs for real clients and flag birthdays
+        const clientIds = mapped.map((b: any) => b.client_id).filter(Boolean)
+        if (clientIds.length > 0 && sessionDate) {
+          const { data: profiles } = await supabase
+            .from('user_profiles')
+            .select('id, date_of_birth')
+            .in('id', clientIds)
+          const dobMap: Record<string, string | null> = {}
+          for (const p of (profiles || []) as { id: string; date_of_birth: string | null }[]) {
+            dobMap[p.id] = p.date_of_birth
+          }
+          for (const b of mapped) {
+            if (b.client_id) b.is_birthday = isBirthday(dobMap[b.client_id] ?? null, sessionDate)
+          }
+        }
+
         setInlineBookings([...mapped, ...trialMapped])
         setKbSummary(data.kb_summary ?? null)
       })
@@ -206,6 +233,7 @@ export function SessionDetailSheet({
 
   const refreshBookings = () => {
     const s = session as any
+    const sessionDate: string = s.scheduled_date || s.start_date || ''
     let endpoint = ''
     if (type === 'class') endpoint = `/api/class-bookings?classScheduleId=${s.id}`
     else if (type === 'event') endpoint = `/api/event-bookings?eventId=${s.id}`
@@ -215,20 +243,39 @@ export function SessionDetailSheet({
       ? fetch(`/api/trialist-bookings?scheduleId=${s.id}`).then(r => r.ok ? r.json() : []).catch(() => [])
       : Promise.resolve([])
     Promise.all([fetch(endpoint).then(r => r.json()), trialistPromise])
-      .then(([d, trialists]) => {
+      .then(async ([d, trialists]) => {
         const bookings = (d.bookings || []).filter((b: any) => b.booking_status !== 'cancelled')
         const mapped = bookings.map((b: any) => ({
           id: b.id,
+          client_id: b.client_id ?? undefined,
           client_name: b.user_profiles?.name || 'Unknown',
           booking_status: b.booking_status,
           ability_tier: b.ability_tier ?? null,
+          is_birthday: false,
         }))
         const trialMapped = (trialists as any[]).map(t => ({
           id: t.id,
           client_name: `${t.first_name} ${t.last_name} (Trial)`,
           booking_status: 'confirmed',
           ability_tier: null,
+          is_birthday: false,
         }))
+
+        const clientIds = mapped.map((b: any) => b.client_id).filter(Boolean)
+        if (clientIds.length > 0 && sessionDate) {
+          const { data: profiles } = await supabase
+            .from('user_profiles')
+            .select('id, date_of_birth')
+            .in('id', clientIds)
+          const dobMap: Record<string, string | null> = {}
+          for (const p of (profiles || []) as { id: string; date_of_birth: string | null }[]) {
+            dobMap[p.id] = p.date_of_birth
+          }
+          for (const b of mapped) {
+            if (b.client_id) b.is_birthday = isBirthday(dobMap[b.client_id] ?? null, sessionDate)
+          }
+        }
+
         setInlineBookings([...mapped, ...trialMapped])
         setKbSummary(d.kb_summary ?? null)
       }).catch(() => {})
@@ -735,7 +782,10 @@ export function SessionDetailSheet({
                   <div className="flex flex-col gap-1">
                     {inlineBookings.map(b => (
                       <div key={b.id} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
-                        <span className="text-foreground">{b.client_name}</span>
+                        <span className="text-foreground flex items-center gap-1">
+                          {b.client_name}
+                          {b.is_birthday && <span title="Birthday today!">🎂</span>}
+                        </span>
                         <div className="flex items-center gap-1.5">
                           {type === 'challenge' && editingTierId === b.id ? (
                             <div className="flex items-center gap-1">
