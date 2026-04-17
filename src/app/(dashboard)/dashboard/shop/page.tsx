@@ -95,6 +95,8 @@ const ORDER_STATUSES = [
   { key: 'delivered',        label: 'Delivered',        style: { border: '1px solid #22c55e', color: '#14532d', background: '#f0fdf4' } },
 ] as const
 
+const AWAITING_PAYMENT_STYLE = { border: '1px solid #a855f7', color: '#4a1d96', background: '#faf5ff' }
+
 function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archivedIds, onToggleArchive }: {
   orders: Array<{ id: string; name: string; email: string; total: number; items: Array<{ name: string; color?: string | null; size?: string | null; qty: number; price: number }>; created: number; payment_status: string }>
   loading: boolean
@@ -288,6 +290,10 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archived
               <div className="flex items-center gap-2">
                 {isRefunded ? (
                   <span className="text-xs text-muted-foreground">Refunded ✓</span>
+                ) : order.payment_status === 'awaiting_payment' ? (
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={AWAITING_PAYMENT_STYLE}>
+                    Awaiting Payment
+                  </span>
                 ) : (
                   <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={statusMeta.style}>
                     {statusMeta.label}
@@ -345,6 +351,15 @@ export default function ShopPage() {
     saveArchived(next)
   }
 
+  // New Order sheet
+  const [showNewOrder, setShowNewOrder] = useState(false)
+  const [newOrderClients, setNewOrderClients] = useState<{ id: string; name: string; email: string }[]>([])
+  const [newOrderClientSearch, setNewOrderClientSearch] = useState('')
+  const [newOrderSelectedClient, setNewOrderSelectedClient] = useState<{ id: string; name: string; email: string } | null>(null)
+  const [newOrderItems, setNewOrderItems] = useState<Array<{ product: Product; color: string | null; size: string | null; qty: number }>>([])
+  const [newOrderSubmitting, setNewOrderSubmitting] = useState(false)
+  const [newOrderError, setNewOrderError] = useState<string | null>(null)
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -373,13 +388,19 @@ export default function ShopPage() {
     }).length
     setActions(
       activeTab === 'orders' ? (
-        archivableCount > 0 ? (
-          <Button variant="outline" className="bg-card" onClick={handleArchiveComplete}>
-            <Archive className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
-            <span className="hidden lg:inline">Archive Complete ({archivableCount})</span>
-            <span className="lg:hidden">{archivableCount}</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="bg-card" onClick={() => setShowNewOrder(true)}>
+            <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
+            <span className="hidden lg:inline">New Order</span>
           </Button>
-        ) : null
+          {archivableCount > 0 && (
+            <Button variant="outline" className="bg-card" onClick={handleArchiveComplete}>
+              <Archive className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
+              <span className="hidden lg:inline">Archive Complete ({archivableCount})</span>
+              <span className="lg:hidden">{archivableCount}</span>
+            </Button>
+          )}
+        </div>
       ) : label ? (
         <Button variant="outline" className="bg-card" onClick={activeTab === 'products' ? handleOpenAdd : undefined}>
           <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
@@ -399,7 +420,7 @@ export default function ShopPage() {
       </div>
     )
     return () => { setActions(null); setHeaderTabs(null) }
-  }, [setActions, setHeaderTabs, activeTab, orders, orderStatuses, archivedIds])
+  }, [setActions, setHeaderTabs, activeTab, orders, orderStatuses, archivedIds, showNewOrder])
 
   useEffect(() => {
     if (activeTab !== 'products') {
@@ -1049,6 +1070,178 @@ export default function ShopPage() {
         onConfirm={handleDelete}
         loading={deleting}
       />
+
+      {/* New Order Sheet */}
+      <Sheet open={showNewOrder} onOpenChange={open => {
+        if (!open) {
+          setShowNewOrder(false)
+          setNewOrderSelectedClient(null)
+          setNewOrderItems([])
+          setNewOrderClientSearch('')
+          setNewOrderError(null)
+        } else {
+          // Load clients on open
+          if (newOrderClients.length === 0) {
+            supabase.from('user_profiles').select('id, name, email').eq('user_type', 'client').order('name')
+              .then(({ data }) => setNewOrderClients((data || []).map((c: any) => ({ id: c.id, name: c.name || 'Unknown', email: c.email || '' }))))
+          }
+        }
+      }}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col">
+          <SheetHeader>
+            <SheetTitle>New Order</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto flex flex-col gap-4 px-4 pb-2">
+            {newOrderError && (
+              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{newOrderError}</div>
+            )}
+
+            {/* Client selector */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs">Client</Label>
+              {newOrderSelectedClient ? (
+                <div className="flex items-center justify-between px-3 py-2 rounded-md border border-border bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">{newOrderSelectedClient.name}</p>
+                    <p className="text-xs text-muted-foreground">{newOrderSelectedClient.email}</p>
+                  </div>
+                  <button onClick={() => setNewOrderSelectedClient(null)} className="text-xs text-muted-foreground hover:text-foreground">Change</button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    <Input placeholder="Search clients…" value={newOrderClientSearch} onChange={e => setNewOrderClientSearch(e.target.value)} className="pl-8 h-8 text-sm" autoFocus />
+                  </div>
+                  <div className="max-h-40 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                    {newOrderClients
+                      .filter(c => !newOrderClientSearch || c.name.toLowerCase().includes(newOrderClientSearch.toLowerCase()))
+                      .map(c => (
+                        <button key={c.id} onClick={() => { setNewOrderSelectedClient(c); setNewOrderClientSearch('') }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-left">
+                          <span className="font-medium">{c.name}</span>
+                          <span className="text-xs text-muted-foreground">{c.email}</span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Product picker */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs">Add Products</Label>
+              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                {products.filter(p => p.active).map(p => (
+                  <div key={p.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">£{p.price.toFixed(2)}</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 text-xs shrink-0"
+                      onClick={() => setNewOrderItems(prev => [...prev, { product: p, color: p.colors[0] ?? null, size: p.sizes[0] ?? null, qty: 1 }])}>
+                      <Plus className="h-3 w-3 mr-1" />Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Order items */}
+            {newOrderItems.length > 0 && (
+              <>
+                <Separator />
+                <div className="flex flex-col gap-3">
+                  <Label className="text-xs">Order Items</Label>
+                  {newOrderItems.map((item, idx) => (
+                    <div key={idx} className="flex flex-col gap-2 p-3 rounded-md border border-border">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{item.product.name}</p>
+                        <button onClick={() => setNewOrderItems(prev => prev.filter((_, i) => i !== idx))} className="text-xs text-muted-foreground hover:text-destructive">Remove</button>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {item.product.colors.length > 0 && (
+                          <Select value={item.color ?? ''} onValueChange={v => setNewOrderItems(prev => prev.map((it, i) => i === idx ? { ...it, color: v || null } : it))}>
+                            <SelectTrigger className="h-7 text-xs w-24"><SelectValue placeholder="Colour" /></SelectTrigger>
+                            <SelectContent>{item.product.colors.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
+                          </Select>
+                        )}
+                        {item.product.sizes.length > 0 && (
+                          <Select value={item.size ?? ''} onValueChange={v => setNewOrderItems(prev => prev.map((it, i) => i === idx ? { ...it, size: v || null } : it))}>
+                            <SelectTrigger className="h-7 text-xs w-20"><SelectValue placeholder="Size" /></SelectTrigger>
+                            <SelectContent>{item.product.sizes.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+                          </Select>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setNewOrderItems(prev => prev.map((it, i) => i === idx ? { ...it, qty: Math.max(1, it.qty - 1) } : it))} className="w-6 h-6 rounded border border-border flex items-center justify-center text-xs hover:bg-muted">−</button>
+                          <span className="text-sm w-6 text-center">{item.qty}</span>
+                          <button onClick={() => setNewOrderItems(prev => prev.map((it, i) => i === idx ? { ...it, qty: it.qty + 1 } : it))} className="w-6 h-6 rounded border border-border flex items-center justify-center text-xs hover:bg-muted">+</button>
+                        </div>
+                        <span className="text-sm font-semibold ml-auto">£{(item.product.price * item.qty).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between px-1 font-semibold text-sm">
+                    <span>Total</span>
+                    <span>£{newOrderItems.reduce((sum, i) => sum + i.product.price * i.qty, 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <SheetFooter className="pt-4 border-t shrink-0">
+            <Button variant="outline" onClick={() => setShowNewOrder(false)}>Cancel</Button>
+            <Button
+              disabled={!newOrderSelectedClient || newOrderItems.length === 0 || newOrderSubmitting}
+              onClick={async () => {
+                if (!newOrderSelectedClient || !newOrderItems.length || !user) return
+                setNewOrderSubmitting(true)
+                setNewOrderError(null)
+                try {
+                  const res = await fetch('/api/trainer-create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      trainerId: user.id,
+                      clientName: newOrderSelectedClient.name,
+                      clientEmail: newOrderSelectedClient.email,
+                      items: newOrderItems.map(i => ({
+                        product_id: i.product.id,
+                        name: i.product.name,
+                        price: i.product.price,
+                        product_code: i.product.product_code ?? null,
+                        category: i.product.category ?? null,
+                        color: i.color,
+                        size: i.size,
+                        qty: i.qty,
+                      })),
+                    }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) throw new Error(data.error)
+                  toast.success(`Order created — payment link sent to ${newOrderSelectedClient.email}`)
+                  setShowNewOrder(false)
+                  setNewOrderSelectedClient(null)
+                  setNewOrderItems([])
+                  setNewOrderClientSearch('')
+                  // Reload orders to show the new awaiting_payment one
+                  setOrders([])
+                  setOrdersLoading(false)
+                } catch (e: any) {
+                  setNewOrderError(e.message || 'Failed to create order')
+                } finally {
+                  setNewOrderSubmitting(false)
+                }
+              }}
+            >
+              {newOrderSubmitting ? 'Creating…' : 'Send Payment Link'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

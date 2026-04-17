@@ -70,7 +70,24 @@ export async function GET() {
 
     shopOrders.sort((a, b) => b.created - a.created)
 
-    return NextResponse.json(shopOrders)
+    // Fetch trainer-created orders that are still awaiting payment
+    const { data: pendingTrainerOrders } = await (supabase as any)
+      .from('trainer_shop_orders')
+      .select('id, client_name, client_email, items, total, payment_status, created_at')
+      .eq('payment_status', 'awaiting_payment')
+      .order('created_at', { ascending: false })
+
+    const pendingOrders = ((pendingTrainerOrders as any[]) ?? []).map((o: any) => ({
+      id: `trainer_${o.id}`,
+      name: o.client_name,
+      email: o.client_email,
+      total: Number(o.total),
+      items: (o.items as any[]) ?? [],
+      created: Math.floor(new Date(o.created_at).getTime() / 1000),
+      payment_status: 'awaiting_payment',
+    }))
+
+    return NextResponse.json([...pendingOrders, ...shopOrders])
   } catch (err) {
     logger.error('[shop-orders] Error:', err)
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })

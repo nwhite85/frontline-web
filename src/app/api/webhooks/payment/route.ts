@@ -62,6 +62,12 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  // Trainer-created order — identified by trainer_order_id in metadata
+  if (session.metadata?.trainer_order_id) {
+    await handleTrainerOrderCompleted(session, session.metadata.trainer_order_id)
+    return
+  }
+
   // Shop order — identified by order_items in metadata
   if (session.metadata?.order_items) {
     await handleShopOrderCompleted(session)
@@ -188,6 +194,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   } catch (err) {
     logger.error('Failed to send payment notification to Nick:', err)
   }
+}
+
+async function handleTrainerOrderCompleted(session: Stripe.Checkout.Session, orderId: string) {
+  const supabase = getAdminClient()
+  await supabase
+    .from('trainer_shop_orders')
+    .update({ payment_status: 'paid', stripe_session_id: session.id })
+    .eq('id', orderId)
+  logger.log(`[trainer-order] Order ${orderId} marked paid`)
+  // Send the same shop emails
+  await handleShopOrderCompleted(session)
 }
 
 async function handleShopOrderCompleted(session: Stripe.Checkout.Session) {
