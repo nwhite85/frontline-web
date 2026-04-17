@@ -126,13 +126,17 @@ export async function POST(req: NextRequest) {
       locked_kit.ropes = { 'Battle rope': ropesNeeded }
     }
     if (tc.balls) {
-      const ballCount: Record<string, number> = {}
+      // Count people per tier, then convert to groups (1 ball per group of group_size)
+      const tierCounts: Record<string, number> = {}
       for (const b of enriched) {
-        const tier = b.ability_tier as string | null
-        if (!tier) continue
+        if (b.ability_tier) tierCounts[b.ability_tier] = (tierCounts[b.ability_tier] || 0) + 1
+      }
+      const ballCount: Record<string, number> = {}
+      for (const [tier, count] of Object.entries(tierCounts)) {
         const ballInfo = (tc.balls as any)[tier]
         if (!ballInfo) continue
-        ballCount[ballInfo.weight] = (ballCount[ballInfo.weight] || 0) + 1
+        const groupSize = (tc.tiers as any)?.[tier]?.group_size ?? 4
+        ballCount[ballInfo.weight] = (ballCount[ballInfo.weight] || 0) + Math.ceil(count / groupSize)
       }
       locked_kit.balls = ballCount
       if (tc.total_risers != null && tc.tiers) {

@@ -144,17 +144,24 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Medicine balls + risers — Power Checkpoint
+      // Medicine balls + risers — Power Checkpoint (1 ball per group of 4, not per person)
       if (tierCapacity.balls) {
-        const ballCount: Record<string, { needed: number; available: number }> = {}
+        // Count people per tier first, then convert to groups
+        const tierCounts: Record<string, number> = {}
         for (const booking of result) {
           const tier = booking.ability_tier as string | null
           if (!tier) continue
+          tierCounts[tier] = (tierCounts[tier] || 0) + 1
+        }
+        const ballCount: Record<string, { needed: number; available: number }> = {}
+        for (const [tier, count] of Object.entries(tierCounts)) {
           const ballInfo = (tierCapacity.balls as any)[tier]
           if (!ballInfo) continue
+          const groupSize = (tierCapacity.tiers as any)?.[tier]?.group_size ?? 4
+          const ballsNeeded = Math.ceil(count / groupSize)
           const key = ballInfo.weight as string
           if (!ballCount[key]) ballCount[key] = { needed: 0, available: ballInfo.stock }
-          ballCount[key].needed += 1
+          ballCount[key].needed += ballsNeeded
         }
         const ballItems = Object.entries(ballCount)
           .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
