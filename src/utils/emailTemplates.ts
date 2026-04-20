@@ -517,4 +517,42 @@ export function passwordResetEmail(data: { clientName?: string; resetUrl: string
   return { subject, html, text }
 }
 
+export function tierPromotionEmail({ clientName, currentTier, nextTier }: {
+  clientName: string;
+  currentTier: string;
+  nextTier: string;
+}): { html: string; text: string } {
+  const currentLabel = currentTier.charAt(0).toUpperCase() + currentTier.slice(1);
+  const nextLabel = nextTier.charAt(0).toUpperCase() + nextTier.slice(1);
+
+  const html = baseLayout(`
+    <div class="body">
+      <h2>Level Up Required ⬆️</h2>
+      <p><strong>${clientName}</strong> has met the checkpoint requirements to move up from <strong>${currentLabel}</strong> to <strong>${nextLabel}</strong>.</p>
+      <div class="detail-card">
+        <div class="detail-row">
+          <span class="detail-label">Client</span>
+          <span class="detail-value">${clientName}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Current Level</span>
+          <span class="detail-value">${currentLabel}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Ready For</span>
+          <span class="detail-value">${nextLabel}</span>
+        </div>
+      </div>
+      <p>Log in to the dashboard to update their ability level when ready.</p>
+      <p style="margin-top:24px;text-align:center">
+        <a href="https://frontlinefitness.co.uk/dashboard/clients" class="btn">View Clients</a>
+      </p>
+    </div>
+  `, `${clientName} is ready to move up to ${nextLabel}`);
+
+  const text = `Level Up Required\n\n${clientName} has met the checkpoint requirements to move up from ${currentLabel} to ${nextLabel}.\n\nLog in to update their ability level: https://frontlinefitness.co.uk/dashboard/clients`;
+
+  return { html, text };
+}
+
 export { BRAND as EMAIL_BRAND };

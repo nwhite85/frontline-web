@@ -53,17 +53,28 @@ export async function POST(request: NextRequest) {
 
     const useCredits = !recurringMembership
 
-    // ── 2. Per-week / per-month limits (recurring memberships only) ──
+    // ── 2. Fetch class schedule (needed for limit checks below) ──
+    const { data: schedule } = await supabase
+      .from('class_schedules')
+      .select('id, trainer_id, max_capacity, current_bookings, status, is_locked, locked_capacity, scheduled_date')
+      .eq('id', classScheduleId)
+      .single()
+
+    if (!schedule) {
+      return NextResponse.json({ error: 'Class not found.' }, { status: 404 })
+    }
+
+    // ── 3. Per-week / per-month limits (recurring memberships only) ──
+    // Use the target class's scheduled_date (not today) so that booking ahead
+    // into next week/month checks the correct period's usage.
     if (recurringMembership) {
       const plan = recurringMembership.membership_plans
+      const classDate = new Date((schedule as any).scheduled_date + 'T00:00:00')
 
       if (plan?.classes_per_week) {
-        // Count by scheduled_date (class week), not booking_date (when booked)
-        // so that booking ahead for next week doesn't consume this week's allowance
-        const now = new Date()
-        const day = now.getDay() === 0 ? 6 : now.getDay() - 1
-        const weekStart = new Date(now)
-        weekStart.setDate(now.getDate() - day)
+        const dayOfWeek = classDate.getDay() === 0 ? 6 : classDate.getDay() - 1
+        const weekStart = new Date(classDate)
+        weekStart.setDate(classDate.getDate() - dayOfWeek)
         weekStart.setHours(0, 0, 0, 0)
         const weekEnd = new Date(weekStart)
         weekEnd.setDate(weekStart.getDate() + 7)
@@ -94,10 +105,8 @@ export async function POST(request: NextRequest) {
           )
         }
       } else if (plan?.classes_per_month) {
-        // Count by scheduled_date (class month), not booking_date
-        const now = new Date()
-        const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-        const monthEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0]
+        const monthStartDate = new Date(classDate.getFullYear(), classDate.getMonth(), 1).toISOString().split('T')[0]
+        const monthEndDate = new Date(classDate.getFullYear(), classDate.getMonth() + 1, 1).toISOString().split('T')[0]
 
         const { data: monthSchedules } = await supabase
           .from('class_schedules')
@@ -123,17 +132,6 @@ export async function POST(request: NextRequest) {
           )
         }
       }
-    }
-
-    // ── 3. Fetch class schedule ──
-    const { data: schedule } = await supabase
-      .from('class_schedules')
-      .select('id, trainer_id, max_capacity, current_bookings, status, is_locked, locked_capacity')
-      .eq('id', classScheduleId)
-      .single()
-
-    if (!schedule) {
-      return NextResponse.json({ error: 'Class not found.' }, { status: 404 })
     }
     if (schedule.status === 'cancelled') {
       return NextResponse.json({ error: 'This class has been cancelled.' }, { status: 400 })
