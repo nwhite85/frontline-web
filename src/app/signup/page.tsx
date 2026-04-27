@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,14 +26,13 @@ function SignupContent() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
-    dateOfBirth: '', gender: '', password: '', confirm: '',
+    dateOfBirth: '', gender: '',
     terms: false, marketing: false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<PlanInfo>(defaultPlan)
   const [planLoading, setPlanLoading] = useState(true)
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   const update = (field: string, value: string | boolean) =>
@@ -96,75 +95,31 @@ function SignupContent() {
     setError(null)
     if (!form.firstName || !form.lastName) { setError('Please enter your full name'); return }
     if (!form.phone) { setError('Please enter your phone number'); return }
-    if (form.password.length < 8) { setError('Password must be at least 8 characters'); return }
-    if (form.password !== form.confirm) { setError('Passwords do not match'); return }
     if (!form.terms) { setError('Please accept the privacy policy to continue'); return }
     setLoading(true)
     try {
-      const payload = {
-        email: form.email,
-        password: form.password,
-        name: `${form.firstName} ${form.lastName}`,
-        phone: form.phone || undefined,
-        dateOfBirth: form.dateOfBirth || undefined,
-        gender: form.gender || undefined,
-        planId: selectedPlan.id,
-        acceptMarketing: form.marketing,
-      }
-      const signupResponse = await fetch('/api/signup-client', {
+      const checkoutRes = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          email: form.email,
+          name: `${form.firstName} ${form.lastName}`,
+          phone: form.phone || undefined,
+          dateOfBirth: form.dateOfBirth || undefined,
+          gender: form.gender || undefined,
+          planId: selectedPlan.id,
+          planName: selectedPlan.name,
+          planPrice: selectedPlan.price,
+          acceptMarketing: form.marketing,
+        }),
       })
-      const signupResult = await signupResponse.json()
-      if (!signupResponse.ok || !signupResult.success) {
-        const details = signupResult.details?.fieldErrors
-        const fieldMsg = details ? Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(', ') : ''
-        setError(fieldMsg || signupResult.error || 'Failed to create account')
-        setLoading(false)
+      const checkoutData = await checkoutRes.json()
+      if (checkoutRes.ok && checkoutData.url) {
+        window.location.href = checkoutData.url
         return
       }
-      // Sign in the newly created user so the checkout API can authenticate them
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password,
-      })
-      if (signInError) {
-        console.error('Auto sign-in failed:', signInError)
-        // Still redirect to success — they can pay later
-        router.push('/signup/success')
-        return
-      }
-
-      // Create Stripe checkout session for the selected plan
-      try {
-        const checkoutRes = await fetch('/api/create-subscription-checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: form.email,
-            name: `${form.firstName} ${form.lastName}`,
-            phone: form.phone || undefined,
-            planId: selectedPlan.id,
-            planName: selectedPlan.name,
-            planPrice: selectedPlan.price,
-            userId: signupResult.userId,
-            acceptMarketing: form.marketing,
-          }),
-        })
-        const checkoutData = await checkoutRes.json()
-        if (checkoutRes.ok && checkoutData.url) {
-          // Redirect to Stripe Checkout
-          window.location.href = checkoutData.url
-          return
-        }
-        console.error('Checkout session failed:', checkoutData)
-      } catch (checkoutErr) {
-        console.error('Checkout error:', checkoutErr)
-      }
-
-      // Fallback — if Stripe fails, still go to success page
-      router.push('/signup/success')
+      setError(checkoutData.error || 'Failed to start checkout. Please try again.')
+      setLoading(false)
     } catch (err) {
       console.error('Signup error:', err)
       setError('An unexpected error occurred. Please try again.')
@@ -267,19 +222,6 @@ function SignupContent() {
                       <option value="female">Female</option>
                       <option value="other">Other</option>
                     </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="password" className="text-sm font-medium text-white/80">Password</label>
-                    <Input id="password" type="password" autoComplete="new-password" placeholder="At least 8 characters"
-                      value={form.password} onChange={(e) => update('password', e.target.value)}
-                      required minLength={8}
-                      className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="confirm" className="text-sm font-medium text-white/80">Confirm password</label>
-                    <Input id="confirm" type="password" autoComplete="new-password" placeholder="Repeat your password"
-                      value={form.confirm} onChange={(e) => update('confirm', e.target.value)} required
-                      className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20" />
                   </div>
                   <div className="flex items-center gap-2">
                     <Checkbox id="terms" checked={form.terms} onCheckedChange={(v) => update('terms', Boolean(v))} />

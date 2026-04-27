@@ -61,6 +61,92 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function handleNewSignupAccount(
+  session: Stripe.Checkout.Session,
+  supabase: ReturnType<typeof getAdminClient>
+): Promise<string | null> {
+  const email = session.metadata!.signup_email
+  const name = session.metadata!.signup_name || ''
+  const phone = session.metadata!.signup_phone || undefined
+  const dateOfBirth = session.metadata!.signup_dob || undefined
+  const gender = session.metadata!.signup_gender || undefined
+  const acceptMarketing = session.metadata?.accept_marketing === 'true'
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
+
+  const nameParts = name.trim().split(/\s+/)
+  const firstName = nameParts[0] ?? ''
+  const lastName = nameParts.slice(1).join(' ') || null
+  const dailyCalorieGoal = gender === 'male' ? 2500 : 2000
+
+  // Guard: don't create duplicate if webhook fires twice
+  const { data: existingProfile } = await supabase
+    .from('user_profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (existingProfile) {
+    logger.log(`[new-signup] Account already exists for ${email}, skipping creation`)
+    return existingProfile.id
+  }
+
+  const autoPassword =
+    Math.random().toString(36).slice(2) +
+    Math.random().toString(36).slice(2).toUpperCase() +
+    '!9'
+
+  const { data: createUserData, error: createUserError } = await supabase.auth.admin.createUser({
+    email,
+    password: autoPassword,
+    email_confirm: true,
+    user_metadata: { name },
+  })
+
+  if (createUserError || !createUserData.user) {
+    logger.error('[new-signup] Failed to create auth user:', createUserError)
+    return null
+  }
+
+  const userId = createUserData.user.id
+
+  const profileRow: Record<string, unknown> = {
+    id: userId,
+    name,
+    first_name: firstName,
+    last_name: lastName,
+    email,
+    phone: phone ?? null,
+    date_of_birth: dateOfBirth ?? null,
+    gender: gender ?? null,
+    daily_calorie_goal: dailyCalorieGoal,
+    user_type: 'client',
+    status: 'active',
+    is_active: true,
+    client_type: 'classes',
+    join_date: new Date().toISOString().split('T')[0],
+    weight_unit: 'lbs',
+    accept_marketing: acceptMarketing,
+    ...(customerId ? { stripe_customer_id: customerId } : {}),
+  }
+
+  const { error: profileError } = await supabase.from('user_profiles').insert(profileRow)
+  if (profileError) {
+    logger.error('[new-signup] Failed to create profile:', profileError)
+    return null
+  }
+
+  const defaultTrainerId = process.env.DEFAULT_TRAINER_ID
+  if (defaultTrainerId) {
+    await supabase.from('trainer_client').upsert(
+      [{ trainer_id: defaultTrainerId, client_id: userId, status: 'active' }],
+      { onConflict: 'trainer_id,client_id' }
+    )
+  }
+
+  logger.log(`[new-signup] Account created for ${email} (${userId}) after payment`)
+  return userId
+}
+
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // Trainer-created order — identified by trainer_order_id in metadata
   if (session.metadata?.trainer_order_id) {
@@ -75,13 +161,20 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   const supabase = getAdminClient()
-  const userId = session.metadata?.user_id;
+  let userId = session.metadata?.user_id;
   const planId = session.metadata?.plan_id;
   const planType = session.metadata?.plan_type ?? 'recurring';
   const classCredits = parseInt(session.metadata?.class_credits ?? '0', 10) || 0;
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
 
   logger.log('Checkout completed:', { userId, planId, planType, classCredits, customerId });
+
+  // New website signup — create account now that payment is confirmed
+  if (!userId && session.metadata?.signup_email) {
+    const newId = await handleNewSignupAccount(session, supabase)
+    if (!newId) return
+    userId = newId
+  }
 
   if (!userId) {
     logger.error('No user_id in checkout session metadata');
@@ -158,6 +251,47 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     } else {
       logger.error(`Plan ${planId} not found — membership not assigned`)
     }
+  }
+
+  // Send welcome email to client now that payment is confirmed
+  try {
+    const { welcomeEmail } = await import('@/utils/emailTemplates')
+    const { sendTransactionalEmail } = await import('@/utils/sendTransactionalEmail')
+    const { data: profileForWelcome } = await supabase
+      .from('user_profiles')
+      .select('name, email')
+      .eq('id', userId)
+      .maybeSingle()
+
+    const clientName = (profileForWelcome as any)?.name ?? 'there'
+    const clientEmail = (profileForWelcome as any)?.email
+
+    if (clientEmail) {
+      // Generate a password setup link
+      const supabaseAdmin = getAdminClient()
+      let passwordSetupUrl: string | undefined
+      try {
+        const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'magiclink',
+          email: clientEmail,
+          options: {
+            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk'}/update-password`,
+          },
+        })
+        passwordSetupUrl = linkData?.properties?.action_link ?? undefined
+      } catch { /* non-blocking */ }
+
+      const welcomeContent = welcomeEmail({ clientName, passwordSetupUrl })
+      await sendTransactionalEmail({
+        to: clientEmail,
+        subject: welcomeContent.subject,
+        html: welcomeContent.html,
+        text: welcomeContent.text,
+      })
+      logger.log(`Welcome email sent to ${clientEmail} after payment confirmed`)
+    }
+  } catch (err) {
+    logger.error('Failed to send welcome email after checkout:', err)
   }
 
   // Notify Nick of new payment

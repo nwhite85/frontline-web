@@ -82,7 +82,7 @@ function buildWeek(weekOffset: number, scheduleMap: Map<string, ClassItem[]>, us
   })
 }
 
-type RawSchedule = { scheduled_date: string; start_time: string; location?: string; class?: { name?: string; location?: string }; challenge?: { name?: string; location?: string } }
+type RawSchedule = { scheduled_date: string; start_time: string; location?: string; _type?: 'class' | 'challenge'; class?: { name?: string; location?: string }; challenge?: { name?: string; location?: string } }
 
 function buildMapFromRaw(raw: RawSchedule[]): Map<string, ClassItem[]> {
   const map = new Map<string, ClassItem[]>()
@@ -90,8 +90,9 @@ function buildMapFromRaw(raw: RawSchedule[]): Map<string, ClassItem[]> {
     // Supabase sometimes returns the joined relation as an array — handle both
     const cls = Array.isArray(s.class) ? s.class[0] : s.class
     const chall = Array.isArray(s.challenge) ? s.challenge[0] : s.challenge
+    const fallback = s._type === 'challenge' ? 'Checkpoint' : 'Class'
     const item: ClassItem = {
-      name: chall?.name || cls?.name || 'Class',
+      name: chall?.name || cls?.name || fallback,
       time: formatTime(s.start_time),
       location: s.location || chall?.location || cls?.location || '',
     }
@@ -140,9 +141,9 @@ export function LandingSchedule({ initialSchedules, sampleSchedules }: { initial
         .order('scheduled_date').order('start_time').limit(50),
     ])
 
-    const combined = [
-      ...((classRes.data ?? []) as unknown as RawSchedule[]),
-      ...((challengeRes.data ?? []) as unknown as RawSchedule[]),
+    const combined: RawSchedule[] = [
+      ...((classRes.data ?? []) as unknown as RawSchedule[]).map(r => ({ ...r, _type: 'class' as const })),
+      ...((challengeRes.data ?? []) as unknown as RawSchedule[]).map(r => ({ ...r, _type: 'challenge' as const })),
     ]
 
     if (combined.length > 0) {

@@ -57,7 +57,10 @@ export const getCachedSchedule = unstable_cache(
         .order('start_time')
         .limit(100),
     ])
-    return [...(classRes.data ?? []), ...(challengeRes.data ?? [])]
+    return [
+      ...(classRes.data ?? []).map((r: any) => ({ ...r, _type: 'class' as const })),
+      ...(challengeRes.data ?? []).map((r: any) => ({ ...r, _type: 'challenge' as const })),
+    ]
   },
   ['schedule'],
   { revalidate: 300 }

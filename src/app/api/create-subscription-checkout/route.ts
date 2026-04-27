@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { logger } from '@/utils/logger';
 import { rateLimit } from '@/utils/rateLimit';
 import { z } from 'zod';
@@ -10,6 +9,8 @@ const subscriptionCheckoutSchema = z.object({
   email: z.string().email('Invalid email format'),
   name: z.string().min(1).max(100).optional(),
   phone: z.string().max(20).optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['male', 'female', 'other', '']).optional(),
   planId: z.string().min(1, 'Plan ID is required'),
   planName: z.string().min(1).optional(),
   planPrice: z.number().positive('Price must be positive'),
@@ -31,24 +32,29 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    const authSupabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
-    );
-    const { data: { user: authUser } } = await authSupabase.auth.getUser();
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const parsed = subscriptionCheckoutSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
     }
-    const { email, name, phone, planId, planName, planPrice, userId, acceptMarketing } = parsed.data;
+    const { email, name, phone, dateOfBirth, gender, planId, planName, planPrice, userId, acceptMarketing } = parsed.data;
+
+    // New website signups have no userId — they arrive unauthenticated.
+    // Existing users (re-subscribing from dashboard) pass a userId and must be authenticated.
+    if (userId) {
+      const { cookies } = await import('next/headers');
+      const { createServerClient } = await import('@supabase/ssr');
+      const cookieStore = await cookies();
+      const authSupabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
+      );
+      const { data: { user: authUser } } = await authSupabase.auth.getUser();
+      if (!authUser) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
 
     logger.log('Create subscription checkout:', { email, planId, planName, planPrice });
 
@@ -144,6 +150,14 @@ export async function POST(request: NextRequest) {
         plan_type: planType,
         class_credits: String(planData?.class_credits ?? 0),
         accept_marketing: acceptMarketing ? 'true' : 'false',
+        // New website signups — account is created by the webhook after payment
+        ...(userId ? {} : {
+          signup_email: email,
+          signup_name: name || '',
+          signup_phone: phone || '',
+          signup_dob: dateOfBirth || '',
+          signup_gender: gender || '',
+        }),
       },
     }
     // Add subscription metadata only for recurring plans

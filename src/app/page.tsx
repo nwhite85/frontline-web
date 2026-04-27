@@ -45,7 +45,7 @@ export default async function LandingPage() {
     getCachedMembershipPlans(),
     getCachedClasses(),
     getCachedSchedule(startDate, scheduleEndDate),
-    getCachedBookingOptions(startDate, bookingEndDate),
+    getCachedBookingOptions(today.toISOString().split('T')[0], bookingEndDate),
     getCachedSchedule(sampleWeekStart, sampleWeekEnd),
   ]) as [any[], any[], any[], any[], any[]]
 
