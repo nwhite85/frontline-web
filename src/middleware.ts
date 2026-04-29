@@ -25,6 +25,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/challenge-bookings',
   '/api/book-challenge',
   '/api/challenge-availability',
+  '/api/create-subscription-checkout',
   '/api/create-shop-checkout',
   '/api/shop-order',
   '/api/trialist-bookings',
