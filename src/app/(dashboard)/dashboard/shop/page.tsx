@@ -668,7 +668,7 @@ export default function ShopPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {error && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
       )}
@@ -705,12 +705,12 @@ export default function ShopPage() {
                   <TableRow className="bg-muted/30">
                     <TableHead className="text-xs font-medium w-14">Image</TableHead>
                     <TableHead className="text-xs font-medium">Name</TableHead>
-                    <TableHead className="text-xs font-medium">Code</TableHead>
-                    <TableHead className="text-xs font-medium">Category</TableHead>
+                    <TableHead className="text-xs font-medium hidden sm:table-cell">Code</TableHead>
+                    <TableHead className="text-xs font-medium hidden md:table-cell">Category</TableHead>
                     <TableHead className="text-xs font-medium">Price</TableHead>
-                    <TableHead className="text-xs font-medium">Sizes</TableHead>
+                    <TableHead className="text-xs font-medium hidden sm:table-cell">Sizes</TableHead>
                     <TableHead className="text-xs font-medium">Active</TableHead>
-                    <TableHead className="text-xs font-medium">Purchasable</TableHead>
+                    <TableHead className="text-xs font-medium hidden sm:table-cell">Purchasable</TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
@@ -734,14 +734,14 @@ export default function ShopPage() {
                         <p className="text-sm font-medium">{product.name}</p>
                         <p className="text-xs text-muted-foreground capitalize">{TYPE_LABELS[product.type] || product.type}</p>
                       </TableCell>
-                      <TableCell className="py-2 text-xs text-muted-foreground font-mono">{product.product_code || '—'}</TableCell>
-                      <TableCell className="py-2">
+                      <TableCell className="py-2 text-xs text-muted-foreground font-mono hidden sm:table-cell">{product.product_code || '—'}</TableCell>
+                      <TableCell className="py-2 hidden md:table-cell">
                         <Badge variant="outline" className="text-xs capitalize">
                           {CATEGORY_LABELS[product.category] ?? product.category}
                         </Badge>
                       </TableCell>
                       <TableCell className="py-2 text-sm font-medium">£{product.price.toFixed(2)}</TableCell>
-                      <TableCell className="py-2">
+                      <TableCell className="py-2 hidden sm:table-cell">
                         <div className="flex flex-wrap gap-1">
                           {(product.sizes || []).slice(0, 3).map(s => (
                             <Badge key={s} variant="outline" className="bg-card text-xs">{s}</Badge>
@@ -766,7 +766,7 @@ export default function ShopPage() {
                           }}
                         />
                       </TableCell>
-                      <TableCell className="py-2" onClick={e => e.stopPropagation()}>
+                      <TableCell className="py-2 hidden sm:table-cell" onClick={e => e.stopPropagation()}>
                         <Switch
                           checked={product.purchasable ?? true}
                           onCheckedChange={async (checked) => {

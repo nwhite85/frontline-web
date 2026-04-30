@@ -193,7 +193,7 @@ export default function FormsPage() {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {error && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
       )}
@@ -239,9 +239,9 @@ export default function FormsPage() {
                   />
                 </TableHead>
                 <TableHead className="text-xs font-medium">Type</TableHead>
-                <TableHead className="text-xs font-medium">Fields</TableHead>
-                <TableHead className="text-xs font-medium">Created</TableHead>
-                <TableHead className="text-xs font-medium">Updated</TableHead>
+                <TableHead className="text-xs font-medium hidden sm:table-cell">Fields</TableHead>
+                <TableHead className="text-xs font-medium hidden sm:table-cell">Created</TableHead>
+                <TableHead className="text-xs font-medium hidden md:table-cell">Updated</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -268,13 +268,13 @@ export default function FormsPage() {
                       {form.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="py-3">
+                  <TableCell className="py-3 hidden sm:table-cell">
                     <span className="text-sm text-muted-foreground">{form.questions?.length || 0}</span>
                   </TableCell>
-                  <TableCell className="py-3">
+                  <TableCell className="py-3 hidden sm:table-cell">
                     <span className="text-xs text-muted-foreground">{formatDate(form.created_at)}</span>
                   </TableCell>
-                  <TableCell className="py-3">
+                  <TableCell className="py-3 hidden md:table-cell">
                     <span className="text-xs text-muted-foreground">{formatDate(form.updated_at)}</span>
                   </TableCell>
                   <TableCell className="py-3" onClick={e => e.stopPropagation()}>

@@ -233,7 +233,7 @@ export default function WebsitePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-48 w-full" />
         <Skeleton className="h-48 w-full" />
@@ -244,7 +244,7 @@ export default function WebsitePage() {
   if (!settings) return null
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {/* Status banner */}
       <div className={`flex items-center justify-between rounded-lg px-4 py-3 ${settings.published ? 'bg-emerald-50 border border-emerald-200' : 'bg-muted border border-border'}`}>
         <div className="flex items-center gap-2">

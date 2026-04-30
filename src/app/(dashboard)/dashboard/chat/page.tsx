@@ -15,7 +15,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  MessageSquare, Users, Search, Send, Plus, ChevronRight, MoreHorizontal,
+  MessageSquare, Users, Search, Send, Plus, ChevronRight, ChevronLeft, MoreHorizontal,
   Trash2, UserPlus,
 } from 'lucide-react'
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
@@ -225,11 +225,13 @@ function Thread({
   groupId,
   userId,
   headerName,
+  onBack,
 }: {
   conversationId?: string
   groupId?: string
   userId: string
   headerName: string
+  onBack?: () => void
 }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
@@ -338,6 +340,11 @@ function Thread({
     <div className="flex flex-col h-full">
       {/* Thread header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+        {onBack && (
+          <button onClick={onBack} className="sm:hidden -ml-1 p-1 rounded hover:bg-muted transition-colors">
+            <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+          </button>
+        )}
         <Avatar className="h-8 w-8 [&::after]:hidden">
           <AvatarFallback className="text-xs bg-accent text-primary font-medium">
             {headerName.charAt(0).toUpperCase()}
@@ -482,6 +489,7 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
+  const [showThread, setShowThread] = useState(false)
 
   // Clear header actions (no add button needed — it's in the sidebar)
   useEffect(() => {
@@ -571,7 +579,7 @@ export default function ChatPage() {
   const deleteConversation = async (convId: string) => {
     await supabase.from('conversations').delete().eq('id', convId)
     setConversations(prev => prev.filter(c => c.id !== convId))
-    if (selectedConv?.id === convId) setSelectedConv(null)
+    if (selectedConv?.id === convId) { setSelectedConv(null); setShowThread(false) }
   }
 
   const filteredConvs = conversations.filter(c =>
@@ -587,7 +595,10 @@ export default function ChatPage() {
     <div className="flex overflow-hidden" style={{ height: 'calc(100vh - 56px)' }}>
 
       {/* ── Left sidebar ─────────────────────────────────── */}
-      <div className="w-72 shrink-0 flex flex-col border-r border-border bg-card">
+      <div className={cn(
+        'w-full sm:w-72 shrink-0 flex flex-col border-r border-border bg-card',
+        showThread ? 'hidden sm:flex' : 'flex'
+      )}>
 
         {/* Tabs */}
         <div className="flex border-b border-border">
@@ -643,6 +654,7 @@ export default function ChatPage() {
                     })
                     setSelectedConv(conv)
                     setSelectedGroup(null)
+                    setShowThread(true)
                   }}
                 />
               </DropdownMenuContent>
@@ -679,7 +691,7 @@ export default function ChatPage() {
                 key={conv.id}
                 conv={conv}
                 isActive={selectedConv?.id === conv.id}
-                onClick={() => { setSelectedConv(conv); setSelectedGroup(null) }}
+                onClick={() => { setSelectedConv(conv); setSelectedGroup(null); setShowThread(true) }}
                 onDelete={() => deleteConversation(conv.id)}
               />
             ))
@@ -706,7 +718,7 @@ export default function ChatPage() {
                 key={group.id}
                 group={group}
                 isActive={selectedGroup?.id === group.id}
-                onClick={() => { setSelectedGroup(group); setSelectedConv(null) }}
+                onClick={() => { setSelectedGroup(group); setSelectedConv(null); setShowThread(true) }}
               />
             ))
           )}
@@ -714,13 +726,17 @@ export default function ChatPage() {
       </div>
 
       {/* ── Right panel ───────────────────────────────────── */}
-      <div className="flex-1 min-w-0 bg-background">
+      <div className={cn(
+        'flex-1 min-w-0 bg-background',
+        showThread ? 'flex flex-col' : 'hidden sm:flex sm:flex-col'
+      )}>
         {selectedConv ? (
           <Thread
             key={`conv-${selectedConv.id}`}
             conversationId={selectedConv.id}
             userId={userId}
             headerName={selectedConv.client_name}
+            onBack={() => setShowThread(false)}
           />
         ) : selectedGroup ? (
           <Thread
@@ -728,6 +744,7 @@ export default function ChatPage() {
             groupId={selectedGroup.id}
             userId={userId}
             headerName={selectedGroup.name}
+            onBack={() => setShowThread(false)}
           />
         ) : (
           <EmptyThread />

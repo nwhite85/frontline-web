@@ -299,7 +299,7 @@ export default function AppPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {/* Settings Card */}
       {loading ? (
         <Skeleton className="h-32 w-full" />
@@ -386,7 +386,7 @@ export default function AppPage() {
                   <TableHead className="text-xs font-medium w-8" />
                   <TableHead className="text-xs font-medium">Preview</TableHead>
                   <TableHead className="text-xs font-medium">Message</TableHead>
-                  <TableHead className="text-xs font-medium">Position</TableHead>
+                  <TableHead className="text-xs font-medium hidden sm:table-cell">Position</TableHead>
                   <TableHead className="text-xs font-medium">Active</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -419,7 +419,7 @@ export default function AppPage() {
                         <p className="text-xs text-muted-foreground line-clamp-1">{slide.main_text}</p>
                       )}
                     </TableCell>
-                    <TableCell className="py-2">
+                    <TableCell className="py-2 hidden sm:table-cell">
                       <span className="text-xs text-muted-foreground">{idx + 1}</span>
                     </TableCell>
                     <TableCell className="py-2">
