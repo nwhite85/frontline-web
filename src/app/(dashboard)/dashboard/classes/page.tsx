@@ -624,7 +624,7 @@ export default function ClassesPage() {
           .order('name', { ascending: true }),
         supabase
           .from('membership_plans')
-          .select('id, name, description, plan_type, billing_period, price, is_active, is_highlighted, includes_personal_training, includes_classes')
+          .select('id, name, description, plan_type, billing_period, price, is_active, is_highlighted, includes_personal_training, includes_classes, classes_per_week, classes_per_month, is_comp')
           .eq('trainer_id', user.id)
           .order('display_order', { ascending: true }),
       ])
