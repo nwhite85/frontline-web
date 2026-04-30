@@ -692,7 +692,7 @@ export default function ClassesPage() {
   const paginatedClasses = pageSize === Infinity ? sortedClasses : sortedClasses.slice((page - 1) * pageSize, page * pageSize)
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {error && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
       )}
@@ -730,10 +730,10 @@ export default function ClassesPage() {
                           onClick={() => handleSort('name')}
                         />
                       </TableHead>
-                      <TableHead className="text-xs font-medium">Duration</TableHead>
-                      <TableHead className="text-xs font-medium">Capacity</TableHead>
-                      <TableHead className="text-xs font-medium">Price</TableHead>
-                      <TableHead className="text-xs font-medium">Level</TableHead>
+                      <TableHead className="text-xs font-medium hidden sm:table-cell">Duration</TableHead>
+                      <TableHead className="text-xs font-medium hidden sm:table-cell">Capacity</TableHead>
+                      <TableHead className="text-xs font-medium hidden md:table-cell">Price</TableHead>
+                      <TableHead className="text-xs font-medium hidden md:table-cell">Level</TableHead>
                       <TableHead className="text-xs font-medium">Status</TableHead>
                       <TableHead className="w-10" />
                     </TableRow>
@@ -752,20 +752,20 @@ export default function ClassesPage() {
                             <p className="text-xs text-muted-foreground mt-0.5">{cls.location}</p>
                           )}
                         </TableCell>
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 hidden sm:table-cell">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             <span>{cls.duration_minutes}min</span>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 hidden sm:table-cell">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Users className="h-3 w-3" />
                             <span>{cls.max_capacity}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3 text-sm">{fmt(cls.price)}</TableCell>
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 text-sm hidden md:table-cell">{fmt(cls.price)}</TableCell>
+                        <TableCell className="py-3 hidden md:table-cell">
                           <Badge variant="outline" className="bg-card text-xs capitalize">{cls.skill_level}</Badge>
                         </TableCell>
                         <TableCell className="py-3">

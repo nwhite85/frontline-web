@@ -323,7 +323,7 @@ export default function ProgramsPage() {
   const paginated = numericSize === Infinity ? sorted : sorted.slice((page - 1) * numericSize, page * numericSize)
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {error && <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
 
       {loading ? (
@@ -363,9 +363,9 @@ export default function ProgramsPage() {
                       onClick={() => handleSort('title')}
                     />
                   </TableHead>
-                  <TableHead className="text-xs font-medium w-24">Duration</TableHead>
-                  <TableHead className="text-xs font-medium w-24">Days/wk</TableHead>
-                  <TableHead className="text-xs font-medium w-32">
+                  <TableHead className="text-xs font-medium w-24 hidden sm:table-cell">Duration</TableHead>
+                  <TableHead className="text-xs font-medium w-24 hidden sm:table-cell">Days/wk</TableHead>
+                  <TableHead className="text-xs font-medium w-32 hidden sm:table-cell">
                     <SortButton
                       label="Created"
                       direction={sortConfig?.key === 'created_at' ? sortConfig.direction : null}
@@ -399,13 +399,13 @@ export default function ProgramsPage() {
                           </p>
                         )}
                       </TableCell>
-                      <TableCell className="py-3 text-xs text-muted-foreground">
+                      <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">
                         {prog.duration_weeks ? `${prog.duration_weeks}w` : '—'}
                       </TableCell>
-                      <TableCell className="py-3 text-xs text-muted-foreground">
+                      <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">
                         {prog.training_days_per_week ? `${prog.training_days_per_week}x` : '—'}
                       </TableCell>
-                      <TableCell className="py-3 text-xs text-muted-foreground">
+                      <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">
                         {format(new Date(prog.created_at), 'dd MMM yyyy')}
                       </TableCell>
                       <TableCell className="py-3 pr-3 w-9" onClick={e => e.stopPropagation()}>

@@ -441,7 +441,7 @@ export default function AppointmentsPage() {
   const fmt = (n: number) => `£${n.toFixed(2)}`
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {error && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
       )}
@@ -473,9 +473,9 @@ export default function AppointmentsPage() {
                         </div>
                       </TableHead>
                       <TableHead className="text-xs font-medium">Name</TableHead>
-                      <TableHead className="text-xs font-medium">Duration</TableHead>
-                      <TableHead className="text-xs font-medium">Capacity</TableHead>
-                      <TableHead className="text-xs font-medium">Location</TableHead>
+                      <TableHead className="text-xs font-medium hidden sm:table-cell">Duration</TableHead>
+                      <TableHead className="text-xs font-medium hidden sm:table-cell">Capacity</TableHead>
+                      <TableHead className="text-xs font-medium hidden md:table-cell">Location</TableHead>
                       <TableHead className="text-xs font-medium">Status</TableHead>
                       <TableHead className="w-10" />
                     </TableRow>
@@ -494,17 +494,17 @@ export default function AppointmentsPage() {
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tmpl.description}</p>
                           )}
                         </TableCell>
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 hidden sm:table-cell">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" /><span>{tmpl.duration_minutes}min</span>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 hidden sm:table-cell">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Users className="h-3 w-3" /><span>{tmpl.max_capacity}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 hidden md:table-cell">
                           {tmpl.location ? (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <MapPin className="h-3 w-3" /><span>{tmpl.location}</span>
@@ -563,7 +563,7 @@ export default function AppointmentsPage() {
                       <TableHead className="text-xs font-medium">Package</TableHead>
                     <TableHead className="text-xs font-medium">Sessions</TableHead>
                     <TableHead className="text-xs font-medium">Price</TableHead>
-                    <TableHead className="text-xs font-medium">Validity</TableHead>
+                    <TableHead className="text-xs font-medium hidden sm:table-cell">Validity</TableHead>
                     <TableHead className="text-xs font-medium">Status</TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
@@ -584,7 +584,7 @@ export default function AppointmentsPage() {
                         }
                       </TableCell>
                       <TableCell className="py-3 text-sm">{fmt(pkg.price)}</TableCell>
-                      <TableCell className="py-3 text-xs text-muted-foreground">
+                      <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">
                         {pkg.validity_days ? `${pkg.validity_days} days` : '—'}
                       </TableCell>
                       <TableCell className="py-3">

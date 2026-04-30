@@ -287,7 +287,7 @@ function ProfileHeader({ client, loading, refreshKey, onEdit, onAddMembership, o
   }, [client?.id, refreshKey])
 
   if (loading) return (
-    <Card className="mx-6 mt-6" style={{ borderRadius: 'var(--table-radius)' }}>
+    <Card className="mx-3 sm:mx-6 mt-4 sm:mt-6" style={{ borderRadius: 'var(--table-radius)' }}>
       <CardContent className="px-4 py-0">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1.5 flex-1">
@@ -316,7 +316,7 @@ function ProfileHeader({ client, loading, refreshKey, onEdit, onAddMembership, o
   const sessionSub = stats?.sessionRemaining === -1 ? 'Package' : stats?.sessionRemaining === 0 ? 'No sessions' : 'Sessions'
 
   return (
-    <Card className="mx-6 mt-6" style={{ borderRadius: 'var(--table-radius)' }}>
+    <Card className="mx-3 sm:mx-6 mt-4 sm:mt-6" style={{ borderRadius: 'var(--table-radius)' }}>
       <CardContent className="px-4 py-0">
       {/* Profile row: avatar left, details centre, edit right */}
       <div className="flex items-start gap-3">
@@ -798,8 +798,8 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
             <TableHeader>
               <TableRow className="bg-muted/30 hover:bg-muted/30">
                 <TableHead className="text-xs font-medium pl-4">Programs</TableHead>
-                <TableHead className="text-xs font-medium w-16">Duration</TableHead>
-                <TableHead className="text-xs font-medium w-28">Assigned</TableHead>
+                <TableHead className="text-xs font-medium w-16 hidden sm:table-cell">Duration</TableHead>
+                <TableHead className="text-xs font-medium w-28 hidden sm:table-cell">Assigned</TableHead>
                 <TableHead className="text-xs font-medium w-24">Status</TableHead>
                 <TableHead className="pr-3 w-24 text-right">
                   <Button variant="ghost" className="h-6 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowAssignProgram(true)}>
@@ -821,8 +821,8 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                     <p className="text-sm font-medium">{cp.program?.title ?? 'Unknown'}</p>
                     {cp.program?.subtitle && <p className="text-xs text-muted-foreground">{cp.program.subtitle}</p>}
                   </TableCell>
-                  <TableCell className="py-3 text-xs text-muted-foreground">{cp.program?.duration_weeks ? `${cp.program.duration_weeks}w` : '—'}</TableCell>
-                  <TableCell className="py-3 text-xs text-muted-foreground">{format(new Date(cp.created_at), 'dd MMM yyyy')}</TableCell>
+                  <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">{cp.program?.duration_weeks ? `${cp.program.duration_weeks}w` : '—'}</TableCell>
+                  <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">{format(new Date(cp.created_at), 'dd MMM yyyy')}</TableCell>
                   <TableCell className="py-3"><Badge variant={cp.status === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">{cp.status}</Badge></TableCell>
                   <TableCell className="py-3 pr-4 text-right">
                     <DropdownMenu>
@@ -846,7 +846,7 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
             <TableHeader>
               <TableRow className="bg-muted/30 hover:bg-muted/30 border-t-2 border-border">
                 <TableHead className="text-xs font-medium pl-4">Workouts</TableHead>
-                <TableHead className="text-xs font-medium w-28">Assigned</TableHead>
+                <TableHead className="text-xs font-medium w-28 hidden sm:table-cell">Assigned</TableHead>
                 <TableHead className="text-xs font-medium w-24">Status</TableHead>
                 <TableHead className="pr-3 w-24 text-right">
                   <Button variant="ghost" className="h-6 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowAssignWorkout(true)}>
@@ -865,7 +865,7 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
               ) : workouts.map((cw: any) => (
                 <TableRow key={cw.id}>
                   <TableCell className="py-3 text-sm font-medium pl-4">{cw.workout?.name ?? cw.workout?.title ?? 'Unknown'}</TableCell>
-                  <TableCell className="py-3 text-xs text-muted-foreground">{format(new Date(cw.created_at), 'dd MMM yyyy')}</TableCell>
+                  <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">{format(new Date(cw.created_at), 'dd MMM yyyy')}</TableCell>
                   <TableCell className="py-3"><Badge variant={cw.status === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">{cw.status}</Badge></TableCell>
                   <TableCell className="py-3 pr-4 text-right">
                     <DropdownMenu>
@@ -1741,7 +1741,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="text-xs font-medium pl-4">Description</TableHead>
                     <TableHead className="text-xs font-medium">Amount</TableHead>
-                    <TableHead className="text-xs font-medium">Date</TableHead>
+                    <TableHead className="text-xs font-medium hidden sm:table-cell">Date</TableHead>
                     <TableHead className="text-xs font-medium pr-4">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1750,7 +1750,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                     <TableRow key={p.id}>
                       <TableCell className="py-3 text-sm pl-4">{p.description ?? 'Payment'}</TableCell>
                       <TableCell className="py-3 text-sm font-medium">£{(p.amount / 100).toFixed(2)}</TableCell>
-                      <TableCell className="py-3 text-xs text-muted-foreground">{format(new Date(p.payment_date), 'dd MMM yyyy')}</TableCell>
+                      <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">{format(new Date(p.payment_date), 'dd MMM yyyy')}</TableCell>
                       <TableCell className="py-3 pr-4">
                         <Badge variant={p.status === 'completed' ? 'default' : p.status === 'failed' ? 'destructive' : 'secondary'} className="text-xs capitalize">{p.status}</Badge>
                       </TableCell>
@@ -2034,7 +2034,7 @@ export default function ClientDetailPage() {
         onGoToBilling={() => setActiveTab('billing')}
       />
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-3 sm:p-6">
         {error && <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive mb-4">{error}</div>}
 
         {!loading && client && (

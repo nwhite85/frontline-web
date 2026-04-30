@@ -393,7 +393,7 @@ export default function PaymentsPage() {
   const fmt = (amount: number) => `£${(amount / 100).toFixed(2)}`
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {error && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
       )}
@@ -454,7 +454,7 @@ export default function PaymentsPage() {
                     onClick={() => handleSort('client_name')}
                   />
                 </TableHead>
-                <TableHead className="text-xs font-medium">Description</TableHead>
+                <TableHead className="text-xs font-medium hidden sm:table-cell">Description</TableHead>
                 <TableHead className="text-xs font-medium">
                   <SortButton
                     label="Amount"
@@ -462,7 +462,7 @@ export default function PaymentsPage() {
                     onClick={() => handleSort('amount')}
                   />
                 </TableHead>
-                <TableHead className="text-xs font-medium">
+                <TableHead className="text-xs font-medium hidden sm:table-cell">
                   <SortButton
                     label="Date"
                     direction={sortConfig?.key === 'payment_date' ? sortConfig.direction : null}
@@ -476,9 +476,9 @@ export default function PaymentsPage() {
               {paginated.map((p) => (
                 <TableRow key={p.id} className="hover:bg-muted/30">
                   <TableCell className="py-2.5 text-sm font-medium">{p.client_name}</TableCell>
-                  <TableCell className="py-2.5 text-sm text-muted-foreground">{p.description || p.payment_type}</TableCell>
+                  <TableCell className="py-2.5 text-sm text-muted-foreground hidden sm:table-cell">{p.description || p.payment_type}</TableCell>
                   <TableCell className="py-2.5 text-sm font-medium">{fmt(p.amount)}</TableCell>
-                  <TableCell className="py-2.5 text-xs text-muted-foreground">
+                  <TableCell className="py-2.5 text-xs text-muted-foreground hidden sm:table-cell">
                     {p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                   </TableCell>
                   <TableCell className="py-2.5">

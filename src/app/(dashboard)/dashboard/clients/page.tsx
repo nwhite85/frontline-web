@@ -426,7 +426,7 @@ export default function ClientsPage() {
                     onClick={() => handleSort('first_name')}
                   />
                 </TableHead>
-                <TableHead className="text-xs font-medium">Type</TableHead>
+                <TableHead className="text-xs font-medium hidden sm:table-cell">Type</TableHead>
                 <TableHead className="text-xs font-medium hidden lg:table-cell">Ability</TableHead>
                 <TableHead className="text-xs font-medium hidden md:table-cell">Programs</TableHead>
                 <TableHead className="text-xs font-medium">Status</TableHead>
@@ -453,7 +453,7 @@ export default function ClientsPage() {
                       <p className="text-xs text-muted-foreground truncate">{client.email}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="py-3">
+                  <TableCell className="py-3 hidden sm:table-cell">
                     <Badge variant="outline" className={`text-xs ${TYPE_COLOURS[client.clientType]}`}>
                       {TYPE_LABELS[client.clientType]}
                     </Badge>

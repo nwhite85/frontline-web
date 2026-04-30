@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -39,6 +38,138 @@ interface Workout {
   exercise_names?: string[]
   exercise_count?: number
   description?: string | null
+}
+
+// ─── New Workout Sheet ────────────────────────────────────────────────────────
+
+const ALL_COLS = ['sets', 'reps', 'weight', 'rest', 'distance', 'notes'] as const
+type ColKey = typeof ALL_COLS[number]
+const DEFAULT_COLS: ColKey[] = ['sets', 'reps', 'weight', 'rest', 'notes']
+
+function NewWorkoutSheet({
+  open, onOpenChange, trainerId,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  trainerId: string
+}) {
+  const router = useRouter()
+  const [name, setName] = useState('')
+  const [workoutType, setWorkoutType] = useState<'strength' | 'circuit'>('strength')
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg')
+  const [cols, setCols] = useState<Set<ColKey>>(new Set(DEFAULT_COLS))
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      setName('')
+      setWorkoutType('strength')
+      setWeightUnit('kg')
+      setCols(new Set(DEFAULT_COLS))
+      setError(null)
+    }
+  }, [open])
+
+  const toggleCol = (col: ColKey) => {
+    setCols(prev => {
+      const next = new Set(prev)
+      if (next.has(col)) next.delete(col)
+      else next.add(col)
+      return next
+    })
+  }
+
+  const handleNext = async () => {
+    if (!name.trim()) { setError('Workout name is required'); return }
+    setCreating(true); setError(null)
+    try {
+      // @ts-ignore
+      const { data, error: err } = await supabase
+        .from('workouts')
+        // @ts-ignore
+        .insert({ title: name.trim(), trainer_id: trainerId, workout_type: workoutType, weight_unit: weightUnit, is_template: true })
+        .select('id').single()
+      if (err) throw err
+      const colParam = ALL_COLS.filter(c => cols.has(c)).join(',')
+      router.push(`/dashboard/workouts/${(data as any).id}?cols=${colParam}`)
+    } catch (err) {
+      setError(getErrorMessage(err))
+      setCreating(false)
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle>New Workout</SheetTitle>
+        </SheetHeader>
+        <SheetBody>
+          {error && <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
+          <div className="grid gap-1.5">
+            <Label>Workout name</Label>
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Upper Body Push"
+              onKeyDown={e => e.key === 'Enter' && handleNext()}
+              autoFocus
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Type</Label>
+            <div className="flex rounded-md border border-input overflow-hidden">
+              {(['strength', 'circuit'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setWorkoutType(t)}
+                  className={`flex-1 py-1.5 text-sm font-medium transition-colors ${workoutType === t ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:text-foreground'}`}
+                >
+                  {t === 'strength' ? '💪 Strength' : '🔄 Circuit'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Weight unit</Label>
+            <div className="flex rounded-md border border-input overflow-hidden">
+              {(['kg', 'lbs'] as const).map(u => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => setWeightUnit(u)}
+                  className={`flex-1 py-1.5 text-sm font-medium transition-colors ${weightUnit === u ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:text-foreground'}`}
+                >
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>Columns</Label>
+            <div className="flex flex-wrap gap-2">
+              {ALL_COLS.map(col => (
+                <button
+                  key={col}
+                  type="button"
+                  onClick={() => toggleCol(col)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${cols.has(col) ? 'bg-primary text-primary-foreground border-primary' : 'bg-transparent text-muted-foreground border-input hover:text-foreground'}`}
+                >
+                  {col.charAt(0).toUpperCase() + col.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </SheetBody>
+        <SheetFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleNext} disabled={creating}>{creating ? 'Creating…' : 'Next →'}</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  )
 }
 
 // ─── Edit Metadata Sheet ──────────────────────────────────────────────────────
@@ -180,8 +311,8 @@ function WorkoutSection({
                 onClick={() => onSort('title')}
               />
             </TableHead>
-            <TableHead className="text-xs font-medium text-right">Duration</TableHead>
-            <TableHead className="text-xs font-medium text-right">
+            <TableHead className="text-xs font-medium text-right hidden sm:table-cell">Duration</TableHead>
+            <TableHead className="text-xs font-medium text-right hidden sm:table-cell">
               <SortButton
                 label="Created"
                 direction={sortConfig?.key === 'created_at' ? sortConfig.direction : null}
@@ -219,10 +350,10 @@ function WorkoutSection({
                   <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[300px]">{w.description}</p>
                 ) : null}
               </TableCell>
-              <TableCell className="py-3 text-xs text-muted-foreground text-right">
+              <TableCell className="py-3 text-xs text-muted-foreground text-right hidden sm:table-cell">
                 {w.est_duration || '—'}
               </TableCell>
-              <TableCell className="py-3 text-xs text-muted-foreground pr-4 text-right">
+              <TableCell className="py-3 text-xs text-muted-foreground pr-4 text-right hidden sm:table-cell">
                 {format(new Date(w.created_at), 'dd MMM yyyy')}
               </TableCell>
               <TableCell className="py-3 pr-3 w-9" onClick={e => e.stopPropagation()}>
@@ -259,13 +390,13 @@ export default function WorkoutsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [creating, setCreating] = useState(false)
   const [sortConfig, setSortConfig] = useState<SortConfig<Workout> | null>({ key: 'title', direction: 'asc' })
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<number>(25)
 
   const [showSheet, setShowSheet] = useState(false)
   const [editTarget, setEditTarget] = useState<Workout | null>(null)
+  const [showNewSheet, setShowNewSheet] = useState(false)
 
   // ── Header ──
   useEffect(() => {
@@ -285,13 +416,13 @@ export default function WorkoutsPage() {
 
   useEffect(() => {
     setActions(
-      <Button variant="outline" className="bg-card h-8" onClick={() => handleNew()} disabled={creating}>
+      <Button variant="outline" className="bg-card h-8" onClick={() => setShowNewSheet(true)}>
         <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
-        {creating ? 'Creating…' : 'New Workout'}
+        New Workout
       </Button>
     )
     return () => setActions(null)
-  }, [setActions, creating])
+  }, [setActions])
 
   // ── Fetch ──
   const fetchWorkouts = useCallback(async () => {
@@ -368,26 +499,6 @@ export default function WorkoutsPage() {
   useEffect(() => { fetchWorkouts() }, [fetchWorkouts])
 
 
-  // ── New Workout: create immediately then redirect to builder ──
-  const handleNew = async () => {
-    if (!user?.id || creating) return
-    setCreating(true)
-    try {
-      // @ts-ignore
-      const { data, error: err } = await supabase
-        .from('workouts')
-        // @ts-ignore
-        .insert({ title: 'Untitled Workout', trainer_id: user.id, workout_type: 'strength', is_template: true })
-        .select('id').single()
-      if (err) throw err
-      // @ts-ignore
-      router.push(`/dashboard/workouts/${(data as any).id}`)
-    } catch (err) {
-      toast.error(getErrorMessage(err))
-      setCreating(false)
-    }
-  }
-
   const handleDelete = async (id: string) => {
     try {
       // Delete child rows first to avoid constraint issues
@@ -419,7 +530,7 @@ export default function WorkoutsPage() {
   const showEmpty = !loading && !hasData
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
       {error && <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
 
       {loading ? (
@@ -432,7 +543,7 @@ export default function WorkoutsPage() {
           title="No workouts yet"
           description="Create your first workout to build routines with exercises, sets, and reps."
           action={
-            <Button variant="outline" onClick={() => handleNew()}>
+            <Button variant="outline" onClick={() => setShowNewSheet(true)}>
               <Plus className="h-3.5 w-3.5 -ml-0.5 mr-0.5" />
               New Workout
             </Button>
@@ -475,6 +586,12 @@ export default function WorkoutsPage() {
           </div>
         </div>
       )}
+
+      <NewWorkoutSheet
+        open={showNewSheet}
+        onOpenChange={setShowNewSheet}
+        trainerId={user?.id ?? ''}
+      />
 
       <WorkoutSheet
         open={showSheet}
