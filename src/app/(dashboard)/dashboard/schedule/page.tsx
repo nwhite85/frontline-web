@@ -13,7 +13,7 @@ import { AddSessionSheet } from './components/AddSessionSheet'
 import { ScheduleSettingsSheet } from './components/ScheduleSettingsSheet'
 import { InvoiceCartDrawer } from './components/InvoiceCartDrawer'
 import { CopyMonthDrawer } from './components/CopyMonthDrawer'
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Receipt, Copy } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Receipt, Copy, CalendarDays } from 'lucide-react'
 import type { SessionType } from './components/SessionCard'
 import type { Database } from '@/types/supabase'
 
@@ -166,6 +166,11 @@ export default function SchedulePage() {
 
   const [selectedWeek, setSelectedWeek] = useState(new Date())
   const [filter, setFilter] = useState<Filter>('All')
+
+  // Mobile day navigation — which column (0–6) is active on narrow screens
+  const todayForInit = new Date()
+  const todayDayOfWeek = todayForInit.getDay() === 0 ? 6 : todayForInit.getDay() - 1
+  const [activeDayIndex, setActiveDayIndex] = useState(todayDayOfWeek)
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null)
   const [detailSheet, setDetailSheet] = useState<{ session: any; type: SessionType } | null>(null)
@@ -173,6 +178,13 @@ export default function SchedulePage() {
   const [showInvoiceCart, setShowInvoiceCart] = useState(false)
   const [showCopyMonth, setShowCopyMonth] = useState(false)
   const [unbilledClientCount, setUnbilledClientCount] = useState(0)
+
+  // When the displayed week changes, default active day to today (if in week) or Mon
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    const idx = weekDays.findIndex(d => d.toISOString().split('T')[0] === todayStr)
+    setActiveDayIndex(idx >= 0 ? idx : 0)
+  }, [selectedWeek]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Time range state with localStorage persistence
   // Initialise with defaults so SSR and client first-render match, then apply saved values
@@ -599,8 +611,43 @@ export default function SchedulePage() {
     setDetailSheet({ session, type })
   }
 
+  const goToPrevDay = () => {
+    if (activeDayIndex > 0) {
+      setActiveDayIndex(activeDayIndex - 1)
+    } else {
+      setSelectedWeek(w => { const d = new Date(w); d.setDate(d.getDate() - 7); return d })
+      setActiveDayIndex(6)
+    }
+  }
+
+  const goToNextDay = () => {
+    if (activeDayIndex < 6) {
+      setActiveDayIndex(activeDayIndex + 1)
+    } else {
+      setSelectedWeek(w => { const d = new Date(w); d.setDate(d.getDate() + 7); return d })
+      setActiveDayIndex(0)
+    }
+  }
+
+  const activeDayDate = weekDays[activeDayIndex]
+  const activeDayLabel = activeDayDate?.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) ?? ''
+
   return (
     <div className="flex flex-col h-full">
+      {/* Mobile-only day navigation strip */}
+      <div className="sm:hidden flex items-center justify-between px-3 py-2 border-b border-border bg-background shrink-0">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPrevDay}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-sm font-medium">{activeDayLabel}</span>
+        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextDay}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
       <WeekGrid
         weekDays={weekDays}
         appointments={appointments}
@@ -620,6 +667,7 @@ export default function SchedulePage() {
         onDrop={handleDrop}
         startHour={viewStartHour}
         endHour={viewEndHour}
+        mobileDayIndex={activeDayIndex}
       />
 
       {/* Session detail / edit sheet */}
