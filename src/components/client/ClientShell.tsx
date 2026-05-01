@@ -15,7 +15,7 @@ const navItems = [
   { href: '/client-dashboard', label: 'Schedule', icon: CalendarDays, newTab: false },
   { href: '/client/results', label: 'Results', icon: Trophy, newTab: false },
   { href: '/shop', label: 'Shop', icon: ShoppingBag, newTab: true },
-  { href: '/client/profile', label: 'Profile', icon: UserIcon, newTab: false },
+  { href: '/client/profile', label: 'Account', icon: UserIcon, newTab: false },
 ]
 
 export default function ClientShell({ children }: ClientShellProps) {

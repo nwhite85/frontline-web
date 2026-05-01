@@ -111,7 +111,7 @@ function ClassDetailSheet({
   const confirmed = bookings.filter(b => b.booking_status === 'confirmed')
   const waitlist = bookings.filter(b => b.booking_status === 'waitlist')
   const booked = schedule.current_bookings ?? 0
-  const cap = schedule.class?.max_capacity ?? 0
+  const cap = schedule.max_capacity ?? schedule.class?.max_capacity ?? 0
   const isFull = cap > 0 && booked >= cap
   const isBooked = !!bookingStatus
   const isWaitlisted = bookingStatus === 'waitlist'
@@ -831,7 +831,7 @@ function ClassesTab({ userId }: { userId: string }) {
                   if (item.kind === 'class') {
                     const s = item.data
                     const booked = s.current_bookings ?? 0
-                    const cap = s.class?.max_capacity ?? 0
+                    const cap = s.max_capacity ?? s.class?.max_capacity ?? 0
                     const isFull = cap > 0 && booked >= cap
                     const pct = cap > 0 ? Math.min((booked / cap) * 100, 100) : 0
                     const isBooked = !!bookedIds[s.id]
@@ -1188,7 +1188,7 @@ function CheckpointsTab({ userId }: { userId: string }) {
             <div className="flex flex-col gap-3">
               {reviewClasses.map(s => {
                 const booked = s.current_bookings ?? 0
-                const cap = s.class?.max_capacity ?? 0
+                const cap = s.max_capacity ?? s.class?.max_capacity ?? 0
                 const isFull = cap > 0 && booked >= cap
                 const pct = cap > 0 ? Math.min((booked / cap) * 100, 100) : 0
                 const isBooked = !!bookedClassIds[s.id]
@@ -1681,10 +1681,6 @@ function ClientDashboardContent() {
             {firstName ?? 'Member'}
           </h1>
         </div>
-
-        {!hasActiveMembership && userId && user && (
-          <UpgradeCard userId={userId} userEmail={user.email ?? ''} />
-        )}
 
         <div className="flex gap-2 mb-6 flex-wrap">
           {tabs.map(t => (

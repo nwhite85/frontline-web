@@ -7,6 +7,69 @@ import ClientShell from '@/components/client/ClientShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+interface MembershipPlanOption {
+  id: string
+  name: string
+  price: number
+}
+
+function UpgradeCard({ userId, userEmail }: { userId: string; userEmail: string }) {
+  const [plans, setPlans] = useState<MembershipPlanOption[]>([])
+  const [checkingOut, setCheckingOut] = useState<string | null>(null)
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(supabase as any)
+      .from('membership_plans')
+      .select('id, name, price')
+      .eq('is_active', true)
+      .neq('plan_type', 'pay_and_go')
+      .order('price', { ascending: true })
+      .then(({ data }: { data: MembershipPlanOption[] | null }) => setPlans(data || []))
+  }, [])
+
+  const handleBuy = async (plan: MembershipPlanOption) => {
+    setCheckingOut(plan.id)
+    try {
+      const res = await fetch('/api/create-subscription-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, userId, planId: plan.id, planName: plan.name, planPrice: plan.price }),
+      })
+      const data = await res.json()
+      if (res.ok && data.url) { window.location.href = data.url; return }
+    } finally {
+      setCheckingOut(null)
+    }
+  }
+
+  if (!plans.length) return null
+
+  return (
+    <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-3">
+      <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue">Upgrade membership</p>
+      <div className="flex flex-wrap gap-2">
+        {plans.map(plan => (
+          <button
+            key={plan.id}
+            onClick={() => handleBuy(plan)}
+            disabled={checkingOut === plan.id}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-blue/10 border border-brand-blue/20 hover:bg-brand-blue/20 transition-colors text-left"
+          >
+            <div>
+              <p className="text-sm font-semibold text-white">{plan.name}</p>
+              <p className="text-xs text-white/50">£{plan.price}/mo</p>
+            </div>
+            {checkingOut === plan.id
+              ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-blue border-t-transparent ml-2" />
+              : <span className="text-xs text-brand-blue ml-2">→</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 interface UserProfile {
   id: string
   first_name: string
@@ -22,6 +85,8 @@ export default function ProfilePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [email, setEmail] = useState('')
+  const [userId, setUserId] = useState('')
+  const [hasActiveMembership, setHasActiveMembership] = useState(true)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -36,12 +101,18 @@ export default function ProfilePage() {
       if (!session) { router.push('/login'); return }
 
       setEmail(session.user.email ?? '')
+      setUserId(session.user.id)
 
-      const { data } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
+      const [{ data }, { data: membershipData }] = await Promise.all([
+        supabase.from('user_profiles').select('*').eq('id', session.user.id).single(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
+          .from('client_memberships')
+          .select('id, membership_plans(plan_type)')
+          .eq('client_id', session.user.id)
+          .eq('status', 'active')
+          .limit(1),
+      ])
 
       if (data) {
         const p = data as UserProfile; setProfile(p)
@@ -49,6 +120,8 @@ export default function ProfilePage() {
         setLastName(p.last_name ?? '')
         setPhone(p.phone ?? '')
       }
+      const active = (membershipData || []) as any[]
+      setHasActiveMembership(active.some((m: any) => m.membership_plans?.plan_type !== 'pay_and_go'))
       setLoading(false)
     }
     load()
@@ -70,7 +143,7 @@ export default function ProfilePage() {
     <ClientShell>
       <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-10">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold uppercase text-white tracking-tight">Profile</h1>
+          <h1 className="text-4xl font-bold uppercase text-white tracking-tight">Account</h1>
           <p className="text-white/40 mt-1">Manage your account details</p>
         </div>
 
@@ -98,6 +171,9 @@ export default function ProfilePage() {
                   </span>
                 )}
               </div>
+              {!hasActiveMembership && userId && (
+                <UpgradeCard userId={userId} userEmail={email} />
+              )}
             </div>
 
             {/* Edit form */}

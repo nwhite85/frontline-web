@@ -6,6 +6,7 @@ export interface ClassSchedule {
   start_time: string
   status: string
   current_bookings?: number
+  max_capacity?: number
   trainer_id?: string
   class: {
     name: string
