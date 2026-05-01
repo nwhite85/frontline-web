@@ -1461,6 +1461,83 @@ function EventsTab({ userId }: { userId: string }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+interface MembershipPlanOption {
+  id: string
+  name: string
+  price: number
+  description?: string | null
+}
+
+function UpgradeCard({ userId, userEmail }: { userId: string; userEmail: string }) {
+  const [plans, setPlans] = useState<MembershipPlanOption[]>([])
+  const [checkingOut, setCheckingOut] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase
+      .from('membership_plans')
+      .select('id, name, price, description')
+      .eq('is_active', true)
+      .neq('plan_type', 'pay_and_go')
+      .order('price', { ascending: true })
+      .then(({ data }) => setPlans((data || []) as MembershipPlanOption[]))
+  }, [])
+
+  const handleBuy = async (plan: MembershipPlanOption) => {
+    setCheckingOut(plan.id)
+    try {
+      const res = await fetch('/api/create-subscription-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userEmail,
+          userId,
+          planId: plan.id,
+          planName: plan.name,
+          planPrice: plan.price,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        window.location.href = data.url
+        return
+      }
+    } finally {
+      setCheckingOut(null)
+    }
+  }
+
+  if (!plans.length) return null
+
+  return (
+    <div className="mb-6 rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-4 flex flex-col gap-3">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue mb-0.5">Upgrade your membership</p>
+        <p className="text-sm text-white/50">Add a monthly plan to book classes and unlock full access.</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {plans.map(plan => (
+          <button
+            key={plan.id}
+            onClick={() => handleBuy(plan)}
+            disabled={checkingOut === plan.id}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-blue/10 border border-brand-blue/20 hover:bg-brand-blue/20 transition-colors text-left"
+          >
+            <div>
+              <p className="text-sm font-semibold text-white">{plan.name}</p>
+              <p className="text-xs text-white/50">£{plan.price}/mo</p>
+            </div>
+            {checkingOut === plan.id ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-blue border-t-transparent ml-2" />
+            ) : (
+              <span className="text-xs text-brand-blue ml-2">→</span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function ClientDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -1470,6 +1547,7 @@ function ClientDashboardContent() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('classes')
   const [hasPT, setHasPT] = useState(false)
+  const [hasActiveMembership, setHasActiveMembership] = useState(true)
   const setupComplete = searchParams.get('setup') === 'complete'
 
   useEffect(() => {
@@ -1494,13 +1572,25 @@ function ClientDashboardContent() {
             .select('appointment_status')
             .eq('client_id', session.user.id)
             .maybeSingle(),
+          supabase
+            .from('client_memberships')
+            .select('id, membership_plans(plan_type)')
+            .eq('client_id', session.user.id)
+            .eq('status', 'active')
+            .limit(1),
         ])
-          .then(([{ data: profileData }, { data: tcData }]) => {
+          .then(([{ data: profileData }, { data: tcData }, { data: membershipData }]) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if (profileData) setProfile(profileData as any)
             setHasPT(
               (tcData as { appointment_status: string } | null)?.appointment_status === 'active'
             )
+            // Has active membership if any membership exists that isn't pay_and_go
+            const activeMemberships = (membershipData || []) as any[]
+            const hasRecurring = activeMemberships.some(
+              m => (m.membership_plans as any)?.plan_type !== 'pay_and_go'
+            )
+            setHasActiveMembership(hasRecurring)
           })
           .catch(() => {})
           .finally(() => setLoading(false))
@@ -1591,6 +1681,10 @@ function ClientDashboardContent() {
             {firstName ?? 'Member'}
           </h1>
         </div>
+
+        {!hasActiveMembership && userId && user && (
+          <UpgradeCard userId={userId} userEmail={user.email ?? ''} />
+        )}
 
         <div className="flex gap-2 mb-6 flex-wrap">
           {tabs.map(t => (

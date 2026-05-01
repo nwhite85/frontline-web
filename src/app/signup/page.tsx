@@ -76,8 +76,9 @@ function SignupContent() {
         .eq('email', form.email.toLowerCase())
         .maybeSingle()
       if (data) {
-        setError('An account with this email already exists. Please sign in instead.')
-        setLoading(false)
+        // Existing account — redirect to login preserving the plan so checkout completes after sign-in
+        const planParam = searchParams.get('plan')
+        window.location.href = planParam ? `/login?plan=${planParam}&notice=existing` : '/login'
         return
       }
     } catch (err: unknown) {
@@ -256,7 +257,10 @@ function SignupContent() {
               <div className="border-t border-white/10 pt-4">
                 <p className="text-sm text-white/50 text-center">
                   Already have an account?{' '}
-                  <a href="/login" className="text-white/70 hover:text-white transition-colors font-medium">Sign in</a>
+                  <a
+                    href={searchParams.get('plan') ? `/login?plan=${searchParams.get('plan')}` : '/login'}
+                    className="text-white/70 hover:text-white transition-colors font-medium"
+                  >Sign in</a>
                 </p>
               </div>
             )}

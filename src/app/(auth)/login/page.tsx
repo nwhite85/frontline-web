@@ -19,6 +19,8 @@ function LoginForm() {
   useEffect(() => {
     if (searchParams.get('error') === 'link_expired') {
       setNotice('Your setup link has expired. Please sign in below or use the Forgot password link to set your password.')
+    } else if (searchParams.get('notice') === 'existing') {
+      setNotice('You already have an account — sign in below to complete your membership purchase.')
     }
   }, [searchParams])
 
@@ -27,8 +29,42 @@ function LoginForm() {
     setLoading(true)
     setError(null)
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
       if (authError) { setError('Invalid email or password'); return }
+
+      const planParam = searchParams.get('plan')
+      if (planParam && authData.user) {
+        // Fetch plan details then go straight to Stripe checkout
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: plans } = await (supabase as any)
+          .from('membership_plans')
+          .select('id, name, price')
+          .eq('is_active', true)
+        const plan = ((plans || []) as { id: string; name: string; price: number }[]).find((p) => {
+          const slug = p.name.toLowerCase().replace(/\s+/g, '-')
+          const slugUnd = p.name.toLowerCase().replace(/\s+/g, '_')
+          return slug === planParam || slugUnd === planParam || p.name === planParam
+        })
+        if (plan) {
+          const res = await fetch('/api/create-subscription-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email,
+              userId: authData.user.id,
+              planId: plan.id,
+              planName: plan.name,
+              planPrice: plan.price,
+            }),
+          })
+          const data = await res.json()
+          if (res.ok && data.url) {
+            window.location.href = data.url
+            return
+          }
+        }
+      }
+
       router.push('/client-dashboard')
     } catch (err: unknown) {
       logger.error('Login error:', err)
