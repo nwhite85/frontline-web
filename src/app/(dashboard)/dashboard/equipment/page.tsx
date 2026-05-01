@@ -181,7 +181,7 @@ export default function EquipmentPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-3 sm:p-6">
       {loading ? (
         <div className="flex flex-col gap-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
       ) : items.length === 0 ? (
