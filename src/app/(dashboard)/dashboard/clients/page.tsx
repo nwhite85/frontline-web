@@ -384,7 +384,7 @@ export default function ClientsPage() {
   const totalPages = pageSize === Infinity ? 1 : Math.max(1, Math.ceil(total / pageSize))
 
   return (
-    <div className="flex flex-col gap-6 p-6 pb-10">
+    <div className="flex flex-col gap-6 p-3 sm:p-6 pb-10">
       {error && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
       )}
