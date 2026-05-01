@@ -11,6 +11,7 @@ interface MembershipPlanOption {
   id: string
   name: string
   price: number
+  plan_type: string
 }
 
 function UpgradeCard({ userId, userEmail }: { userId: string; userEmail: string }) {
@@ -21,9 +22,8 @@ function UpgradeCard({ userId, userEmail }: { userId: string; userEmail: string 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(supabase as any)
       .from('membership_plans')
-      .select('id, name, price')
+      .select('id, name, price, plan_type')
       .eq('is_active', true)
-      .neq('plan_type', 'pay_and_go')
       .order('price', { ascending: true })
       .then(({ data }: { data: MembershipPlanOption[] | null }) => setPlans(data || []))
   }, [])
@@ -43,29 +43,48 @@ function UpgradeCard({ userId, userEmail }: { userId: string; userEmail: string 
     }
   }
 
+  const memberships = plans.filter(p => p.plan_type === 'recurring')
+  const payAndGo = plans.filter(p => p.plan_type === 'pay_and_go' || p.plan_type === 'credit_package')
+
   if (!plans.length) return null
 
-  return (
-    <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-3">
-      <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue">Upgrade membership</p>
-      <div className="flex flex-wrap gap-2">
-        {plans.map(plan => (
-          <button
-            key={plan.id}
-            onClick={() => handleBuy(plan)}
-            disabled={checkingOut === plan.id}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-blue/10 border border-brand-blue/20 hover:bg-brand-blue/20 transition-colors text-left"
-          >
-            <div>
-              <p className="text-sm font-semibold text-white">{plan.name}</p>
-              <p className="text-xs text-white/50">£{plan.price}/mo</p>
-            </div>
-            {checkingOut === plan.id
-              ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-blue border-t-transparent ml-2" />
-              : <span className="text-xs text-brand-blue ml-2">→</span>}
-          </button>
-        ))}
+  const PlanButton = ({ plan }: { plan: MembershipPlanOption }) => (
+    <button
+      key={plan.id}
+      onClick={() => handleBuy(plan)}
+      disabled={checkingOut === plan.id}
+      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-blue/10 border border-brand-blue/20 hover:bg-brand-blue/20 transition-colors text-left"
+    >
+      <div>
+        <p className="text-sm font-semibold text-white">{plan.name}</p>
+        <p className="text-xs text-white/50">
+          £{plan.price}{plan.plan_type === 'recurring' ? '/mo' : ''}
+        </p>
       </div>
+      {checkingOut === plan.id
+        ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-blue border-t-transparent ml-2" />
+        : <span className="text-xs text-brand-blue ml-2">→</span>}
+    </button>
+  )
+
+  return (
+    <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-4">
+      {memberships.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue">Memberships</p>
+          <div className="flex flex-wrap gap-2">
+            {memberships.map(plan => <PlanButton key={plan.id} plan={plan} />)}
+          </div>
+        </div>
+      )}
+      {payAndGo.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue">Pay &amp; Go</p>
+          <div className="flex flex-wrap gap-2">
+            {payAndGo.map(plan => <PlanButton key={plan.id} plan={plan} />)}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -162,7 +181,7 @@ export default function ProfilePage() {
                 }`}>
                   {profile?.is_active ? 'Active' : profile?.status === 'lead' ? 'Pending' : 'Inactive'}
                 </span>
-                {profile?.status && (
+                {profile?.status && profile.status !== 'active' && (
                   <span className="text-xs text-white/40 capitalize">{profile.status}</span>
                 )}
                 {profile?.join_date && (

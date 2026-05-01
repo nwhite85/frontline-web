@@ -266,7 +266,7 @@ function ProfileHeader({ client, loading, refreshKey, onEdit, onAddMembership, o
   useEffect(() => {
     if (!client?.id) return
     Promise.allSettled([
-      supabase.from('client_memberships').select('*, membership_plans(name, price, billing_period)').eq('client_id', client.id).eq('status', 'active').maybeSingle(),
+      supabase.from('client_memberships').select('*, membership_plans(name, price, billing_period, plan_type)').eq('client_id', client.id).eq('status', 'active').maybeSingle(),
       supabase.from('client_package_purchases').select('sessions_remaining, session_packages(total_sessions, is_unlimited)').eq('client_id', client.id).eq('status', 'active'),
       supabase.from('client_programs').select('program:programs(title)').eq('client_id', client.id).eq('status', 'active'),
       fetch(`/api/client-payment-method?clientId=${client.id}`).then(r => r.json()).catch(() => ({ paymentMethod: null })),
@@ -390,7 +390,13 @@ function ProfileHeader({ client, loading, refreshKey, onEdit, onAddMembership, o
           {memPlan ? (
             <>
               <p className="text-sm font-semibold mt-0.5 truncate">{memPlan.name}</p>
-              {memPlan.price && <p className="text-xs text-muted-foreground">£{memPlan.price.toFixed(2)}/{memPlan.billing_period ?? 'mo'}</p>}
+              {memPlan.plan_type === 'credit_package' || memPlan.plan_type === 'pay_and_go' ? (
+                <p className="text-xs text-muted-foreground">
+                  {stats?.membership?.class_credits_remaining ?? 0} credit{(stats?.membership?.class_credits_remaining ?? 0) !== 1 ? 's' : ''} left
+                </p>
+              ) : (
+                memPlan.price && <p className="text-xs text-muted-foreground">£{memPlan.price.toFixed(2)}/{memPlan.billing_period ?? 'mo'}</p>
+              )}
             </>
           ) : (
             <p className="text-sm text-muted-foreground mt-0.5">No plan</p>
