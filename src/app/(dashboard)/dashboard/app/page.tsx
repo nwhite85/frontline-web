@@ -379,7 +379,7 @@ export default function AppPage() {
             }
           />
         ) : (
-          <Card className="py-0" style={{ borderRadius: 'var(--table-radius)' }}>
+          <Card data-table-card className="py-0" style={{ borderRadius: 'var(--table-radius)' }}>
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">

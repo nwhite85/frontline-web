@@ -713,7 +713,7 @@ export default function ClassesPage() {
               }
             />
           ) : (
-            <Card className="py-0" style={{ borderRadius: 'var(--table-radius)' }}>
+            <Card data-table-card className="py-0" style={{ borderRadius: 'var(--table-radius)' }}>
               <CardContent className="p-0">
               <Table>
                   <TableHeader>

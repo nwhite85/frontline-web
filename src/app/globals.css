@@ -280,6 +280,16 @@ pre, code {
   border-radius: 0 !important;
 }
 
+/* Mobile-only full-bleed — tables go edge-to-edge on small screens */
+@media (max-width: 639px) {
+  [data-table-card] {
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
 /* Tailwind safelist — dynamic icon background colours used in table rows and schedule cards */
 /* bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 */
 /* bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 */
