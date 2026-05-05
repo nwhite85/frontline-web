@@ -382,7 +382,7 @@ export function WeekGrid({
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4rem)' }}>
           {/* Current time indicator */}
           {nowOffset >= 0 && nowOffset < TIME_SLOTS.length * 30 && (
             <div
