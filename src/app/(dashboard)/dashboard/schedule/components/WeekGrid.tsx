@@ -351,7 +351,7 @@ export function WeekGrid({
 
   return (
     <div className="flex flex-col h-full bg-card">
-      <div ref={containerRef} className="overflow-y-auto flex-1">
+      <div ref={containerRef} className="overflow-y-auto flex-1 overscroll-contain">
         {/* Sticky header */}
         <div className="sticky top-0 z-20 bg-background border-b border-border">
           <div className="grid" style={{ gridTemplateColumns: gridTemplate }}>

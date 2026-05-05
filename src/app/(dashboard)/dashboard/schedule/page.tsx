@@ -633,7 +633,7 @@ export default function SchedulePage() {
   const activeDayLabel = activeDayDate?.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) ?? ''
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full">
       {/* Mobile-only day navigation strip */}
       <div className="sm:hidden flex items-center justify-between px-3 py-2 border-b border-border bg-background shrink-0">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPrevDay}>
