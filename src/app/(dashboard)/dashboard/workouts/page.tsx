@@ -335,19 +335,19 @@ function WorkoutSection({
                   <Activity className="h-3.5 w-3.5" />
                 </div>
               </TableCell>
-              <TableCell className="py-3">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium leading-none">{w.title}</p>
+              <TableCell className="py-3 overflow-hidden">
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm font-medium leading-none truncate">{w.title}</p>
                   {w.workout_type === 'circuit' && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-0">Circuit</Badge>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-0 shrink-0">Circuit</Badge>
                   )}
                 </div>
                 {w.exercise_names && w.exercise_names.length > 0 ? (
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[300px]">
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
                     {w.exercise_names.slice(0, 4).join(' · ')}{(w.exercise_count ?? 0) > 4 ? ` +${(w.exercise_count ?? 0) - 4} more` : ''}
                   </p>
                 ) : w.description ? (
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[300px]">{w.description}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{w.description}</p>
                 ) : null}
               </TableCell>
               <TableCell className="py-3 text-xs text-muted-foreground text-right hidden sm:table-cell">
