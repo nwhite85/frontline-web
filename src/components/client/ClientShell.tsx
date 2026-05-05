@@ -30,7 +30,7 @@ export default function ClientShell({ children }: ClientShellProps) {
   const isActive = (href: string) => pathname === href || (href !== '/client-dashboard' && pathname.startsWith(href))
 
   return (
-    <div className="min-h-screen text-white flex flex-col md:flex-row" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-[100dvh] text-white flex flex-col md:flex-row" style={{ background: '#0a0a0f' }}>
 
       {/* Desktop left sidebar — no top bar on desktop */}
       <aside className="hidden md:flex fixed top-0 left-0 h-screen w-60 flex-col border-r border-white/10 bg-black z-20">

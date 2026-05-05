@@ -145,7 +145,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="flex h-[100dvh] overflow-hidden bg-background">
 
         {/* Mobile top bar */}
         <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-2 px-3 bg-sidebar border-b border-sidebar-border">
