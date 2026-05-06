@@ -81,14 +81,65 @@ function checkEndurance(tc: any, tier: Tier, tierCount: number): string | null {
   return null
 }
 
-function checkPower(tc: any, tier: Tier, counts: Record<Tier, number>): string | null {
+function checkPower(
+  tc: any,
+  tier: Tier,
+  gender: string | null,
+  counts: Record<Tier, number>,
+  bookings: Array<{ ability_tier: string | null; gender: string | null }>
+): string | null {
   const totalRisers = tc.total_risers as number
-  const balls = tc.balls as Record<Tier, { weight: string; stock: number }>
-  const tiers = tc.tiers as Record<Tier, { risers_per_group: number; group_size: number }>
+  const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
+
+  if (tc.gender_tiers) {
+    type GTC = { risers_each_side: number; ball_kg: string }
+    const genderTiers = tc.gender_tiers as Record<string, Record<string, GTC>>
+    const groupSize: number = tc.group_size ?? 4
+    const medBalls = tc.med_balls as Record<string, { stock: number }> | undefined
+
+    const ballGroups: Record<string, { count: number; maxRisersEachSide: number }> = {}
+    for (const b of bookings) {
+      const t = b.ability_tier
+      const g = b.gender ?? 'female'
+      if (!t || !genderTiers[t]) continue
+      const cfg: GTC = genderTiers[t][g] ?? genderTiers[t]['female'] ?? genderTiers[t]['male']
+      if (!cfg) continue
+      if (!ballGroups[cfg.ball_kg]) ballGroups[cfg.ball_kg] = { count: 0, maxRisersEachSide: 0 }
+      ballGroups[cfg.ball_kg].count++
+      if (cfg.risers_each_side > ballGroups[cfg.ball_kg].maxRisersEachSide)
+        ballGroups[cfg.ball_kg].maxRisersEachSide = cfg.risers_each_side
+    }
+    const g = gender ?? 'female'
+    const newCfg: GTC | undefined = genderTiers[tier]?.[g] ?? genderTiers[tier]?.['female'] ?? genderTiers[tier]?.['male']
+    if (newCfg) {
+      if (!ballGroups[newCfg.ball_kg]) ballGroups[newCfg.ball_kg] = { count: 0, maxRisersEachSide: 0 }
+      ballGroups[newCfg.ball_kg].count++
+      if (newCfg.risers_each_side > ballGroups[newCfg.ball_kg].maxRisersEachSide)
+        ballGroups[newCfg.ball_kg].maxRisersEachSide = newCfg.risers_each_side
+    }
+    let risersUsed = 0
+    for (const { count, maxRisersEachSide } of Object.values(ballGroups)) {
+      risersUsed += Math.ceil(count / groupSize) * maxRisersEachSide * 2
+    }
+    if (risersUsed > totalRisers) {
+      return `${tierLabel} tier is full — not enough step risers available (${totalRisers} total, ${risersUsed} needed).`
+    }
+    if (newCfg && medBalls) {
+      const stock = medBalls[newCfg.ball_kg]?.stock ?? Infinity
+      const groupsNeeded = Math.ceil(ballGroups[newCfg.ball_kg].count / groupSize)
+      if (groupsNeeded > stock) {
+        return `${tierLabel} tier is full — not enough ${newCfg.ball_kg}kg medicine balls available.`
+      }
+    }
+    return null
+  }
+
+  // Legacy: tier-only config
+  const balls = tc.balls as Record<Tier, { weight: string; stock: number }> | undefined
+  const tiers = tc.tiers as Record<Tier, { risers_per_group: number; group_size: number }> | undefined
+  if (!tiers) return null
 
   const newCounts = { ...counts, [tier]: counts[tier] + 1 }
-
-  // Check riser usage across all tiers
   let risersUsed = 0
   for (const t of VALID_TIERS) {
     const cfg = tiers[t]
@@ -96,16 +147,12 @@ function checkPower(tc: any, tier: Tier, counts: Record<Tier, number>): string |
     risersUsed += Math.ceil(newCounts[t] / cfg.group_size) * cfg.risers_per_group
   }
   if (risersUsed > totalRisers) {
-    const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
     return `${tierLabel} tier is full — not enough step risers available (${totalRisers} total, ${risersUsed} needed).`
   }
-
-  // Check ball stock for this tier
-  const ballCfg = balls[tier]
-  if (ballCfg) {
+  const ballCfg = balls?.[tier]
+  if (ballCfg && tiers[tier]) {
     const groupsNeeded = Math.ceil(newCounts[tier] / tiers[tier].group_size)
     if (groupsNeeded > ballCfg.stock) {
-      const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
       return `${tierLabel} tier is full — not enough ${ballCfg.weight} slam balls available.`
     }
   }
@@ -235,7 +282,7 @@ export async function POST(request: NextRequest) {
       } else if (tc.total_ropes != null) {
         blockMsg = checkSpeed(tc, totalCount)
       } else if (tc.total_risers != null) {
-        blockMsg = checkPower(tc, tier, counts)
+        blockMsg = checkPower(tc, tier, clientGender, counts, bookingsForCheck)
       } else if (tc.tiers?.[tier]?.stock != null) {
         blockMsg = checkEndurance(tc, tier, counts[tier])
       }
