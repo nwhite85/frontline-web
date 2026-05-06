@@ -235,6 +235,7 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archived
                     {markingAll ? 'Updating…' : 'Mark all Supplies Ordered'}
                   </Button>
                 </div>
+                {/* Aggregate totals for placing the supplier order */}
                 <div className="border-t pt-3 flex flex-col gap-1.5">
                   {supplierLines.map((line, i) => (
                     <div key={i} className="flex items-center justify-between text-xs">
@@ -244,6 +245,24 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archived
                         {line.category && <span className="text-muted-foreground ml-1.5 capitalize">[{CATEGORY_LABELS[line.category] ?? line.category}]</span>}
                       </span>
                       <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Per-order breakdown */}
+                <div className="border-t pt-3 flex flex-col gap-3">
+                  {pendingOrders.map(order => (
+                    <div key={order.id} className="flex flex-col gap-1">
+                      <p className="text-xs font-medium">{order.name}</p>
+                      {order.items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs pl-2">
+                          <span className="text-muted-foreground">
+                            {item.name}{[item.color, item.size].filter(Boolean).length > 0 ? ` — ${[item.color, item.size].filter(Boolean).join(' / ')}` : ''}
+                            {(item as any).product_code && <span className="ml-1">({(item as any).product_code})</span>}
+                            {(item as any).category && <span className="ml-1 capitalize">[{CATEGORY_LABELS[(item as any).category] ?? (item as any).category}]</span>}
+                          </span>
+                          <span className="font-medium tabular-nums ml-4">×{item.qty}</span>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -263,15 +282,20 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archived
                     {markingAllPrint ? 'Updating…' : 'Mark all Ready to Deliver'}
                   </Button>
                 </div>
-                <div className="border-t pt-3 flex flex-col gap-1.5">
-                  {printLines.map((line, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <span className="text-foreground">
-                        {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
-                        {line.product_code && <span className="text-muted-foreground ml-1.5">({line.product_code})</span>}
-                        {line.category && <span className="text-muted-foreground ml-1.5 capitalize">[{CATEGORY_LABELS[line.category] ?? line.category}]</span>}
-                      </span>
-                      <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
+                <div className="border-t pt-3 flex flex-col gap-3">
+                  {suppliesOrderedOrders.map(order => (
+                    <div key={order.id} className="flex flex-col gap-1">
+                      <p className="text-xs font-medium">{order.name}</p>
+                      {order.items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs pl-2">
+                          <span className="text-muted-foreground">
+                            {item.name}{[item.color, item.size].filter(Boolean).length > 0 ? ` — ${[item.color, item.size].filter(Boolean).join(' / ')}` : ''}
+                            {(item as any).product_code && <span className="ml-1">({(item as any).product_code})</span>}
+                            {(item as any).category && <span className="ml-1 capitalize">[{CATEGORY_LABELS[(item as any).category] ?? (item as any).category}]</span>}
+                          </span>
+                          <span className="font-medium tabular-nums ml-4">×{item.qty}</span>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -291,15 +315,20 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archived
                     {markingAllDelivery ? 'Updating…' : 'Mark all Delivered'}
                   </Button>
                 </div>
-                <div className="border-t pt-3 flex flex-col gap-1.5">
-                  {deliveryLines.map((line, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <span className="text-foreground">
-                        {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
-                        {line.product_code && <span className="text-muted-foreground ml-1.5">({line.product_code})</span>}
-                        {line.category && <span className="text-muted-foreground ml-1.5 capitalize">[{CATEGORY_LABELS[line.category] ?? line.category}]</span>}
-                      </span>
-                      <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
+                <div className="border-t pt-3 flex flex-col gap-3">
+                  {readyOrders.map(order => (
+                    <div key={order.id} className="flex flex-col gap-1">
+                      <p className="text-xs font-medium">{order.name}</p>
+                      {order.items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs pl-2">
+                          <span className="text-muted-foreground">
+                            {item.name}{[item.color, item.size].filter(Boolean).length > 0 ? ` — ${[item.color, item.size].filter(Boolean).join(' / ')}` : ''}
+                            {(item as any).product_code && <span className="ml-1">({(item as any).product_code})</span>}
+                            {(item as any).category && <span className="ml-1 capitalize">[{CATEGORY_LABELS[(item as any).category] ?? (item as any).category}]</span>}
+                          </span>
+                          <span className="font-medium tabular-nums ml-4">×{item.qty}</span>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
