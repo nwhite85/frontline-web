@@ -461,7 +461,7 @@ export default function SchedulePage() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium min-w-[160px] text-center">{weekRange}</span>
+          <span className="text-sm font-medium text-center whitespace-nowrap">{weekRange}</span>
           <Button
             variant="ghost"
             size="icon"
@@ -473,15 +473,14 @@ export default function SchedulePage() {
         </div>
         <Button
           variant="outline"
-         
-          className="h-8 text-xs bg-card"
+          className="h-8 text-xs bg-card px-2"
           onClick={() => setSelectedWeek(new Date())}
         >
           Today
         </Button>
         {/* Filter */}
         <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-          <SelectTrigger className="h-8 w-32 text-xs bg-card">
+          <SelectTrigger className="h-8 w-[100px] text-xs bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

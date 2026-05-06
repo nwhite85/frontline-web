@@ -424,8 +424,8 @@ function AppShellInner({ children }: { children: ReactNode }) {
           {headerSearch && (
             <div
               className={cn(
-                'lg:hidden overflow-hidden border-b border-border transition-all duration-200',
-                mobileSearchOpen ? 'h-12' : 'h-0 border-b-0'
+                'lg:hidden border-b border-border transition-all duration-200',
+                mobileSearchOpen ? 'h-12 overflow-x-auto overflow-y-hidden' : 'h-0 overflow-hidden border-b-0'
               )}
               style={{ zIndex: 19 }}
             >
