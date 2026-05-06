@@ -829,8 +829,20 @@ export default function WorkoutBuilderPage() {
   const [items, setItems] = useState<WorkoutItem[]>([])
   const [allExercises, setAllExercises] = useState<Exercise[]>([])
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('kg')
-  const [cols, setCols] = useState<VisibleCols>({
-    sets: true, reps: true, weight: true, rest: true, distance: false, notes: true,
+  const [cols, setCols] = useState<VisibleCols>(() => {
+    const param = searchParams?.get('cols')
+    if (param) {
+      const active = new Set(param.split(','))
+      return {
+        sets: active.has('sets'),
+        reps: active.has('reps'),
+        weight: active.has('weight'),
+        rest: active.has('rest'),
+        distance: active.has('distance'),
+        notes: active.has('notes'),
+      }
+    }
+    return { sets: true, reps: true, weight: true, rest: true, distance: false, notes: true }
   })
   const [loading, setLoading] = useState(true)
   const [isInstance, setIsInstance] = useState(false)

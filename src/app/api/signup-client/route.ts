@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
-import { welcomeEmail, trainerNewSignupEmail } from '@/utils/emailTemplates';
+import { trainerNewSignupEmail } from '@/utils/emailTemplates';
 import { sendTransactionalEmail } from '@/utils/sendTransactionalEmail';
 import { z } from 'zod';
 
@@ -184,35 +184,8 @@ export async function POST(req: NextRequest) {
       logger.log('Step 3 SKIPPED: No DEFAULT_TRAINER_ID configured');
     }
 
-    // Send welcome email with password setup link
-    try {
-      if (email) {
-        // Generate a one-time password setup link
-        let passwordSetupUrl: string | undefined
-        try {
-          const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'magiclink',
-            email,
-            options: {
-              redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk'}/update-password`,
-            },
-          })
-          passwordSetupUrl = linkData?.properties?.action_link ?? undefined
-        } catch (linkErr) {
-          logger.error('[Signup Client] Failed to generate password setup link:', linkErr)
-        }
-
-        const welcomeEmailContent = welcomeEmail({ clientName: name, passwordSetupUrl });
-        await sendTransactionalEmail({
-          to: email,
-          subject: welcomeEmailContent.subject,
-          html: welcomeEmailContent.html,
-          text: welcomeEmailContent.text,
-        });
-      }
-    } catch (emailError) {
-      logger.error('[Signup Client] Welcome email failed (non-blocking):', emailError);
-    }
+    // Welcome email is sent by the payment webhook after checkout completes,
+    // not here — so users only get it once payment is confirmed.
 
     // Notify Nick of new landing-page signup (not for dashboard-added clients)
     if (!fromDashboard) {

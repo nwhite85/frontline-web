@@ -64,13 +64,61 @@ function enduranceFull(tc: any, tier: Tier, tierCount: number): boolean {
   return stock != null && tierCount + 1 > stock
 }
 
-function powerFull(tc: any, tier: Tier, counts: Record<Tier, number>): boolean {
+function powerFull(
+  tc: any,
+  tier: Tier,
+  gender: 'male' | 'female',
+  counts: Record<Tier, number>,
+  bookings: Array<{ ability_tier: string | null; gender: string | null }>
+): boolean {
   const totalRisers = tc.total_risers as number
-  const balls = tc.balls as Record<Tier, { weight: string; stock: number }>
-  const tiers = tc.tiers as Record<Tier, { risers_per_group: number; group_size: number }>
+
+  if (tc.gender_tiers) {
+    type GTC = { risers_each_side: number; ball_kg: string }
+    const genderTiers = tc.gender_tiers as Record<string, Record<string, GTC>>
+    const groupSize: number = tc.group_size ?? 4
+    const medBalls = tc.med_balls as Record<string, { stock: number }> | undefined
+
+    const ballGroups: Record<string, { count: number; maxRisersEachSide: number }> = {}
+    for (const b of bookings) {
+      const t = b.ability_tier
+      const g = b.gender ?? 'female'
+      if (!t || !genderTiers[t]) continue
+      const cfg: GTC = genderTiers[t][g] ?? genderTiers[t]['female'] ?? genderTiers[t]['male']
+      if (!cfg) continue
+      if (!ballGroups[cfg.ball_kg]) ballGroups[cfg.ball_kg] = { count: 0, maxRisersEachSide: 0 }
+      ballGroups[cfg.ball_kg].count++
+      if (cfg.risers_each_side > ballGroups[cfg.ball_kg].maxRisersEachSide)
+        ballGroups[cfg.ball_kg].maxRisersEachSide = cfg.risers_each_side
+    }
+    // Simulate adding the new booking
+    const newCfg: GTC | undefined = genderTiers[tier]?.[gender] ?? genderTiers[tier]?.['female'] ?? genderTiers[tier]?.['male']
+    if (newCfg) {
+      if (!ballGroups[newCfg.ball_kg]) ballGroups[newCfg.ball_kg] = { count: 0, maxRisersEachSide: 0 }
+      ballGroups[newCfg.ball_kg].count++
+      if (newCfg.risers_each_side > ballGroups[newCfg.ball_kg].maxRisersEachSide)
+        ballGroups[newCfg.ball_kg].maxRisersEachSide = newCfg.risers_each_side
+    }
+    let risersUsed = 0
+    for (const { count, maxRisersEachSide } of Object.values(ballGroups)) {
+      risersUsed += Math.ceil(count / groupSize) * maxRisersEachSide * 2
+    }
+    if (risersUsed > totalRisers) return true
+    // Check ball stock
+    if (newCfg && medBalls) {
+      const stock = medBalls[newCfg.ball_kg]?.stock ?? Infinity
+      const groupsNeeded = Math.ceil(ballGroups[newCfg.ball_kg].count / groupSize)
+      if (groupsNeeded > stock) return true
+    }
+    return false
+  }
+
+  // Legacy: tier-only config
+  const balls = tc.balls as Record<Tier, { weight: string; stock: number }> | undefined
+  const tiers = tc.tiers as Record<Tier, { risers_per_group: number; group_size: number }> | undefined
+  if (!tiers) return false
 
   const newCounts = { ...counts, [tier]: counts[tier] + 1 }
-
   let risersUsed = 0
   for (const t of VALID_TIERS) {
     const cfg = tiers[t]
@@ -78,9 +126,8 @@ function powerFull(tc: any, tier: Tier, counts: Record<Tier, number>): boolean {
     risersUsed += Math.ceil(newCounts[t] / cfg.group_size) * cfg.risers_per_group
   }
   if (risersUsed > totalRisers) return true
-
-  const ballCfg = balls[tier]
-  if (ballCfg) {
+  const ballCfg = balls?.[tier]
+  if (ballCfg && tiers[tier]) {
     const groupsNeeded = Math.ceil(newCounts[tier] / tiers[tier].group_size)
     if (groupsNeeded > ballCfg.stock) return true
   }
@@ -185,7 +232,7 @@ export async function GET(request: NextRequest) {
       } else if (tc.total_ropes != null) {
         full = speedFull(tc, totalCount)
       } else if (tc.total_risers != null) {
-        full = powerFull(tc, tier, counts)
+        full = powerFull(tc, tier, gender, counts, bookingsForCheck)
       } else if (tc.tiers?.[tier]?.stock != null) {
         full = enduranceFull(tc, tier, counts[tier])
       }
@@ -208,6 +255,16 @@ export async function GET(request: NextRequest) {
       maxCapacity = Object.values(stock).reduce((sum, qty) => sum + Math.floor(qty / bagsPerPerson), 0)
     } else if (tc.total_ropes != null) {
       maxCapacity = (tc.total_ropes as number) * (tc.people_per_rope as number)
+    } else if (tc.gender_tiers) {
+      // Gender-aware power checkpoint: capacity = floor(total_risers / min_risers_per_group) * group_size
+      const genderTiers = tc.gender_tiers as Record<string, Record<string, { risers_each_side: number }>>
+      const groupSize: number = tc.group_size ?? 4
+      const minRisersPerGroup = Math.min(
+        ...Object.values(genderTiers).flatMap(t => Object.values(t).map((c: any) => c.risers_each_side * 2))
+      )
+      maxCapacity = minRisersPerGroup > 0
+        ? Math.floor((tc.total_risers as number) / minRisersPerGroup) * groupSize
+        : (schedule.max_capacity ?? null)
     } else if (tc.tiers) {
       // Simple per-tier stock (endurance simple / power fallback)
       const tierStocks = VALID_TIERS.map(t => (tc.tiers[t]?.stock as number | undefined) ?? 0)

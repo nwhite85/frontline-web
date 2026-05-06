@@ -144,9 +144,46 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Medicine balls + risers — Power Checkpoint (1 ball per group of 4, not per person)
-      if (tierCapacity.balls) {
-        // Count people per tier first, then convert to groups
+      // Medicine balls + risers — Power Checkpoint, gender-aware (1 ball per group of 4)
+      // Groups people by ball weight; uses max riser height within each weight group
+      if (tierCapacity.gender_tiers) {
+        type GenderTierConfig = { risers_each_side: number; ball_kg: string }
+        const genderTiers = tierCapacity.gender_tiers as Record<string, Record<string, GenderTierConfig>>
+        const groupSize: number = tierCapacity.group_size ?? 4
+        const medBalls = tierCapacity.med_balls as Record<string, { stock: number }> | undefined
+
+        const ballGroups: Record<string, { count: number; maxRisersEachSide: number }> = {}
+        for (const booking of result) {
+          const tier = booking.ability_tier as string | null
+          const gender = (booking.user_profiles?.gender as string | null) ?? 'female'
+          if (!tier) continue
+          const tierConfig = genderTiers[tier]
+          if (!tierConfig) continue
+          const cfg: GenderTierConfig = tierConfig[gender] ?? tierConfig['female'] ?? tierConfig['male']
+          if (!cfg) continue
+          if (!ballGroups[cfg.ball_kg]) ballGroups[cfg.ball_kg] = { count: 0, maxRisersEachSide: 0 }
+          ballGroups[cfg.ball_kg].count++
+          if (cfg.risers_each_side > ballGroups[cfg.ball_kg].maxRisersEachSide)
+            ballGroups[cfg.ball_kg].maxRisersEachSide = cfg.risers_each_side
+        }
+
+        let totalRisersNeeded = 0
+        const ballItems: EquipmentItem[] = Object.keys(ballGroups)
+          .sort((a, b) => parseFloat(a) - parseFloat(b))
+          .map(ballKg => {
+            const { count, maxRisersEachSide } = ballGroups[ballKg]
+            const groups = Math.ceil(count / groupSize)
+            totalRisersNeeded += groups * maxRisersEachSide * 2
+            return { weight: ballKg, needed: groups, available: medBalls?.[ballKg]?.stock ?? 0 }
+          })
+
+        if (ballItems.length > 0) sections.push({ label: 'Medicine balls needed', items: ballItems })
+        if (totalRisersNeeded > 0) {
+          sections.push({ label: 'Risers needed', items: [{ weight: 'Risers', needed: totalRisersNeeded, available: tierCapacity.total_risers ?? 0 }] })
+        }
+
+      // Medicine balls + risers — Power Checkpoint, tier-only (legacy)
+      } else if (tierCapacity.balls) {
         const tierCounts: Record<string, number> = {}
         for (const booking of result) {
           const tier = booking.ability_tier as string | null
@@ -169,16 +206,9 @@ export async function GET(request: NextRequest) {
           .map(([w, v]) => ({ weight: w, needed: v.needed, available: v.available }))
         if (ballItems.length > 0) sections.push({ label: 'Medicine balls needed', items: ballItems })
 
-        // Risers
         if (tierCapacity.tiers && tierCapacity.total_risers != null) {
-          const tierGroups: Record<string, number> = {}
-          for (const booking of result) {
-            const tier = booking.ability_tier as string | null
-            if (!tier) continue
-            tierGroups[tier] = (tierGroups[tier] || 0) + 1
-          }
           let totalRisersNeeded = 0
-          for (const [tier, tierCount] of Object.entries(tierGroups)) {
+          for (const [tier, tierCount] of Object.entries(tierCounts)) {
             const tierInfo = (tierCapacity.tiers as any)[tier]
             if (!tierInfo?.group_size || !tierInfo?.risers_per_group) continue
             totalRisersNeeded += Math.ceil((tierCount as number) / tierInfo.group_size) * tierInfo.risers_per_group
