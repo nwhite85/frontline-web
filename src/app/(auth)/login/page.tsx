@@ -141,7 +141,7 @@ function LoginForm() {
             </form>
             <p className="text-sm text-white/40 text-center border-t border-white/10 pt-4">
               Don&apos;t have an account?{' '}
-              <a href="/signup" className="text-white/70 hover:text-white transition-colors font-medium">Sign up</a>
+              <a href="/signup?plan=unlimited" className="text-white/70 hover:text-white transition-colors font-medium">Sign up</a>
             </p>
           </div>
         </div>
