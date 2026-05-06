@@ -134,14 +134,12 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archived
   }
 
   const [markingAll, setMarkingAll] = useState(false)
+  const [markingAllPrint, setMarkingAllPrint] = useState(false)
+  const [markingAllDelivery, setMarkingAllDelivery] = useState(false)
 
-  // Aggregate items from all "ordered" status orders
-  const pendingOrders = orders.filter(o =>
-    !refunded.has(o.id) && o.payment_status !== 'refunded' && (statuses[o.id] ?? 'ordered') === 'ordered'
-  )
-  const supplierLines = (() => {
+  const aggregateLines = (orderList: typeof orders) => {
     const map: Record<string, { name: string; product_code?: string; category?: string; color?: string | null; size?: string | null; qty: number }> = {}
-    for (const order of pendingOrders) {
+    for (const order of orderList) {
       for (const item of order.items) {
         const key = [(item as any).category, item.name, item.color, item.size].filter(Boolean).join('|')
         if (map[key]) map[key].qty += item.qty
@@ -149,13 +147,41 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archived
       }
     }
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name))
-  })()
+  }
+
+  const pendingOrders = orders.filter(o =>
+    !refunded.has(o.id) && o.payment_status !== 'refunded' && (statuses[o.id] ?? 'ordered') === 'ordered'
+  )
+  const suppliesOrderedOrders = orders.filter(o =>
+    !refunded.has(o.id) && o.payment_status !== 'refunded' && (statuses[o.id] ?? 'ordered') === 'supplies_ordered'
+  )
+  const readyOrders = orders.filter(o =>
+    !refunded.has(o.id) && o.payment_status !== 'refunded' && (statuses[o.id] ?? 'ordered') === 'ready'
+  )
+
+  const supplierLines = aggregateLines(pendingOrders)
+  const printLines = aggregateLines(suppliesOrderedOrders)
+  const deliveryLines = aggregateLines(readyOrders)
 
   const handleMarkAllOrdered = async () => {
     if (!pendingOrders.length) return
     setMarkingAll(true)
     await Promise.all(pendingOrders.map(o => onStatusChange(o.id, 'supplies_ordered')))
     setMarkingAll(false)
+  }
+
+  const handleMarkAllPrintReady = async () => {
+    if (!suppliesOrderedOrders.length) return
+    setMarkingAllPrint(true)
+    await Promise.all(suppliesOrderedOrders.map(o => onStatusChange(o.id, 'ready')))
+    setMarkingAllPrint(false)
+  }
+
+  const handleMarkAllDelivered = async () => {
+    if (!readyOrders.length) return
+    setMarkingAllDelivery(true)
+    await Promise.all(readyOrders.map(o => onStatusChange(o.id, 'delivered')))
+    setMarkingAllDelivery(false)
   }
 
   if (loading) return (
@@ -194,39 +220,93 @@ function OrdersTab({ orders, loading, onLoad, statuses, onStatusChange, archived
         <EmptyState icon={showArchive ? Archive : ShoppingCart} title={showArchive ? 'Archive is empty' : 'All done'} description={showArchive ? 'Archived orders will appear here.' : 'No active orders.'} />
       )}
 
-      {/* Supplier summary card — active view only */}
-      {!showArchive && pendingOrders.length > 0 && (
-        <Card className="py-0 border-yellow-200 dark:border-yellow-800">
-          <CardContent className="p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold">Awaiting Order</p>
-                <p className="text-xs text-muted-foreground">{pendingOrders.length} order{pendingOrders.length !== 1 ? 's' : ''} waiting on supplies</p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs h-7 shrink-0"
-                onClick={handleMarkAllOrdered}
-                disabled={markingAll}
-              >
-                {markingAll ? 'Updating…' : 'Mark all as Supplies Ordered'}
-              </Button>
-            </div>
-            <div className="border-t pt-3 flex flex-col gap-1.5">
-              {supplierLines.map((line, i) => (
-                <div key={i} className="flex items-center justify-between text-xs">
-                  <span className="text-foreground">
-                    {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
-                    {line.product_code && <span className="text-muted-foreground ml-1.5">({line.product_code})</span>}
-                    {line.category && <span className="text-muted-foreground ml-1.5 capitalize">[{CATEGORY_LABELS[line.category] ?? line.category}]</span>}
-                  </span>
-                  <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
+      {/* Status summary cards — active view only */}
+      {!showArchive && (pendingOrders.length > 0 || suppliesOrderedOrders.length > 0 || readyOrders.length > 0) && (
+        <div className="flex flex-col gap-3">
+          {pendingOrders.length > 0 && (
+            <Card className="py-0 border-yellow-200 dark:border-yellow-800">
+              <CardContent className="p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">Awaiting Order</p>
+                    <p className="text-xs text-muted-foreground">{pendingOrders.length} order{pendingOrders.length !== 1 ? 's' : ''} waiting on supplies</p>
+                  </div>
+                  <Button size="sm" variant="outline" className="text-xs h-7 shrink-0" onClick={handleMarkAllOrdered} disabled={markingAll}>
+                    {markingAll ? 'Updating…' : 'Mark all Supplies Ordered'}
+                  </Button>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="border-t pt-3 flex flex-col gap-1.5">
+                  {supplierLines.map((line, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-foreground">
+                        {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
+                        {line.product_code && <span className="text-muted-foreground ml-1.5">({line.product_code})</span>}
+                        {line.category && <span className="text-muted-foreground ml-1.5 capitalize">[{CATEGORY_LABELS[line.category] ?? line.category}]</span>}
+                      </span>
+                      <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {suppliesOrderedOrders.length > 0 && (
+            <Card className="py-0 border-blue-200 dark:border-blue-800">
+              <CardContent className="p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">Awaiting Print</p>
+                    <p className="text-xs text-muted-foreground">{suppliesOrderedOrders.length} order{suppliesOrderedOrders.length !== 1 ? 's' : ''} ready to print</p>
+                  </div>
+                  <Button size="sm" variant="outline" className="text-xs h-7 shrink-0" onClick={handleMarkAllPrintReady} disabled={markingAllPrint}>
+                    {markingAllPrint ? 'Updating…' : 'Mark all Ready to Deliver'}
+                  </Button>
+                </div>
+                <div className="border-t pt-3 flex flex-col gap-1.5">
+                  {printLines.map((line, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-foreground">
+                        {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
+                        {line.product_code && <span className="text-muted-foreground ml-1.5">({line.product_code})</span>}
+                        {line.category && <span className="text-muted-foreground ml-1.5 capitalize">[{CATEGORY_LABELS[line.category] ?? line.category}]</span>}
+                      </span>
+                      <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {readyOrders.length > 0 && (
+            <Card className="py-0 border-orange-200 dark:border-orange-800">
+              <CardContent className="p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">Awaiting Delivery</p>
+                    <p className="text-xs text-muted-foreground">{readyOrders.length} order{readyOrders.length !== 1 ? 's' : ''} ready to deliver</p>
+                  </div>
+                  <Button size="sm" variant="outline" className="text-xs h-7 shrink-0" onClick={handleMarkAllDelivered} disabled={markingAllDelivery}>
+                    {markingAllDelivery ? 'Updating…' : 'Mark all Delivered'}
+                  </Button>
+                </div>
+                <div className="border-t pt-3 flex flex-col gap-1.5">
+                  {deliveryLines.map((line, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-foreground">
+                        {line.name}{[line.color, line.size].filter(Boolean).length > 0 ? ` — ${[line.color, line.size].filter(Boolean).join(' / ')}` : ''}
+                        {line.product_code && <span className="text-muted-foreground ml-1.5">({line.product_code})</span>}
+                        {line.category && <span className="text-muted-foreground ml-1.5 capitalize">[{CATEGORY_LABELS[line.category] ?? line.category}]</span>}
+                      </span>
+                      <span className="font-semibold tabular-nums ml-4">×{line.qty}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
       {visibleOrders.map(order => {
         const currentStatus = statuses[order.id] ?? 'ordered'
