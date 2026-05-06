@@ -16,8 +16,8 @@ interface PlanInfo {
 }
 
 const defaultPlan: PlanInfo = {
-  id: 'membership',
-  name: 'Membership',
+  id: 'ac835b33-c965-470c-9cdd-7fecf30dfbf7',
+  name: 'Unlimited',
   price: 42,
   description: 'Full access — outdoor bootcamp sessions',
 }
