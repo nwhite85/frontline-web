@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         .from('challenge_bookings')
         .select('id, client_id, booking_status, ability_tier')
         .eq('challenge_schedule_id', scheduleId)
-        .in('booking_status', ['booked', 'confirmed']),
+        .in('booking_status', ['booked', 'confirmed', 'waitlist']),
       supabase
         .from('challenge_schedules')
         .select('is_locked, locked_kit, challenges(tier_capacity)')
@@ -68,13 +68,16 @@ export async function GET(request: NextRequest) {
     type EquipmentSection = { label: string; items: EquipmentItem[] }
     let equipment_summary: EquipmentSection[] | null = null
 
+    // Equipment counts only confirmed bookings (waitlist doesn't have a confirmed slot yet)
+    const confirmedResult = result.filter((b: any) => b.booking_status !== 'waitlist')
+
     if (tierCapacity) {
       const sections: EquipmentSection[] = []
 
       // Kettlebells — Strength Checkpoint
       if (tierCapacity.tiers && tierCapacity.kettlebells) {
         const count: Record<string, number> = {}
-        for (const booking of result) {
+        for (const booking of confirmedResult) {
           const tier = booking.ability_tier as string | null
           const gender = booking.user_profiles?.gender as string | null
           if (!tier) continue
@@ -99,7 +102,7 @@ export async function GET(request: NextRequest) {
       // Powerbags — Endurance Checkpoint
       if (tierCapacity.tiers && tierCapacity.powerbags) {
         const count: Record<string, number> = {}
-        for (const booking of result) {
+        for (const booking of confirmedResult) {
           const tier = booking.ability_tier as string | null
           const gender = booking.user_profiles?.gender as string | null
           if (!tier) continue
@@ -119,7 +122,7 @@ export async function GET(request: NextRequest) {
       // Dumbbells — Endurance Checkpoint (separate tier mapping)
       if (tierCapacity.dumbbell_tiers && tierCapacity.dumbbells) {
         const count: Record<string, number> = {}
-        for (const booking of result) {
+        for (const booking of confirmedResult) {
           const tier = booking.ability_tier as string | null
           const gender = booking.user_profiles?.gender as string | null
           if (!tier) continue
@@ -138,7 +141,7 @@ export async function GET(request: NextRequest) {
 
       // Battle ropes — Speed Checkpoint
       if (tierCapacity.total_ropes != null && tierCapacity.people_per_rope) {
-        const ropesNeeded = Math.ceil(result.length / tierCapacity.people_per_rope)
+        const ropesNeeded = Math.ceil(confirmedResult.length / tierCapacity.people_per_rope)
         if (ropesNeeded > 0) {
           sections.push({ label: 'Ropes needed', items: [{ weight: 'Battle rope', needed: ropesNeeded, available: tierCapacity.total_ropes }] })
         }
@@ -153,7 +156,7 @@ export async function GET(request: NextRequest) {
         const medBalls = tierCapacity.med_balls as Record<string, { stock: number }> | undefined
 
         const ballGroups: Record<string, { count: number; maxRisersEachSide: number }> = {}
-        for (const booking of result) {
+        for (const booking of confirmedResult) {
           const tier = booking.ability_tier as string | null
           const gender = (booking.user_profiles?.gender as string | null) ?? 'female'
           if (!tier) continue
@@ -185,7 +188,7 @@ export async function GET(request: NextRequest) {
       // Medicine balls + risers — Power Checkpoint, tier-only (legacy)
       } else if (tierCapacity.balls) {
         const tierCounts: Record<string, number> = {}
-        for (const booking of result) {
+        for (const booking of confirmedResult) {
           const tier = booking.ability_tier as string | null
           if (!tier) continue
           tierCounts[tier] = (tierCounts[tier] || 0) + 1

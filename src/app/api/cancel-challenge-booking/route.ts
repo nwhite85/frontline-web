@@ -11,6 +11,68 @@ function getAdminClient() {
   })
 }
 
+async function autoPromoteWaitlist(
+  supabase: ReturnType<typeof createClient>,
+  challengeScheduleId: string,
+  cancelledTier: string | null,
+  cancelledClientId: string,
+) {
+  if (!cancelledTier) return
+
+  // Get gender of the client who cancelled
+  const { data: cancelledProfile } = await supabase
+    .from('user_profiles')
+    .select('gender')
+    .eq('id', cancelledClientId)
+    .maybeSingle()
+  const cancelledGender = (cancelledProfile as any)?.gender ?? null
+
+  // Find all waitlisted bookings for this schedule with matching tier
+  const { data: waitlisted } = await supabase
+    .from('challenge_bookings')
+    .select('id, client_id, ability_tier')
+    .eq('challenge_schedule_id', challengeScheduleId)
+    .eq('booking_status', 'waitlist')
+    .eq('ability_tier', cancelledTier)
+    .order('created_at', { ascending: true })
+
+  if (!waitlisted || waitlisted.length === 0) return
+
+  // Filter to same gender, fallback to any gender if none match
+  const clientIds = waitlisted.map((w: any) => w.client_id)
+  const { data: profiles } = await supabase
+    .from('user_profiles')
+    .select('id, gender')
+    .in('id', clientIds)
+  const genderMap: Record<string, string | null> = {}
+  for (const p of profiles || []) genderMap[(p as any).id] = (p as any).gender ?? null
+
+  const match = cancelledGender
+    ? waitlisted.find((w: any) => genderMap[w.client_id] === cancelledGender)
+    : waitlisted[0]
+  const promote = match ?? waitlisted[0]
+
+  if (!promote) return
+
+  await supabase
+    .from('challenge_bookings')
+    .update({ booking_status: 'confirmed' })
+    .eq('id', (promote as any).id)
+
+  // Recount confirmed after promotion
+  const { count: newTotal } = await supabase
+    .from('challenge_bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('challenge_schedule_id', challengeScheduleId)
+    .eq('booking_status', 'confirmed')
+  await supabase
+    .from('challenge_schedules')
+    .update({ current_bookings: newTotal ?? 0 })
+    .eq('id', challengeScheduleId)
+
+  logger.log(`Challenge waitlist auto-promote: ${(promote as any).client_id} promoted for ${challengeScheduleId}`)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { challengeScheduleId, clientId, action, trainerId, status } = await request.json()
@@ -27,12 +89,13 @@ export async function POST(request: NextRequest) {
     // action=cancel: set confirmed booking to cancelled
     // action=book (default): upsert — update cancelled row or insert new
     if (action === 'cancel') {
+      // Find the booking — could be confirmed or waitlist
       const { data: booking, error: lookupError } = await supabase
         .from('challenge_bookings')
-        .select('id')
+        .select('id, ability_tier, booking_status')
         .eq('challenge_schedule_id', challengeScheduleId)
         .eq('client_id', clientId)
-        .eq('booking_status', 'confirmed')
+        .in('booking_status', ['confirmed', 'waitlist'])
         .maybeSingle()
 
       if (lookupError) {
@@ -43,6 +106,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
       }
 
+      const wasConfirmed = booking.booking_status === 'confirmed'
+
       const { error: updateError } = await supabase
         .from('challenge_bookings')
         .update({ booking_status: 'cancelled' })
@@ -52,39 +117,44 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: updateError.message }, { status: 500 })
       }
 
-      // Recount confirmed bookings (same as book endpoint — avoids drift)
+      // Recount confirmed only
       const { count: newTotal } = await supabase
         .from('challenge_bookings')
         .select('id', { count: 'exact', head: true })
         .eq('challenge_schedule_id', challengeScheduleId)
-        .neq('booking_status', 'cancelled')
+        .eq('booking_status', 'confirmed')
       await supabase
         .from('challenge_schedules')
         .update({ current_bookings: newTotal ?? 0 })
         .eq('id', challengeScheduleId)
 
-      // Restore credit if client has a credit package and no recurring membership
-      // (challenge_bookings has no payment_status column, so we infer from membership type)
-      const { data: memberships } = await supabase
-        .from('client_memberships')
-        .select('id, class_credits_remaining, membership_plans(plan_type, includes_classes)')
-        .eq('client_id', clientId)
-        .eq('status', 'active')
-
-      const hasRecurring = (memberships || []).some(
-        (m: any) => m.membership_plans?.plan_type !== 'credit_package' && m.membership_plans?.includes_classes
-      )
-      const creditMembership = !hasRecurring
-        ? (memberships || []).find((m: any) => m.membership_plans?.plan_type === 'credit_package') as any | undefined
-        : undefined
-
-      if (creditMembership) {
-        const restored = (creditMembership.class_credits_remaining ?? 0) + 1
-        await supabase
+      // Only restore credit and auto-promote if a confirmed slot was freed
+      if (wasConfirmed) {
+        // Restore credit for the cancelling client
+        const { data: memberships } = await supabase
           .from('client_memberships')
-          .update({ class_credits_remaining: restored })
-          .eq('id', creditMembership.id)
-        logger.log(`Challenge cancel: credit restored for ${clientId} — ${restored} remaining`)
+          .select('id, class_credits_remaining, membership_plans(plan_type, includes_classes)')
+          .eq('client_id', clientId)
+          .eq('status', 'active')
+
+        const hasRecurring = (memberships || []).some(
+          (m: any) => m.membership_plans?.plan_type !== 'credit_package' && m.membership_plans?.includes_classes
+        )
+        const creditMembership = !hasRecurring
+          ? (memberships || []).find((m: any) => m.membership_plans?.plan_type === 'credit_package') as any | undefined
+          : undefined
+
+        if (creditMembership) {
+          const restored = (creditMembership.class_credits_remaining ?? 0) + 1
+          await supabase
+            .from('client_memberships')
+            .update({ class_credits_remaining: restored })
+            .eq('id', creditMembership.id)
+          logger.log(`Challenge cancel: credit restored for ${clientId} — ${restored} remaining`)
+        }
+
+        // Auto-promote first waitlisted person matching the same tier + gender
+        await autoPromoteWaitlist(supabase, challengeScheduleId, booking.ability_tier, clientId)
       }
 
       return NextResponse.json({ success: true })
@@ -133,19 +203,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Increment current_bookings for confirmed bookings
+    // Recount confirmed bookings
     if (bookingStatus === 'confirmed') {
-      const { data: sched } = await supabase
+      const { count: newTotal } = await supabase
+        .from('challenge_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('challenge_schedule_id', challengeScheduleId)
+        .eq('booking_status', 'confirmed')
+      await supabase
         .from('challenge_schedules')
-        .select('current_bookings')
+        .update({ current_bookings: newTotal ?? 0 })
         .eq('id', challengeScheduleId)
-        .single()
-      if (sched) {
-        await supabase
-          .from('challenge_schedules')
-          .update({ current_bookings: (sched.current_bookings ?? 0) + 1 })
-          .eq('id', challengeScheduleId)
-      }
     }
 
     return NextResponse.json({ success: true, status: bookingStatus })

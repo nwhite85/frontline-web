@@ -159,6 +159,35 @@ function checkPower(
   return null
 }
 
+// ─── Waitlist helper ──────────────────────────────────────────────────────────
+
+async function addToWaitlist(
+  supabase: ReturnType<typeof createClient>,
+  existing: { id: string; booking_status: string } | null,
+  challengeScheduleId: string,
+  clientId: string,
+  trainerId: string,
+  tier: Tier | undefined,
+): Promise<NextResponse> {
+  if (existing && existing.booking_status === 'cancelled') {
+    await supabase
+      .from('challenge_bookings')
+      .update({ booking_status: 'waitlist', booking_date: new Date().toISOString(), ability_tier: tier || null })
+      .eq('id', existing.id)
+  } else {
+    await supabase.from('challenge_bookings').insert({
+      challenge_schedule_id: challengeScheduleId,
+      client_id: clientId,
+      trainer_id: trainerId,
+      booking_status: 'waitlist',
+      booking_date: new Date().toISOString(),
+      ability_tier: tier || null,
+    })
+  }
+  logger.log(`Challenge waitlist: ${clientId} → ${challengeScheduleId} (tier: ${tier ?? 'none'})`)
+  return NextResponse.json({ success: true, status: 'waitlist' })
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -237,12 +266,12 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
     const clientGender = (clientData as any)?.gender ?? null
 
-    // Get current booking counts per tier (include gender for KB checks)
+    // Get current confirmed booking counts per tier (exclude waitlist from capacity checks)
     const { data: existingBookings } = await supabase
       .from('challenge_bookings')
       .select('ability_tier, client_id')
       .eq('challenge_schedule_id', challengeScheduleId)
-      .neq('booking_status', 'cancelled')
+      .eq('booking_status', 'confirmed')
 
     // Fetch genders for all booked clients
     const bookedClientIds = (existingBookings || []).map((b: any) => b.client_id).filter(Boolean)
@@ -287,24 +316,26 @@ export async function POST(request: NextRequest) {
         blockMsg = checkEndurance(tc, tier, counts[tier])
       }
 
-      if (blockMsg) return NextResponse.json({ error: blockMsg }, { status: 403 })
+      if (blockMsg) {
+        // Slot full — add to waitlist instead of rejecting
+        return await addToWaitlist(supabase, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
+      }
 
     } else if (tc && !tc.mode && tier) {
       // Legacy simple per-tier cap
       const tierMax = tc[tier] as number | null
       if (tierMax != null && counts[tier] >= tierMax) {
-        const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1)
-        return NextResponse.json({ error: `${tierLabel} tier is full for this session.` }, { status: 403 })
+        return await addToWaitlist(supabase, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
       }
     } else {
       // Fallback: overall capacity check
       const maxCap = schedule.max_capacity ?? 0
       if (maxCap > 0 && totalCount >= maxCap) {
-        return NextResponse.json({ error: 'This session is full.' }, { status: 403 })
+        return await addToWaitlist(supabase, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
       }
     }
 
-    // Insert or re-activate booking
+    // Insert or re-activate booking as confirmed
     if (existing && existing.booking_status === 'cancelled') {
       await supabase
         .from('challenge_bookings')
@@ -321,12 +352,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Update current_bookings count
+    // Update current_bookings — confirmed only
     const { count: newTotal } = await supabase
       .from('challenge_bookings')
       .select('id', { count: 'exact', head: true })
       .eq('challenge_schedule_id', challengeScheduleId)
-      .neq('booking_status', 'cancelled')
+      .eq('booking_status', 'confirmed')
 
     await supabase
       .from('challenge_schedules')
