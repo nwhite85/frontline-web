@@ -138,12 +138,32 @@ export async function POST(request: NextRequest) {
     // Required for subscription billing to succeed — without this Stripe won't
     // charge the attached card automatically.
     try {
-      const methods = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card', limit: 1 })
-      if (methods.data.length > 0) {
+      let pm = null
+      const directMethods = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card', limit: 1 })
+      if (directMethods.data.length > 0) {
+        pm = directMethods.data[0]
+      } else {
+        // Card may be on a different Stripe customer (e.g. mobile app created its own)
+        const allCustomers = await stripe.customers.list({ email: profile.email, limit: 10 })
+        for (const c of allCustomers.data) {
+          if (c.id === stripeCustomerId) continue
+          const methods = await stripe.paymentMethods.list({ customer: c.id, type: 'card', limit: 1 })
+          if (methods.data.length > 0) {
+            pm = methods.data[0]
+            try {
+              await stripe.paymentMethods.attach(pm.id, { customer: stripeCustomerId })
+            } catch (e: any) {
+              if (!e.message?.includes('already been attached')) throw e
+            }
+            break
+          }
+        }
+      }
+      if (pm) {
         await stripe.customers.update(stripeCustomerId, {
-          invoice_settings: { default_payment_method: methods.data[0].id },
+          invoice_settings: { default_payment_method: pm.id },
         })
-        logger.log(`Set default payment method ${methods.data[0].id} for customer ${stripeCustomerId}`)
+        logger.log(`Set default payment method ${pm.id} for customer ${stripeCustomerId}`)
       }
     } catch (pmErr: any) {
       logger.error('Could not set default payment method:', pmErr.message)
