@@ -54,18 +54,18 @@ async function autoPromoteWaitlist(
 
   if (!promote) return
 
-  await supabase
+  await (supabase as any)
     .from('challenge_bookings')
     .update({ booking_status: 'confirmed' })
     .eq('id', (promote as any).id)
 
   // Recount confirmed after promotion
-  const { count: newTotal } = await supabase
+  const { count: newTotal } = await (supabase as any)
     .from('challenge_bookings')
     .select('id', { count: 'exact', head: true })
     .eq('challenge_schedule_id', challengeScheduleId)
     .eq('booking_status', 'confirmed')
-  await supabase
+  await (supabase as any)
     .from('challenge_schedules')
     .update({ current_bookings: newTotal ?? 0 })
     .eq('id', challengeScheduleId)
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Auto-promote first waitlisted person matching the same tier + gender
-        await autoPromoteWaitlist(supabase, challengeScheduleId, booking.ability_tier, clientId)
+        await autoPromoteWaitlist(supabase as any, challengeScheduleId, booking.ability_tier, clientId)
       }
 
       return NextResponse.json({ success: true })

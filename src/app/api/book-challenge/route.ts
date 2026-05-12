@@ -170,12 +170,12 @@ async function addToWaitlist(
   tier: Tier | undefined,
 ): Promise<NextResponse> {
   if (existing && existing.booking_status === 'cancelled') {
-    await supabase
+    await (supabase as any)
       .from('challenge_bookings')
       .update({ booking_status: 'waitlist', booking_date: new Date().toISOString(), ability_tier: tier || null })
       .eq('id', existing.id)
   } else {
-    await supabase.from('challenge_bookings').insert({
+    await (supabase as any).from('challenge_bookings').insert({
       challenge_schedule_id: challengeScheduleId,
       client_id: clientId,
       trainer_id: trainerId,
@@ -318,31 +318,31 @@ export async function POST(request: NextRequest) {
 
       if (blockMsg) {
         // Slot full — add to waitlist instead of rejecting
-        return await addToWaitlist(supabase, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
+        return await addToWaitlist(supabase as any, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
       }
 
     } else if (tc && !tc.mode && tier) {
       // Legacy simple per-tier cap
       const tierMax = tc[tier] as number | null
       if (tierMax != null && counts[tier] >= tierMax) {
-        return await addToWaitlist(supabase, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
+        return await addToWaitlist(supabase as any, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
       }
     } else {
       // Fallback: overall capacity check
       const maxCap = schedule.max_capacity ?? 0
       if (maxCap > 0 && totalCount >= maxCap) {
-        return await addToWaitlist(supabase, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
+        return await addToWaitlist(supabase as any, existing, challengeScheduleId, clientId, schedule.trainer_id, tier)
       }
     }
 
     // Insert or re-activate booking as confirmed
     if (existing && existing.booking_status === 'cancelled') {
-      await supabase
+      await (supabase as any)
         .from('challenge_bookings')
         .update({ booking_status: 'confirmed', booking_date: new Date().toISOString(), ability_tier: tier || null })
         .eq('id', existing.id)
     } else {
-      await supabase.from('challenge_bookings').insert({
+      await (supabase as any).from('challenge_bookings').insert({
         challenge_schedule_id: challengeScheduleId,
         client_id: clientId,
         trainer_id: schedule.trainer_id,

@@ -134,6 +134,22 @@ export async function POST(request: NextRequest) {
     const subscription = await stripe.subscriptions.create(subscriptionParams)
     logger.log(`Created Stripe subscription ${subscription.id} for ${profile.email}, billing from ${billingDate}`)
 
+    // ── Set invoice default payment method if one exists ─────────────────────
+    // Required for subscription billing to succeed — without this Stripe won't
+    // charge the attached card automatically.
+    try {
+      const methods = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card', limit: 1 })
+      if (methods.data.length > 0) {
+        await stripe.customers.update(stripeCustomerId, {
+          invoice_settings: { default_payment_method: methods.data[0].id },
+        })
+        logger.log(`Set default payment method ${methods.data[0].id} for customer ${stripeCustomerId}`)
+      }
+    } catch (pmErr: any) {
+      logger.error('Could not set default payment method:', pmErr.message)
+      // Non-fatal — subscription was still created
+    }
+
     // ── Update membership record ──────────────────────────────────────────────
     await supabase
       .from('client_memberships')

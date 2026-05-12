@@ -1528,6 +1528,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [migrateDate, setMigrateDate] = useState('')
   const [migrating, setMigrating] = useState(false)
   const [migrateError, setMigrateError] = useState<string | null>(null)
+  const [fixingBilling, setFixingBilling] = useState(false)
 
   const detectCardType = (n: string) => {
     const v = n.replace(/\s/g, '')
@@ -1648,7 +1649,32 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
               <p className="text-xs text-muted-foreground">£{memPlan.price?.toFixed(2)} / {memPlan.billing_period ?? 'monthly'}</p>
             </div>
             {hasStripeSubscription ? (
-              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Stripe Active</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Stripe Active</span>
+                <Button
+                  size="sm" variant="outline" className="h-7 text-xs"
+                  disabled={fixingBilling}
+                  onClick={async () => {
+                    setFixingBilling(true)
+                    try {
+                      const res = await fetch('/api/fix-billing-default', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clientId }),
+                      })
+                      const data = await res.json()
+                      if (!res.ok) throw new Error(data.error)
+                      toast.success(`Payment default set (${data.card})${data.retriedInvoices > 0 ? ` · ${data.retriedInvoices} invoice${data.retriedInvoices > 1 ? 's' : ''} retried` : ''}`)
+                    } catch (err: any) {
+                      toast.error(err.message || 'Failed to fix billing')
+                    } finally {
+                      setFixingBilling(false)
+                    }
+                  }}
+                >
+                  {fixingBilling ? 'Fixing…' : 'Fix billing'}
+                </Button>
+              </div>
             ) : (
               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setShowMigrateSheet(true); setMigrateDate(''); setMigrateError(null) }}>
                 Move to Stripe Billing
