@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       supabase.from('user_profiles').select('stripe_customer_id, email').eq('id', clientId).single(),
       supabase.from('stripe_customers').select('stripe_customer_id').eq('user_id', clientId).single(),
       (supabase as any).from('client_memberships')
-        .select('id, stripe_subscription_id, membership_plan_id, membership_plans(id, name, price, stripe_price_id)')
+        .select('id, stripe_subscription_id, membership_plan_id')
         .eq('client_id', clientId)
         .eq('status', 'active')
         .maybeSingle(),
@@ -34,7 +34,15 @@ export async function POST(request: NextRequest) {
     if (!profile?.email) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     if (!membership) return NextResponse.json({ error: 'No active membership found' }, { status: 404 })
 
-    const plan = (membership as any).membership_plans
+    const planId = (membership as any).membership_plan_id
+    if (!planId) return NextResponse.json({ error: 'No membership plan linked' }, { status: 404 })
+
+    const { data: plan } = await supabase
+      .from('membership_plans')
+      .select('id, name, price, stripe_price_id')
+      .eq('id', planId)
+      .single()
+
     if (!plan) return NextResponse.json({ error: 'Membership plan not found' }, { status: 404 })
 
     // ── Find the customer that has a card ─────────────────────────────────────
