@@ -88,11 +88,16 @@ export async function POST(request: NextRequest) {
     // ── Retry open invoices using the default payment method we just set ──────
     const invoices = await stripe.invoices.list({ customer: subscriptionCustomerId, status: 'open', limit: 5 })
     const retried: string[] = []
+    let paymentUrl: string | null = null
+
     for (const inv of invoices.data) {
       if (!inv.id) continue
+      // Keep the hosted URL as fallback in case auto-charge fails
+      if (!paymentUrl && inv.hosted_invoice_url) paymentUrl = inv.hosted_invoice_url
       try {
         await stripe.invoices.pay(inv.id)
         retried.push(inv.id)
+        paymentUrl = null // payment succeeded — no need for manual link
         logger.log(`Retried invoice ${inv.id}`)
       } catch (err: any) {
         logger.error(`Failed to retry invoice ${inv.id}:`, err.message)
@@ -104,6 +109,7 @@ export async function POST(request: NextRequest) {
       paymentMethodId: pm.id,
       card: `${pm.card?.brand} ····${pm.card?.last4}`,
       retriedInvoices: retried.length,
+      paymentUrl, // non-null if auto-charge failed — send this to the client
     })
   } catch (err: any) {
     logger.error('fix-billing-default error:', err)

@@ -1664,7 +1664,13 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                       })
                       const data = await res.json()
                       if (!res.ok) throw new Error(data.error)
-                      toast.success(`Payment default set (${data.card})${data.retriedInvoices > 0 ? ` · ${data.retriedInvoices} invoice${data.retriedInvoices > 1 ? 's' : ''} retried` : ''}`)
+                      if (data.paymentUrl) {
+                        // Auto-charge failed — copy the payment link for the client
+                        await navigator.clipboard.writeText(data.paymentUrl).catch(() => {})
+                        toast.success(`Card linked (${data.card}) — payment link copied to clipboard. Send it to the client to pay manually.`, { duration: 8000 })
+                      } else {
+                        toast.success(`Payment default set (${data.card})${data.retriedInvoices > 0 ? ` · ${data.retriedInvoices} invoice${data.retriedInvoices > 1 ? 's' : ''} retried` : ''}`)
+                      }
                     } catch (err: any) {
                       toast.error(err.message || 'Failed to fix billing')
                     } finally {
