@@ -1529,6 +1529,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [migrating, setMigrating] = useState(false)
   const [migrateError, setMigrateError] = useState<string | null>(null)
   const [fixingBilling, setFixingBilling] = useState(false)
+  const [resubscribing, setResubscribing] = useState(false)
 
   const detectCardType = (n: string) => {
     const v = n.replace(/\s/g, '')
@@ -1649,11 +1650,11 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
               <p className="text-xs text-muted-foreground">£{memPlan.price?.toFixed(2)} / {memPlan.billing_period ?? 'monthly'}</p>
             </div>
             {hasStripeSubscription ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Stripe Active</span>
                 <Button
                   size="sm" variant="outline" className="h-7 text-xs"
-                  disabled={fixingBilling}
+                  disabled={fixingBilling || resubscribing}
                   onClick={async () => {
                     setFixingBilling(true)
                     try {
@@ -1665,7 +1666,6 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                       const data = await res.json()
                       if (!res.ok) throw new Error(data.error)
                       if (data.paymentUrl) {
-                        // Auto-charge failed — copy the payment link for the client
                         await navigator.clipboard.writeText(data.paymentUrl).catch(() => {})
                         toast.success(`Card linked (${data.card}) — payment link copied to clipboard. Send it to the client to pay manually.`, { duration: 8000 })
                       } else {
@@ -1679,6 +1679,30 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                   }}
                 >
                   {fixingBilling ? 'Fixing…' : 'Fix billing'}
+                </Button>
+                <Button
+                  size="sm" variant="outline" className="h-7 text-xs text-amber-600 border-amber-500/30 hover:bg-amber-500/10"
+                  disabled={fixingBilling || resubscribing}
+                  onClick={async () => {
+                    setResubscribing(true)
+                    try {
+                      const res = await fetch('/api/resubscribe-client', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clientId }),
+                      })
+                      const data = await res.json()
+                      if (!res.ok) throw new Error(data.error)
+                      toast.success(`Resubscribed on ${data.card} — billing active`)
+                      await loadBilling()
+                    } catch (err: any) {
+                      toast.error(err.message || 'Failed to resubscribe')
+                    } finally {
+                      setResubscribing(false)
+                    }
+                  }}
+                >
+                  {resubscribing ? 'Resubscribing…' : 'Resubscribe'}
                 </Button>
               </div>
             ) : (
