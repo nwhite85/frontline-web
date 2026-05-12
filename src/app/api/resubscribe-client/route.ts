@@ -32,7 +32,18 @@ export async function POST(request: NextRequest) {
     ])
 
     if (!profile?.email) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    if (!membership) return NextResponse.json({ error: 'No active membership found' }, { status: 404 })
+    if (!membership) {
+      // Fetch without status filter to diagnose
+      const { data: anyMembership, error: diagError } = await (supabase as any)
+        .from('client_memberships')
+        .select('id, status, stripe_subscription_id, membership_plan_id')
+        .eq('client_id', clientId)
+        .maybeSingle()
+      return NextResponse.json({
+        error: 'No active membership found',
+        debug: { anyMembership, diagError, clientId },
+      }, { status: 404 })
+    }
 
     const planId = (membership as any).membership_plan_id
     if (!planId) return NextResponse.json({ error: 'No membership plan linked' }, { status: 404 })
