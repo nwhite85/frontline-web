@@ -85,13 +85,13 @@ export async function POST(request: NextRequest) {
     await supabase.from('user_profiles').update({ stripe_customer_id: subscriptionCustomerId }).eq('id', clientId)
     logger.log(`Set default payment method ${pm.id} for customer ${subscriptionCustomerId}`)
 
-    // ── Retry open invoices ───────────────────────────────────────────────────
+    // ── Retry open invoices using the default payment method we just set ──────
     const invoices = await stripe.invoices.list({ customer: subscriptionCustomerId, status: 'open', limit: 5 })
     const retried: string[] = []
     for (const inv of invoices.data) {
       if (!inv.id) continue
       try {
-        await stripe.invoices.pay(inv.id, { payment_method: pm.id })
+        await stripe.invoices.pay(inv.id)
         retried.push(inv.id)
         logger.log(`Retried invoice ${inv.id}`)
       } catch (err: any) {
