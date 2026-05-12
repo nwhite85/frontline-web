@@ -11,65 +11,82 @@ const supabase = createClient(
 
 // POST /api/fix-billing-default
 // Body: { clientId: string }
-// Finds the client's Stripe customer (falling back to email search if the DB-linked
-// customer has no card), sets their payment method as invoice_settings.default_payment_method,
-// updates the DB link if a different customer was found, then retries open invoices.
+// Finds the card attached to this client (searching all Stripe customers by email),
+// attaches it to the subscription's customer if needed, sets it as the invoice default,
+// and retries any open invoices.
 
 export async function POST(request: NextRequest) {
   try {
     const { clientId } = await request.json()
     if (!clientId) return NextResponse.json({ error: 'clientId is required' }, { status: 400 })
 
-    const [{ data: profile }, { data: scRow }] = await Promise.all([
-      supabase.from('user_profiles').select('stripe_customer_id, first_name, last_name, email').eq('id', clientId).single(),
+    const [{ data: profile }, { data: scRow }, { data: membership }] = await Promise.all([
+      supabase.from('user_profiles').select('stripe_customer_id, email').eq('id', clientId).single(),
       supabase.from('stripe_customers').select('stripe_customer_id').eq('user_id', clientId).single(),
+      supabase.from('client_memberships').select('stripe_subscription_id').eq('client_id', clientId).eq('status', 'active').maybeSingle(),
     ])
 
-    if (!profile?.email) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    if (!profile?.email) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+
+    // ── Find the customer that owns the subscription ──────────────────────────
+    let subscriptionCustomerId: string | null = null
+    const subscriptionId = (membership as any)?.stripe_subscription_id ?? null
+
+    if (subscriptionId) {
+      const sub = await stripe.subscriptions.retrieve(subscriptionId)
+      subscriptionCustomerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
     }
 
-    let stripeCustomerId: string | null = profile?.stripe_customer_id ?? scRow?.stripe_customer_id ?? null
+    // Fall back to DB-linked customer if no subscription found
+    if (!subscriptionCustomerId) {
+      subscriptionCustomerId = profile?.stripe_customer_id ?? scRow?.stripe_customer_id ?? null
+    }
+
+    if (!subscriptionCustomerId) {
+      return NextResponse.json({ error: 'No Stripe customer found for this client' }, { status: 404 })
+    }
+
+    // ── Find the card — check subscription customer first, then search by email ─
     let pm = null
-
-    // Try the DB-linked customer first
-    if (stripeCustomerId) {
-      const methods = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card', limit: 1 })
-      if (methods.data.length > 0) pm = methods.data[0]
-    }
-
-    // If no card found on the linked customer, search all Stripe customers by email
-    // to find the one that actually has a card (can happen when mobile app and migration
-    // created separate Stripe customers for the same person)
-    if (!pm) {
+    const directMethods = await stripe.paymentMethods.list({ customer: subscriptionCustomerId, type: 'card', limit: 1 })
+    if (directMethods.data.length > 0) {
+      pm = directMethods.data[0]
+    } else {
+      // Card may be on a different customer (e.g. mobile app created its own customer)
       const allCustomers = await stripe.customers.list({ email: profile.email, limit: 10 })
       for (const customer of allCustomers.data) {
-        if (customer.id === stripeCustomerId) continue // already checked
+        if (customer.id === subscriptionCustomerId) continue
         const methods = await stripe.paymentMethods.list({ customer: customer.id, type: 'card', limit: 1 })
         if (methods.data.length > 0) {
           pm = methods.data[0]
-          // Update the DB to point to the customer that has the card
-          const newCustomerId = customer.id
-          logger.log(`Found card on different customer ${newCustomerId} vs DB-linked ${stripeCustomerId} — relinking`)
-          await supabase.from('user_profiles').update({ stripe_customer_id: newCustomerId }).eq('id', clientId)
-          stripeCustomerId = newCustomerId
+          // Attach this card to the subscription's customer
+          try {
+            await stripe.paymentMethods.attach(pm.id, { customer: subscriptionCustomerId })
+            logger.log(`Attached pm ${pm.id} from customer ${customer.id} to subscription customer ${subscriptionCustomerId}`)
+          } catch (attachErr: any) {
+            // Already attached is fine
+            if (!attachErr.message?.includes('already been attached')) throw attachErr
+          }
           break
         }
       }
     }
 
-    if (!pm || !stripeCustomerId) {
-      return NextResponse.json({ error: 'No payment method found on any Stripe customer for this client' }, { status: 404 })
+    if (!pm) {
+      return NextResponse.json({ error: 'No payment method found for this client' }, { status: 404 })
     }
 
-    // Set as invoice default
-    await stripe.customers.update(stripeCustomerId, {
+    // ── Set as invoice default on the subscription customer ──────────────────
+    await stripe.customers.update(subscriptionCustomerId, {
       invoice_settings: { default_payment_method: pm.id },
     })
-    logger.log(`Set default payment method ${pm.id} for customer ${stripeCustomerId}`)
 
-    // Retry any open (unpaid) invoices
-    const invoices = await stripe.invoices.list({ customer: stripeCustomerId, status: 'open', limit: 5 })
+    // Update DB to point at the subscription customer
+    await supabase.from('user_profiles').update({ stripe_customer_id: subscriptionCustomerId }).eq('id', clientId)
+    logger.log(`Set default payment method ${pm.id} for customer ${subscriptionCustomerId}`)
+
+    // ── Retry open invoices ───────────────────────────────────────────────────
+    const invoices = await stripe.invoices.list({ customer: subscriptionCustomerId, status: 'open', limit: 5 })
     const retried: string[] = []
     for (const inv of invoices.data) {
       if (!inv.id) continue
