@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // ── Load current membership and new plan ──────────────────────────────────
     const [{ data: currentMembership }, { data: newPlan }] = await Promise.all([
       (supabase as any).from('client_memberships')
-        .select('id, stripe_subscription_id, membership_plan_id')
+        .select('id, stripe_subscription_id, membership_plan_id, trainer_id')
         .eq('client_id', clientId)
         .eq('status', 'active')
         .maybeSingle(),
@@ -64,57 +64,49 @@ export async function POST(request: NextRequest) {
         logger.log(`Created Stripe price ${newPriceId} for plan ${newPlan.name}`)
       }
 
-      // Retrieve the subscription to get the current item ID
+      // Retrieve the subscription to confirm it's still active and get the item ID
       const sub = await stripe.subscriptions.retrieve(stripeSubId)
+      const subStatus = (sub as any).status
       const itemId = (sub as any).items?.data?.[0]?.id
-      if (!itemId) {
-        return NextResponse.json({ error: 'Could not find subscription item to update' }, { status: 500 })
+
+      if (subStatus === 'canceled' || subStatus === 'cancelled' || !itemId) {
+        // Subscription is dead in Stripe — clear it from DB and fall through to DB-only swap
+        logger.log(`Subscription ${stripeSubId} is ${subStatus} — clearing from DB and doing DB-only swap`)
+        await (supabase as any).from('client_memberships')
+          .update({ stripe_subscription_id: null })
+          .eq('id', currentMembership.id)
+      } else {
+        // Update the live subscription — prorate immediately
+        await stripe.subscriptions.update(stripeSubId, {
+          items: [{ id: itemId, price: newPriceId }],
+          proration_behavior: 'always_invoice',
+        })
+        logger.log(`Updated Stripe subscription ${stripeSubId} to price ${newPriceId} (plan: ${newPlan.name})`)
+
+        // Update DB membership plan (keep same record and subscription ID)
+        await (supabase as any).from('client_memberships')
+          .update({ membership_plan_id: newPlanId })
+          .eq('id', currentMembership.id)
+
+        return NextResponse.json({ success: true, stripeUpdated: true, planName: newPlan.name })
       }
-
-      // Update the subscription — prorate immediately
-      await stripe.subscriptions.update(stripeSubId, {
-        items: [{ id: itemId, price: newPriceId }],
-        proration_behavior: 'always_invoice',
-      })
-      logger.log(`Updated Stripe subscription ${stripeSubId} to price ${newPriceId} (plan: ${newPlan.name})`)
-
-      // Update DB membership plan (keep same record and subscription ID)
-      await supabase.from('client_memberships')
-        .update({ membership_plan_id: newPlanId })
-        .eq('id', currentMembership.id)
-
-      return NextResponse.json({ success: true, stripeUpdated: true, planName: newPlan.name })
     }
 
-    // ── DB-only swap (Push Press / manual members) ────────────────────────────
-    await supabase.from('client_memberships')
+    // ── DB-only swap (Push Press / manual members, or cancelled Stripe sub) ────
+    const trainerId = currentMembership?.trainer_id ?? null
+
+    await (supabase as any).from('client_memberships')
       .update({ status: 'cancelled' })
       .eq('client_id', clientId)
-      .eq('status', 'active') as any
+      .eq('status', 'active')
 
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('id', clientId)
-      .single()
-
-    // Get trainer_id from the existing membership
-    const { data: oldMembership } = await supabase
-      .from('client_memberships')
-      .select('trainer_id')
-      .eq('client_id', clientId)
-      .eq('status', 'cancelled')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle() as any
-
-    await supabase.from('client_memberships').insert({
+    await (supabase as any).from('client_memberships').insert({
       client_id: clientId,
       membership_plan_id: newPlanId,
-      trainer_id: oldMembership?.trainer_id ?? null,
+      trainer_id: trainerId,
       status: 'active',
       start_date: new Date().toISOString().split('T')[0],
-    }) as any
+    })
 
     logger.log(`Changed membership plan for ${clientId} to ${newPlan.name} (DB only)`)
     return NextResponse.json({ success: true, stripeUpdated: false, planName: newPlan.name })
