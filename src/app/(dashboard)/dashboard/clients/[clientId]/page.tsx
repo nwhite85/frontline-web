@@ -1897,6 +1897,11 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                     <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Comp membership</p>
                     <p className="text-xs text-muted-foreground mt-0.5">This membership is complimentary — no payment will be taken. You are manually assigning this to the client.</p>
                   </div>
+                ) : hasStripeSubscription ? (
+                  <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
+                    <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Stripe subscription update</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">This client pays via Stripe. Their subscription will be switched to the new plan immediately and a prorated invoice will be raised for the difference.</p>
+                  </div>
                 ) : (
                   <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
                     <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Manual assignment</p>
@@ -1905,7 +1910,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                 )}
 
                 <Button onClick={confirmAddMembership} disabled={addingMembership} className="w-full">
-                  {addingMembership ? 'Assigning…' : selectedPlan.is_comp ? 'Assign Comp Membership' : 'Assign Membership'}
+                  {addingMembership ? 'Updating…' : selectedPlan.is_comp ? 'Assign Comp Membership' : hasStripeSubscription ? 'Switch Plan' : 'Assign Membership'}
                 </Button>
               </div>
             )}
