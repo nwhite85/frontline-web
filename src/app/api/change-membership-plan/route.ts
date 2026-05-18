@@ -24,13 +24,13 @@ export async function POST(request: NextRequest) {
 
     // ── Load current membership and new plan ──────────────────────────────────
     const [{ data: currentMembership }, { data: newPlan }] = await Promise.all([
-      supabase.from('client_memberships')
+      (supabase as any).from('client_memberships')
         .select('id, stripe_subscription_id, membership_plan_id')
         .eq('client_id', clientId)
         .eq('status', 'active')
-        .maybeSingle() as any,
-      supabase.from('membership_plans')
-        .select('id, name, price, stripe_price_id, plan_type')
+        .maybeSingle(),
+      (supabase as any).from('membership_plans')
+        .select('id, name, price, plan_type')
         .eq('id', newPlanId)
         .single(),
     ])
@@ -41,11 +41,15 @@ export async function POST(request: NextRequest) {
 
     // ── Stripe subscription update (for members who signed up via landing page) ─
     if (stripeSubId) {
-      // Ensure the new plan has a Stripe price
-      let newPriceId = newPlan.stripe_price_id
+      // Find an existing active Stripe price for this plan, or create one
+      const existingPrices = await stripe.prices.list({ limit: 100, active: true })
+      let newPriceId = existingPrices.data.find(
+        (p: any) => p.metadata?.plan_id === newPlan.id && p.recurring?.interval === 'month'
+      )?.id ?? null
+
       if (!newPriceId) {
         const products = await stripe.products.list({ limit: 100 })
-        let product = products.data.find((p: any) => p.name === newPlan.name && p.active)
+        let product = (products.data as any[]).find((p: any) => p.name === newPlan.name && p.active)
         if (!product) {
           product = await stripe.products.create({ name: newPlan.name, metadata: { plan_id: newPlan.id } })
         }
@@ -57,7 +61,6 @@ export async function POST(request: NextRequest) {
           metadata: { plan_id: newPlan.id },
         })
         newPriceId = price.id
-        await supabase.from('membership_plans').update({ stripe_price_id: newPriceId }).eq('id', newPlan.id)
         logger.log(`Created Stripe price ${newPriceId} for plan ${newPlan.name}`)
       }
 
