@@ -1593,21 +1593,20 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
     if (!selectedPlan) return
     setAddingMembership(true)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('client_memberships').update({ status: 'cancelled' }).eq('client_id', clientId).eq('status', 'active')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('client_memberships').insert({
-        client_id: clientId,
-        membership_plan_id: selectedPlan.id,
-        trainer_id: trainerId,
-        status: 'active',
-        start_date: new Date().toISOString().split('T')[0],
+      const res = await fetch('/api/change-membership-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, newPlanId: selectedPlan.id }),
       })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
       setShowAddMembership(false)
       setSelectedPlan(null)
       await loadBilling()
       onMutated?.()
-      toast.success('Membership assigned')
+      toast.success(data.stripeUpdated
+        ? `Switched to ${data.planName} — Stripe subscription updated`
+        : `${data.planName} assigned`)
     } catch (err: any) {
       toast.error(err.message || 'Failed to assign membership')
     } finally { setAddingMembership(false) }
