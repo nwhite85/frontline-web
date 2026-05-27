@@ -782,8 +782,11 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
     await loadAssigned()
   }
 
-  const resetProgram = async (id: string) => {
-    await (supabase as any).from('client_programs').update({ assigned_at: new Date().toISOString() }).eq('id', id)
+  const resetProgram = async (id: string, programId: string) => {
+    await Promise.all([
+      (supabase as any).from('client_programs').update({ assigned_at: new Date().toISOString() }).eq('id', id),
+      (supabase as any).from('activity_log').delete().eq('client_id', clientId).eq('event_type', 'week_completed').filter('metadata->>program_id', 'eq', programId),
+    ])
     await loadAssigned()
   }
 
@@ -843,7 +846,7 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => resetProgram(cp.id)}>
+                        <DropdownMenuItem onClick={() => resetProgram(cp.id, cp.program?.id)}>
                           <RotateCcw className="h-3.5 w-3.5 mr-2" />Reset to Week 1
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
