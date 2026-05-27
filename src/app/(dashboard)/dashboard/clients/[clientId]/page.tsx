@@ -783,10 +783,11 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
   }
 
   const resetProgram = async (id: string, programId: string) => {
-    await Promise.all([
-      (supabase as any).from('client_programs').update({ assigned_at: new Date().toISOString() }).eq('id', id),
-      (supabase as any).from('activity_log').delete().eq('client_id', clientId).eq('event_type', 'week_completed').filter('metadata->>program_id', 'eq', programId),
-    ])
+    await fetch('/api/reset-program', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientProgramId: id, clientId, programId }),
+    })
     await loadAssigned()
   }
 
