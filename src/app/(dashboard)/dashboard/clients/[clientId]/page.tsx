@@ -26,7 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   Mail, Phone, Calendar, Edit2, Activity, Dumbbell, TrendingUp,
   CreditCard, Trophy, Zap, Package, BookOpen, Clock, StickyNote,
-  Plus, UserCircle, MoreHorizontal, Search, Camera, Scale, ChevronDown, ChevronUp,
+  Plus, UserCircle, MoreHorizontal, Search, Camera, Scale, ChevronDown, ChevronUp, RotateCcw,
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { getClientRiskLevel } from '@/utils/clientCompliance'
@@ -782,6 +782,11 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
     await loadAssigned()
   }
 
+  const resetProgram = async (id: string) => {
+    await (supabase as any).from('client_programs').update({ assigned_at: new Date().toISOString() }).eq('id', id)
+    await loadAssigned()
+  }
+
   const removeWorkout = async (id: string) => {
     await supabase.from('client_workouts').delete().eq('id', id)
     await loadAssigned()
@@ -838,6 +843,10 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => resetProgram(cp.id)}>
+                          <RotateCcw className="h-3.5 w-3.5 mr-2" />Reset to Week 1
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive" onClick={() => removeProgram(cp.id, cp.program_id)}>Remove</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
