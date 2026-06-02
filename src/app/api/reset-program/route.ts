@@ -12,15 +12,19 @@ function getAdminClient() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { clientProgramId, clientId, programId } = await request.json()
+    const { clientProgramId, clientId, programId, weekNumber = 1 } = await request.json()
     if (!clientProgramId || !clientId || !programId) {
       return NextResponse.json({ error: 'clientProgramId, clientId, and programId are required' }, { status: 400 })
     }
 
+    // Set assigned_at so that (today - assigned_at) places client at the requested week
+    const assignedAt = new Date()
+    assignedAt.setDate(assignedAt.getDate() - (weekNumber - 1) * 7)
+
     const supabase = getAdminClient()
 
     await Promise.all([
-      supabase.from('client_programs').update({ assigned_at: new Date().toISOString() }).eq('id', clientProgramId),
+      supabase.from('client_programs').update({ assigned_at: assignedAt.toISOString() }).eq('id', clientProgramId),
       supabase.from('activity_log').delete()
         .eq('client_id', clientId)
         .eq('event_type', 'week_completed')

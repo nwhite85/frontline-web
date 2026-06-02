@@ -649,6 +649,10 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
   const [workouts, setWorkouts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Set week state
+  const [setWeekTarget, setSetWeekTarget] = useState<{ id: string; programId: string; durationWeeks: number } | null>(null)
+  const [setWeekValue, setSetWeekValue] = useState('1')
+
   // Assign sheets state
   const [showAssignProgram, setShowAssignProgram] = useState(false)
   const [showAssignWorkout, setShowAssignWorkout] = useState(false)
@@ -783,11 +787,11 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
     await loadAssigned()
   }
 
-  const resetProgram = async (id: string, programId: string) => {
+  const resetProgram = async (id: string, programId: string, weekNumber: number) => {
     await fetch('/api/reset-program', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientProgramId: id, clientId, programId }),
+      body: JSON.stringify({ clientProgramId: id, clientId, programId, weekNumber }),
     })
     await loadAssigned()
   }
@@ -851,8 +855,11 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                         <DropdownMenuItem onClick={() => router.push(`/dashboard/programs/${cp.program?.id}`)}>
                           Edit program
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => resetProgram(cp.id, cp.program?.id)}>
-                          <RotateCcw className="h-3.5 w-3.5 mr-2" />Reset to Week 1
+                        <DropdownMenuItem onClick={() => {
+                          setSetWeekValue('1')
+                          setSetWeekTarget({ id: cp.id, programId: cp.program?.id, durationWeeks: cp.program?.duration_weeks ?? 12 })
+                        }}>
+                          <RotateCcw className="h-3.5 w-3.5 mr-2" />Set week
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive" onClick={() => removeProgram(cp.id, cp.program_id)}>Remove</DropdownMenuItem>
@@ -909,6 +916,32 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
 
         </CardContent>
       </Card>
+
+      {/* Set Week Sheet */}
+      <Sheet open={!!setWeekTarget} onOpenChange={open => { if (!open) setSetWeekTarget(null) }}>
+        <SheetContent className="w-full sm:max-w-xs" onOpenAutoFocus={e => e.preventDefault()}>
+          <SheetHeader><SheetTitle>Set week</SheetTitle></SheetHeader>
+          <SheetBody className="flex flex-col gap-4 pt-4">
+            <Select value={setWeekValue} onValueChange={setSetWeekValue}>
+              <SelectTrigger><SelectValue placeholder="Select week" /></SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: setWeekTarget?.durationWeeks ?? 12 }, (_, i) => i + 1).map(w => (
+                  <SelectItem key={w} value={String(w)}>Week {w}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SheetBody>
+          <SheetFooter>
+            <Button onClick={async () => {
+              if (!setWeekTarget) return
+              await resetProgram(setWeekTarget.id, setWeekTarget.programId, Number(setWeekValue))
+              setSetWeekTarget(null)
+            }}>
+              Set week
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Assign Program Sheet */}
       <Sheet open={showAssignProgram} onOpenChange={setShowAssignProgram}>
