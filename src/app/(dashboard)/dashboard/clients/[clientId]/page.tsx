@@ -644,6 +644,7 @@ function OverviewTab({ client, userId, onEdit }: { client: ClientProfile; userId
 // ─── Tab: Programs ─────────────────────────────────────────────────────────────
 
 function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: string }) {
+  const router = useRouter()
   const [programs, setPrograms] = useState<any[]>([])
   const [workouts, setWorkouts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -847,6 +848,9 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => router.push(`/dashboard/programs/${cp.program?.id}`)}>
+                          Edit program
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => resetProgram(cp.id, cp.program?.id)}>
                           <RotateCcw className="h-3.5 w-3.5 mr-2" />Reset to Week 1
                         </DropdownMenuItem>
