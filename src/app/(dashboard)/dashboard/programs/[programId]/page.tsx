@@ -193,7 +193,7 @@ export default function ProgramBuilderPage() {
   const [copiedSlot, setCopiedSlot] = useState<{ week: number; day: number } | null>(null)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsForm, setSettingsForm] = useState({ weeks: '4', days: '3', type: 'strength', showAllWorkouts: false })
+  const [settingsForm, setSettingsForm] = useState({ weeks: '4', days: '3', type: 'strength', showAllWorkouts: false, isContinuous: false })
   const titleSaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // ── Fetch ──
@@ -206,7 +206,7 @@ export default function ProgramBuilderPage() {
         const [pRes, wiRes, restRes, wRes] = await Promise.all([
           supabase
             .from('programs')
-            .select('id, title, subtitle, duration_weeks, training_days_per_week, program_type, show_all_workouts')
+            .select('id, title, subtitle, duration_weeks, training_days_per_week, program_type, show_all_workouts, is_continuous')
             .eq('id', programId)
             .eq('trainer_id', user.id)
             .maybeSingle(),
@@ -241,6 +241,7 @@ export default function ProgramBuilderPage() {
           days: String(p.training_days_per_week ?? 3),
           type: p.program_type ?? 'strength',
           showAllWorkouts: (p as unknown as Record<string, unknown>).show_all_workouts === true,
+          isContinuous: (p as unknown as Record<string, unknown>).is_continuous === true,
         })
 
         const slotMap: Record<SlotKey, Slot> = {}
@@ -469,7 +470,7 @@ export default function ProgramBuilderPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     const { error } = await db.from('programs').update({
-      duration_weeks: weeks, training_days_per_week: days, program_type: settingsForm.type, show_all_workouts: settingsForm.showAllWorkouts,
+      duration_weeks: weeks, training_days_per_week: days, program_type: settingsForm.type, show_all_workouts: settingsForm.showAllWorkouts, is_continuous: settingsForm.isContinuous,
     }).eq('id', programId)
     if (error) { toast.error('Failed to save settings'); return }
 
@@ -675,6 +676,16 @@ export default function ProgramBuilderPage() {
               <Switch
                 checked={settingsForm.showAllWorkouts}
                 onCheckedChange={v => setSettingsForm(f => ({ ...f, showAllWorkouts: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 mt-1">
+              <div>
+                <p className="text-sm font-medium">Continuous program</p>
+                <p className="text-xs text-muted-foreground">When the client reaches the last week it loops back to week 1. No end date.</p>
+              </div>
+              <Switch
+                checked={settingsForm.isContinuous}
+                onCheckedChange={v => setSettingsForm(f => ({ ...f, isContinuous: v }))}
               />
             </div>
           </SheetBody>
