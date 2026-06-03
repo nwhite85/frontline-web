@@ -206,7 +206,7 @@ export default function ProgramBuilderPage() {
         const [pRes, wiRes, restRes, wRes] = await Promise.all([
           supabase
             .from('programs')
-            .select('id, title, subtitle, duration_weeks, training_days_per_week, program_type, show_all_workouts, is_continuous')
+            .select('id, title, subtitle, duration_weeks, training_days_per_week, program_type, show_all_workouts')
             .eq('id', programId)
             .eq('trainer_id', user.id)
             .maybeSingle(),
@@ -470,7 +470,7 @@ export default function ProgramBuilderPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
     const { error } = await db.from('programs').update({
-      duration_weeks: weeks, training_days_per_week: days, program_type: settingsForm.type, show_all_workouts: settingsForm.showAllWorkouts, is_continuous: settingsForm.isContinuous,
+      duration_weeks: weeks, training_days_per_week: days, program_type: settingsForm.type, show_all_workouts: settingsForm.showAllWorkouts,
     }).eq('id', programId)
     if (error) { toast.error('Failed to save settings'); return }
 
