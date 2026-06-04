@@ -463,10 +463,12 @@ export default function ShopPage() {
   // New Order sheet
   const [showNewOrder, setShowNewOrder] = useState(false)
   const [newOrderClients, setNewOrderClients] = useState<{ id: string; name: string; email: string }[]>([])
+  const [newOrderClientsLoading, setNewOrderClientsLoading] = useState(false)
   const [newOrderClientSearch, setNewOrderClientSearch] = useState('')
   const [newOrderSelectedClient, setNewOrderSelectedClient] = useState<{ id: string; name: string; email: string } | null>(null)
   const [newOrderItems, setNewOrderItems] = useState<Array<{ product: Product; color: string | null; size: string | null; qty: number }>>([])
   const [newOrderSubmitting, setNewOrderSubmitting] = useState(false)
+  const [newOrderCashSubmitting, setNewOrderCashSubmitting] = useState(false)
   const [newOrderError, setNewOrderError] = useState<string | null>(null)
 
   // Filters
@@ -1189,10 +1191,14 @@ export default function ShopPage() {
           setNewOrderClientSearch('')
           setNewOrderError(null)
         } else {
-          // Load clients on open
-          if (newOrderClients.length === 0) {
-            supabase.from('user_profiles').select('id, name, email').eq('user_type', 'client').order('name')
-              .then(({ data }) => setNewOrderClients((data || []).map((c: any) => ({ id: c.id, name: c.name || 'Unknown', email: c.email || '' }))))
+          // Load clients on open using service role to bypass RLS
+          if (newOrderClients.length === 0 && !newOrderClientsLoading) {
+            setNewOrderClientsLoading(true)
+            fetch('/api/shop-clients')
+              .then(r => r.json())
+              .then(data => setNewOrderClients(Array.isArray(data) ? data : []))
+              .catch(() => {})
+              .finally(() => setNewOrderClientsLoading(false))
           }
         }
       }}>
@@ -1223,7 +1229,11 @@ export default function ShopPage() {
                     <Input placeholder="Search clients…" value={newOrderClientSearch} onChange={e => setNewOrderClientSearch(e.target.value)} className="pl-8 h-8 text-sm" autoFocus />
                   </div>
                   <div className="max-h-40 overflow-y-auto rounded-md border border-border divide-y divide-border">
-                    {newOrderClients
+                    {newOrderClientsLoading ? (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">Loading…</p>
+                    ) : newOrderClients.filter(c => !newOrderClientSearch || c.name.toLowerCase().includes(newOrderClientSearch.toLowerCase())).length === 0 ? (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">{newOrderClientSearch ? 'No clients found' : 'No clients'}</p>
+                    ) : newOrderClients
                       .filter(c => !newOrderClientSearch || c.name.toLowerCase().includes(newOrderClientSearch.toLowerCase()))
                       .map(c => (
                         <button key={c.id} onClick={() => { setNewOrderSelectedClient(c); setNewOrderClientSearch('') }}
@@ -1301,53 +1311,80 @@ export default function ShopPage() {
             )}
           </div>
 
-          <SheetFooter className="pt-4 border-t shrink-0">
-            <Button variant="outline" onClick={() => setShowNewOrder(false)}>Cancel</Button>
-            <Button
-              disabled={!newOrderSelectedClient || newOrderItems.length === 0 || newOrderSubmitting}
-              onClick={async () => {
-                if (!newOrderSelectedClient || !newOrderItems.length || !user) return
-                setNewOrderSubmitting(true)
-                setNewOrderError(null)
-                try {
-                  const res = await fetch('/api/trainer-create-order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      trainerId: user.id,
-                      clientName: newOrderSelectedClient.name,
-                      clientEmail: newOrderSelectedClient.email,
-                      items: newOrderItems.map(i => ({
-                        product_id: i.product.id,
-                        name: i.product.name,
-                        price: i.product.price,
-                        product_code: i.product.product_code ?? null,
-                        category: i.product.category ?? null,
-                        color: i.color,
-                        size: i.size,
-                        qty: i.qty,
-                      })),
-                    }),
-                  })
-                  const data = await res.json()
-                  if (!res.ok) throw new Error(data.error)
-                  toast.success(`Order created — payment link sent to ${newOrderSelectedClient.email}`)
-                  setShowNewOrder(false)
-                  setNewOrderSelectedClient(null)
-                  setNewOrderItems([])
-                  setNewOrderClientSearch('')
-                  // Reload orders to show the new awaiting_payment one
-                  setOrders([])
-                  setOrdersLoading(false)
-                } catch (e: any) {
-                  setNewOrderError(e.message || 'Failed to create order')
-                } finally {
-                  setNewOrderSubmitting(false)
-                }
-              }}
-            >
-              {newOrderSubmitting ? 'Creating…' : 'Send Payment Link'}
-            </Button>
+          <SheetFooter className="pt-4 border-t shrink-0 flex-col gap-2">
+            {newOrderError && <p className="text-xs text-destructive w-full">{newOrderError}</p>}
+            <div className="flex gap-2 w-full">
+              <Button variant="outline" onClick={() => setShowNewOrder(false)}>Cancel</Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={!newOrderSelectedClient || newOrderItems.length === 0 || newOrderCashSubmitting || newOrderSubmitting}
+                onClick={async () => {
+                  if (!newOrderSelectedClient || !newOrderItems.length || !user) return
+                  setNewOrderCashSubmitting(true)
+                  setNewOrderError(null)
+                  try {
+                    const res = await fetch('/api/trainer-cash-order', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        trainerId: user.id,
+                        clientName: newOrderSelectedClient.name,
+                        clientEmail: newOrderSelectedClient.email,
+                        items: newOrderItems.map(i => ({
+                          product_id: i.product.id, name: i.product.name, price: i.product.price,
+                          product_code: i.product.product_code ?? null, category: i.product.category ?? null,
+                          color: i.color, size: i.size, qty: i.qty,
+                        })),
+                      }),
+                    })
+                    const data = await res.json()
+                    if (!res.ok) throw new Error(data.error)
+                    toast.success('Cash order recorded')
+                    setShowNewOrder(false); setNewOrderSelectedClient(null); setNewOrderItems([]); setNewOrderClientSearch('')
+                    setOrders([]); setOrdersLoading(false)
+                  } catch (e: any) {
+                    setNewOrderError(e.message || 'Failed to create order')
+                  } finally { setNewOrderCashSubmitting(false) }
+                }}
+              >
+                {newOrderCashSubmitting ? 'Saving…' : 'Cash — Mark Paid'}
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={!newOrderSelectedClient || newOrderItems.length === 0 || newOrderSubmitting || newOrderCashSubmitting}
+                onClick={async () => {
+                  if (!newOrderSelectedClient || !newOrderItems.length || !user) return
+                  setNewOrderSubmitting(true)
+                  setNewOrderError(null)
+                  try {
+                    const res = await fetch('/api/trainer-create-order', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        trainerId: user.id,
+                        clientName: newOrderSelectedClient.name,
+                        clientEmail: newOrderSelectedClient.email,
+                        items: newOrderItems.map(i => ({
+                          product_id: i.product.id, name: i.product.name, price: i.product.price,
+                          product_code: i.product.product_code ?? null, category: i.product.category ?? null,
+                          color: i.color, size: i.size, qty: i.qty,
+                        })),
+                      }),
+                    })
+                    const data = await res.json()
+                    if (!res.ok) throw new Error(data.error)
+                    toast.success(`Payment link sent to ${newOrderSelectedClient.email}`)
+                    setShowNewOrder(false); setNewOrderSelectedClient(null); setNewOrderItems([]); setNewOrderClientSearch('')
+                    setOrders([]); setOrdersLoading(false)
+                  } catch (e: any) {
+                    setNewOrderError(e.message || 'Failed to create order')
+                  } finally { setNewOrderSubmitting(false) }
+                }}
+              >
+                {newOrderSubmitting ? 'Creating…' : 'Send Payment Link'}
+              </Button>
+            </div>
           </SheetFooter>
         </SheetContent>
       </Sheet>
