@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     const planType = planData?.plan_type ?? 'recurring'
-    const isCreditPackage = planType === 'credit_package'
+    const isCreditPackage = planType === 'credit_package' || planType === 'drop_in'
     let stripePriceId = planData?.stripe_price_id;
 
     // If the saved price ID is the wrong type for this plan (e.g. a recurring price cached
