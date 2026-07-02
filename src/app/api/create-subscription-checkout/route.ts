@@ -69,6 +69,20 @@ export async function POST(request: NextRequest) {
     const isCreditPackage = planType === 'credit_package'
     let stripePriceId = planData?.stripe_price_id;
 
+    // If the saved price ID is the wrong type for this plan (e.g. a recurring price cached
+    // before the plan was changed to credit_package), discard it and create a fresh one.
+    if (stripePriceId && isCreditPackage) {
+      try {
+        const existingPrice = await stripe.prices.retrieve(stripePriceId)
+        if (existingPrice.recurring) {
+          logger.log('Discarding recurring price for credit_package plan, will create one-time price')
+          stripePriceId = undefined
+        }
+      } catch {
+        stripePriceId = undefined
+      }
+    }
+
     // If no Stripe price ID exists, create the product and price in Stripe
     if (!stripePriceId) {
       logger.log('Creating Stripe product and price for plan:', planName);
