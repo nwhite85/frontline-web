@@ -1581,6 +1581,9 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [fixingBilling, setFixingBilling] = useState(false)
   const [resubscribing, setResubscribing] = useState(false)
   const [nextBillingDate, setNextBillingDate] = useState<string | null>(null)
+  const [changingBillingDate, setChangingBillingDate] = useState(false)
+  const [newBillingDate, setNewBillingDate] = useState('')
+  const [savingBillingDate, setSavingBillingDate] = useState(false)
 
   const detectCardType = (n: string) => {
     const v = n.replace(/\s/g, '')
@@ -1772,7 +1775,58 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
             )}
           </div>
           {(nextBillingDate || activeMembership?.next_billing_date) && (
-            <p className="text-xs text-muted-foreground mt-1">Next billing: {new Date(nextBillingDate || activeMembership.next_billing_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+            <div className="mt-1">
+              {!changingBillingDate ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">Next billing: {new Date(nextBillingDate || activeMembership.next_billing_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  {activeMembership?.stripe_subscription_id && (
+                    <button
+                      className="text-xs text-muted-foreground underline hover:text-foreground"
+                      onClick={() => { setChangingBillingDate(true); setNewBillingDate('') }}
+                    >
+                      Change date
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs text-muted-foreground">New billing date:</p>
+                  <input
+                    type="date"
+                    value={newBillingDate}
+                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                    onChange={e => setNewBillingDate(e.target.value)}
+                    className="text-xs border border-border rounded px-2 py-0.5 bg-background"
+                  />
+                  <Button
+                    size="sm" variant="outline" className="h-6 text-xs"
+                    disabled={!newBillingDate || savingBillingDate}
+                    onClick={async () => {
+                      setSavingBillingDate(true)
+                      try {
+                        const res = await fetch('/api/change-billing-date', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ clientId, newDate: newBillingDate }),
+                        })
+                        const data = await res.json()
+                        if (!res.ok) throw new Error(data.error)
+                        toast.success('Billing date updated')
+                        setChangingBillingDate(false)
+                        await loadBilling()
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to update billing date')
+                      } finally {
+                        setSavingBillingDate(false)
+                      }
+                    }}
+                  >
+                    {savingBillingDate ? 'Saving…' : 'Save'}
+                  </Button>
+                  <button className="text-xs text-muted-foreground underline" onClick={() => setChangingBillingDate(false)}>Cancel</button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
