@@ -26,7 +26,26 @@ export async function GET(request: NextRequest) {
     if (!subId) return NextResponse.json({ nextBillingDate: null })
 
     const sub = await stripe.subscriptions.retrieve(subId) as any
-    const nextBillingDate = new Date(sub.current_period_end * 1000).toISOString()
+
+    // current_period_end is the standard field; fall back to upcoming invoice
+    let nextBillingDate: string | null = null
+
+    if (sub.current_period_end) {
+      nextBillingDate = new Date(sub.current_period_end * 1000).toISOString()
+    } else {
+      // Newer Stripe API versions may not include current_period_end directly —
+      // retrieve the next upcoming invoice instead
+      try {
+        const upcoming = await (stripe.invoices as any).retrieveUpcoming({ subscription: subId })
+        if (upcoming?.next_payment_attempt) {
+          nextBillingDate = new Date(upcoming.next_payment_attempt * 1000).toISOString()
+        } else if (upcoming?.period_end) {
+          nextBillingDate = new Date(upcoming.period_end * 1000).toISOString()
+        }
+      } catch {
+        // No upcoming invoice (e.g. subscription cancelled)
+      }
+    }
 
     return NextResponse.json({ nextBillingDate, status: sub.status })
   } catch (err: any) {

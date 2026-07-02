@@ -1634,7 +1634,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
     if ((membership as any)?.stripe_subscription_id) {
       fetch(`/api/subscription-details?clientId=${clientId}`)
         .then(r => r.json())
-        .then(d => setNextBillingDate(d.nextBillingDate ?? null))
+        .then(d => { if (d.nextBillingDate) setNextBillingDate(d.nextBillingDate) })
         .catch(() => {})
     } else {
       setNextBillingDate(null)
