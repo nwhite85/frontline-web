@@ -1580,6 +1580,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [migrateError, setMigrateError] = useState<string | null>(null)
   const [fixingBilling, setFixingBilling] = useState(false)
   const [resubscribing, setResubscribing] = useState(false)
+  const [nextBillingDate, setNextBillingDate] = useState<string | null>(null)
 
   const detectCardType = (n: string) => {
     const v = n.replace(/\s/g, '')
@@ -1628,6 +1629,16 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
     if (results[1].status === 'fulfilled') setPackages(results[1].value.data || [])
     if (results[2].status === 'fulfilled') setActiveMembership(results[2].value.data || null)
     if (results[3].status === 'fulfilled') setUnbilledApts((results[3] as any).value.data || [])
+    // Fetch next billing date from Stripe if the membership has a subscription
+    const membership = results[2].status === 'fulfilled' ? results[2].value.data : null
+    if ((membership as any)?.stripe_subscription_id) {
+      fetch(`/api/subscription-details?clientId=${clientId}`)
+        .then(r => r.json())
+        .then(d => setNextBillingDate(d.nextBillingDate ?? null))
+        .catch(() => {})
+    } else {
+      setNextBillingDate(null)
+    }
     setLoading(false)
   }, [clientId])
 
@@ -1760,8 +1771,8 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
               </Button>
             )}
           </div>
-          {activeMembership?.next_billing_date && (
-            <p className="text-xs text-muted-foreground mt-1">Next billing: {new Date(activeMembership.next_billing_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+          {(nextBillingDate || activeMembership?.next_billing_date) && (
+            <p className="text-xs text-muted-foreground mt-1">Next billing: {new Date(nextBillingDate || activeMembership.next_billing_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
           )}
         </div>
       )}
