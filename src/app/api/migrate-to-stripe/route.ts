@@ -113,62 +113,64 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Client already has an active Stripe subscription' }, { status: 400 })
     }
 
-    // ── Create Stripe subscription ────────────────────────────────────────────
-    // If billing date is in the future, use trial_end to delay the first charge.
-    // Stripe will then bill on that date every month going forward.
-    const billingTs = Math.floor(new Date(billingDate + 'T00:00:00Z').getTime() / 1000)
-    const nowTs = Math.floor(Date.now() / 1000)
-    const isFuture = billingTs > nowTs + 86400 // more than a day away
-
-    const subscriptionParams: any = {
-      customer: stripeCustomerId,
-      items: [{ price: stripePriceId }],
-      metadata: { user_id: clientId, plan_id: plan.id },
-    }
-
-    if (isFuture) {
-      // Free trial until billing date — first charge on that day, then monthly
-      subscriptionParams.trial_end = billingTs
-    }
-
-    const subscription = await stripe.subscriptions.create(subscriptionParams)
-    logger.log(`Created Stripe subscription ${subscription.id} for ${profile.email}, billing from ${billingDate}`)
-
-    // ── Set invoice default payment method if one exists ─────────────────────
-    // Required for subscription billing to succeed — without this Stripe won't
-    // charge the attached card automatically.
+    // ── Attach payment method BEFORE creating subscription ────────────────────
+    // Stripe 2025 API rejects subscription creation if no default payment method.
+    // Find the card (may be on a different Stripe customer if added via mobile app)
+    // and attach it to this customer first.
+    let defaultPmId: string | null = null
     try {
-      let pm = null
       const directMethods = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card', limit: 1 })
       if (directMethods.data.length > 0) {
-        pm = directMethods.data[0]
+        defaultPmId = directMethods.data[0].id
       } else {
-        // Card may be on a different Stripe customer (e.g. mobile app created its own)
         const allCustomers = await stripe.customers.list({ email: profile.email, limit: 10 })
         for (const c of allCustomers.data) {
           if (c.id === stripeCustomerId) continue
           const methods = await stripe.paymentMethods.list({ customer: c.id, type: 'card', limit: 1 })
           if (methods.data.length > 0) {
-            pm = methods.data[0]
+            const pm = methods.data[0]
             try {
               await stripe.paymentMethods.attach(pm.id, { customer: stripeCustomerId })
             } catch (e: any) {
               if (!e.message?.includes('already been attached')) throw e
             }
+            defaultPmId = pm.id
             break
           }
         }
       }
-      if (pm) {
+      if (defaultPmId) {
         await stripe.customers.update(stripeCustomerId, {
-          invoice_settings: { default_payment_method: pm.id },
+          invoice_settings: { default_payment_method: defaultPmId },
         })
-        logger.log(`Set default payment method ${pm.id} for customer ${stripeCustomerId}`)
+        logger.log(`Set default payment method ${defaultPmId} for customer ${stripeCustomerId}`)
       }
     } catch (pmErr: any) {
       logger.error('Could not set default payment method:', pmErr.message)
-      // Non-fatal — subscription was still created
     }
+
+    if (!defaultPmId) {
+      return NextResponse.json({ error: 'This client has no payment method on file. Ask them to add a card in the app first.' }, { status: 400 })
+    }
+
+    // ── Create Stripe subscription ────────────────────────────────────────────
+    const billingTs = Math.floor(new Date(billingDate + 'T00:00:00Z').getTime() / 1000)
+    const nowTs = Math.floor(Date.now() / 1000)
+    const isFuture = billingTs > nowTs + 86400
+
+    const subscriptionParams: any = {
+      customer: stripeCustomerId,
+      items: [{ price: stripePriceId }],
+      default_payment_method: defaultPmId,
+      metadata: { user_id: clientId, plan_id: plan.id },
+    }
+
+    if (isFuture) {
+      subscriptionParams.trial_end = billingTs
+    }
+
+    const subscription = await stripe.subscriptions.create(subscriptionParams)
+    logger.log(`Created Stripe subscription ${subscription.id} for ${profile.email}, billing from ${billingDate}`)
 
     // ── Update membership record ──────────────────────────────────────────────
     await supabase
