@@ -12,7 +12,7 @@ const supabase = createClient(
 // Body: { clientId: string, newDate: string } — newDate is YYYY-MM-DD
 export async function POST(request: NextRequest) {
   try {
-    const { clientId, newDate } = await request.json()
+    const { clientId, newDate, prorate = false } = await request.json()
     if (!clientId || !newDate) {
       return NextResponse.json({ error: 'clientId and newDate required' }, { status: 400 })
     }
@@ -37,10 +37,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'New billing date must be in the future' }, { status: 400 })
     }
 
+    // Stripe API 2025+ doesn't allow a timestamp for billing_cycle_anchor on existing
+    // subscriptions. Use trial_end instead — puts the sub in trial until the chosen date,
+    // then bills normally from there as the new anchor.
     await stripe.subscriptions.update(subId, {
-      billing_cycle_anchor: anchor as any,
-      proration_behavior: 'none',
-    })
+      trial_end: anchor as any,
+      proration_behavior: prorate ? 'create_prorations' : 'none',
+    } as any)
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

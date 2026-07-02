@@ -1581,9 +1581,10 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [fixingBilling, setFixingBilling] = useState(false)
   const [resubscribing, setResubscribing] = useState(false)
   const [nextBillingDate, setNextBillingDate] = useState<string | null>(null)
-  const [changingBillingDate, setChangingBillingDate] = useState(false)
+  const [showChangeBillingDateSheet, setShowChangeBillingDateSheet] = useState(false)
   const [newBillingDate, setNewBillingDate] = useState('')
   const [savingBillingDate, setSavingBillingDate] = useState(false)
+  const [prorateChange, setProrateChange] = useState(false)
 
   const detectCardType = (n: string) => {
     const v = n.replace(/\s/g, '')
@@ -1775,56 +1776,15 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
             )}
           </div>
           {(nextBillingDate || activeMembership?.next_billing_date) && (
-            <div className="mt-1">
-              {!changingBillingDate ? (
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-muted-foreground">Next billing: {new Date(nextBillingDate || activeMembership.next_billing_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                  {activeMembership?.stripe_subscription_id && (
-                    <button
-                      className="text-xs text-muted-foreground underline hover:text-foreground"
-                      onClick={() => { setChangingBillingDate(true); setNewBillingDate('') }}
-                    >
-                      Change date
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-xs text-muted-foreground">New billing date:</p>
-                  <input
-                    type="date"
-                    value={newBillingDate}
-                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                    onChange={e => setNewBillingDate(e.target.value)}
-                    className="text-xs border border-border rounded px-2 py-0.5 bg-background"
-                  />
-                  <Button
-                    size="sm" variant="outline" className="h-6 text-xs"
-                    disabled={!newBillingDate || savingBillingDate}
-                    onClick={async () => {
-                      setSavingBillingDate(true)
-                      try {
-                        const res = await fetch('/api/change-billing-date', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ clientId, newDate: newBillingDate }),
-                        })
-                        const data = await res.json()
-                        if (!res.ok) throw new Error(data.error)
-                        toast.success('Billing date updated')
-                        setChangingBillingDate(false)
-                        await loadBilling()
-                      } catch (err: any) {
-                        toast.error(err.message || 'Failed to update billing date')
-                      } finally {
-                        setSavingBillingDate(false)
-                      }
-                    }}
-                  >
-                    {savingBillingDate ? 'Saving…' : 'Save'}
-                  </Button>
-                  <button className="text-xs text-muted-foreground underline" onClick={() => setChangingBillingDate(false)}>Cancel</button>
-                </div>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-muted-foreground">Next billing: {new Date(nextBillingDate || activeMembership.next_billing_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              {activeMembership?.stripe_subscription_id && (
+                <button
+                  className="text-xs text-muted-foreground underline hover:text-foreground"
+                  onClick={() => { setShowChangeBillingDateSheet(true); setNewBillingDate(''); setProrateChange(false) }}
+                >
+                  Change date
+                </button>
               )}
             </div>
           )}
@@ -2064,6 +2024,69 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
             <Button variant="outline" onClick={() => setShowMigrateSheet(false)}>Cancel</Button>
             <Button onClick={handleMigrateToStripe} disabled={migrating || !migrateDate}>
               {migrating ? 'Setting up…' : 'Activate Stripe Billing'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Change Billing Date Sheet ── */}
+      <Sheet open={showChangeBillingDateSheet} onOpenChange={v => { setShowChangeBillingDateSheet(v); if (!v) { setNewBillingDate(''); setProrateChange(false) } }}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Change Billing Date</SheetTitle>
+          </SheetHeader>
+          <SheetBody className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Set a new billing date for this subscription. The subscription will run as normal until that date, then renew monthly from there.
+            </p>
+            <div className="grid gap-1.5">
+              <Label>New billing date</Label>
+              <Input
+                type="date"
+                value={newBillingDate}
+                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                onChange={e => setNewBillingDate(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Prorate the change</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Credit or charge the client for any partial period difference</p>
+              </div>
+              <Switch checked={prorateChange} onCheckedChange={setProrateChange} />
+            </div>
+            {prorateChange && (
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
+                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Proration enabled</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Stripe will calculate the credit or charge for the partial period and apply it to the next invoice.</p>
+              </div>
+            )}
+          </SheetBody>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setShowChangeBillingDateSheet(false)}>Cancel</Button>
+            <Button
+              disabled={!newBillingDate || savingBillingDate}
+              onClick={async () => {
+                setSavingBillingDate(true)
+                try {
+                  const res = await fetch('/api/change-billing-date', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId, newDate: newBillingDate, prorate: prorateChange }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) throw new Error(data.error)
+                  toast.success('Billing date updated')
+                  setShowChangeBillingDateSheet(false)
+                  await loadBilling()
+                } catch (err: any) {
+                  toast.error(err.message || 'Failed to update billing date')
+                } finally {
+                  setSavingBillingDate(false)
+                }
+              }}
+            >
+              {savingBillingDate ? 'Saving…' : 'Save'}
             </Button>
           </SheetFooter>
         </SheetContent>
