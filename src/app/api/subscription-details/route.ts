@@ -25,29 +25,24 @@ export async function GET(request: NextRequest) {
     const subId = (membership as any)?.stripe_subscription_id
     if (!subId) return NextResponse.json({ nextBillingDate: null })
 
-    const sub = await stripe.subscriptions.retrieve(subId) as any
-
-    // current_period_end is the standard field; fall back to upcoming invoice
+    // Stripe API 2025+ removed current_period_end from the top-level subscription object.
+    // Use createPreview (formerly retrieveUpcoming) to get the next billing date.
     let nextBillingDate: string | null = null
 
-    if (sub.current_period_end) {
-      nextBillingDate = new Date(sub.current_period_end * 1000).toISOString()
-    } else {
-      // Newer Stripe API versions may not include current_period_end directly —
-      // retrieve the next upcoming invoice instead
-      try {
-        const upcoming = await (stripe.invoices as any).retrieveUpcoming({ subscription: subId })
-        if (upcoming?.next_payment_attempt) {
-          nextBillingDate = new Date(upcoming.next_payment_attempt * 1000).toISOString()
-        } else if (upcoming?.period_end) {
-          nextBillingDate = new Date(upcoming.period_end * 1000).toISOString()
-        }
-      } catch {
-        // No upcoming invoice (e.g. subscription cancelled)
+    try {
+      const upcoming = await stripe.invoices.createPreview({ subscription: subId })
+      if (upcoming?.next_payment_attempt) {
+        nextBillingDate = new Date(upcoming.next_payment_attempt * 1000).toISOString()
+      } else if (upcoming?.period_end) {
+        nextBillingDate = new Date(upcoming.period_end * 1000).toISOString()
       }
+    } catch {
+      // No upcoming invoice (e.g. subscription cancelled or past_due with no retry)
     }
 
-    return NextResponse.json({ nextBillingDate, status: sub.status })
+    const sub = await stripe.subscriptions.retrieve(subId) as any
+
+    return NextResponse.json({ nextBillingDate, status: (sub as any).status })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
