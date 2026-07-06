@@ -171,8 +171,27 @@ export async function POST(request: NextRequest) {
     }
 
     if (!defaultPmId) {
-      const detail = pmDiagnostic ? ` (${pmDiagnostic})` : ''
-      return NextResponse.json({ error: `This client has no payment method on file. Ask them to add a card in the app first.${detail}` }, { status: 400 })
+      // Generate a Stripe Checkout setup session so the client can add their card properly.
+      // Their old card may be stored as a legacy source which Stripe 2025 API doesn't support.
+      let setupUrl: string | null = null
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://frontlinefitness.co.uk'
+        const setupSession = await stripe.checkout.sessions.create({
+          customer: stripeCustomerId,
+          mode: 'setup',
+          payment_method_types: ['card'],
+          success_url: `${appUrl}/dashboard/clients/${clientId}?card_updated=1`,
+          cancel_url: `${appUrl}/dashboard/clients/${clientId}`,
+        })
+        setupUrl = setupSession.url
+        logger.log(`Generated card setup URL for customer ${stripeCustomerId}`)
+      } catch (setupErr: any) {
+        logger.error('Failed to generate card setup URL:', setupErr.message)
+      }
+      return NextResponse.json({
+        error: 'This client has no payment method on file. Send them the card setup link to add their card, then try again.',
+        setupUrl,
+      }, { status: 400 })
     }
 
     // ── Create Stripe subscription ────────────────────────────────────────────

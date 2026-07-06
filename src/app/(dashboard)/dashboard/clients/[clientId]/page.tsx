@@ -1578,6 +1578,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [migrateDate, setMigrateDate] = useState('')
   const [migrating, setMigrating] = useState(false)
   const [migrateError, setMigrateError] = useState<string | null>(null)
+  const [migrateSetupUrl, setMigrateSetupUrl] = useState<string | null>(null)
   const [fixingBilling, setFixingBilling] = useState(false)
   const [resubscribing, setResubscribing] = useState(false)
   const [nextBillingDate, setNextBillingDate] = useState<string | null>(null)
@@ -1679,7 +1680,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
 
   const handleMigrateToStripe = async () => {
     if (!migrateDate) { setMigrateError('Please set a billing date'); return }
-    setMigrating(true); setMigrateError(null)
+    setMigrating(true); setMigrateError(null); setMigrateSetupUrl(null)
     try {
       const res = await fetch('/api/migrate-to-stripe', {
         method: 'POST',
@@ -1687,7 +1688,10 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
         body: JSON.stringify({ clientId, billingDate: migrateDate }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) {
+        if (data.setupUrl) setMigrateSetupUrl(data.setupUrl)
+        throw new Error(data.error)
+      }
       toast.success(`Stripe billing active — first charge ${data.trialUntil ? `on ${data.trialUntil}` : 'immediately'}`)
       setShowMigrateSheet(false)
       await loadBilling()
@@ -1994,7 +1998,7 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
       </Sheet>
 
       {/* ── Move to Stripe Billing Sheet ── */}
-      <Sheet open={showMigrateSheet} onOpenChange={v => { setShowMigrateSheet(v); if (!v) setMigrateError(null) }}>
+      <Sheet open={showMigrateSheet} onOpenChange={v => { setShowMigrateSheet(v); if (!v) { setMigrateError(null); setMigrateSetupUrl(null) } }}>
         <SheetContent className="w-full sm:max-w-md">
           <SheetHeader>
             <SheetTitle>Move to Stripe Billing</SheetTitle>
@@ -2015,6 +2019,15 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
               <p className="text-xs text-muted-foreground">If this date is in the future, no charge is made until then. The subscription renews monthly from this date.</p>
             </div>
             {migrateError && <p className="text-sm text-destructive">{migrateError}</p>}
+            {migrateSetupUrl && (
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 flex flex-col gap-2">
+                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Card setup required</p>
+                <p className="text-xs text-muted-foreground">Send this link to the client — they click it once to add their card, then you can activate billing.</p>
+                <Button size="sm" variant="outline" className="h-7 text-xs w-fit" onClick={() => { navigator.clipboard.writeText(migrateSetupUrl); toast.success('Link copied to clipboard') }}>
+                  Copy card setup link
+                </Button>
+              </div>
+            )}
             <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mt-2">
               <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Before confirming</p>
               <p className="text-xs text-muted-foreground mt-0.5">Cancel their PushPress subscription first to avoid double billing.</p>
