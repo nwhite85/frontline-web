@@ -62,6 +62,7 @@ interface Challenge {
   max_capacity: number
   expiration_days: number
   is_active: boolean
+  is_checkpoint: boolean
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -124,6 +125,7 @@ function ChallengeSheet({
   const [expirationDays, setExpirationDays] = useState('30')
   const [location, setLocation] = useState('')
   const [isActive, setIsActive] = useState(true)
+  const [isCheckpoint, setIsCheckpoint] = useState(false)
   const [resultFields, setResultFields] = useState<ResultField[]>([])
   const [optionInputs, setOptionInputs] = useState<Record<number, string>>({})
   const [passGrey, setPassGrey] = useState('')
@@ -161,6 +163,7 @@ function ChallengeSheet({
         setExpirationDays(String(editTarget.expiration_days))
         setLocation(editTarget.location || '')
         setIsActive(editTarget.is_active)
+        setIsCheckpoint(editTarget.is_checkpoint ?? false)
         setResultFields(editTarget.result_fields || [])
         const pc = (editTarget as any).pass_criteria || {}
         const isTime = pc.direction === 'lte'
@@ -175,7 +178,7 @@ function ChallengeSheet({
       } else {
         setName(''); setDescription(''); setInstructions(''); setIcon('trophy')
         setDuration('30'); setMaxCapacity('20'); setExpirationDays('30')
-        setLocation(''); setIsActive(true); setResultFields([])
+        setLocation(''); setIsActive(true); setIsCheckpoint(false); setResultFields([])
         setPassGrey(''); setPassBlue(''); setPassBlack('')
       }
       setFormError('')
@@ -228,6 +231,7 @@ function ChallengeSheet({
         expiration_days: parseInt(expirationDays) || 30,
         location: location || null,
         is_active: isActive,
+        is_checkpoint: isCheckpoint,
         result_fields: resultFields,
         pass_criteria: Object.keys(passCriteria).length > 0 ? passCriteria : null,
       }
@@ -315,6 +319,13 @@ function ChallengeSheet({
           <div className="flex items-center justify-between py-1">
             <Label>Active</Label>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <Label>Checkpoint</Label>
+              <p className="text-xs text-muted-foreground">Counts towards ability level progression and appears in the top section of the client app.</p>
+            </div>
+            <Switch checked={isCheckpoint} onCheckedChange={setIsCheckpoint} />
           </div>
 
           <Separator />
@@ -647,7 +658,7 @@ export default function ChallengesPage() {
     try {
       const { data, error } = await supabase
         .from('challenges')
-        .select('id, name, description, instructions, icon, location, result_fields, duration_minutes, max_capacity, expiration_days, is_active, pass_criteria')
+        .select('id, name, description, instructions, icon, location, result_fields, duration_minutes, max_capacity, expiration_days, is_active, is_checkpoint, pass_criteria')
         .eq('trainer_id', user.id)
         .order('name', { ascending: true })
       if (error) throw error
@@ -765,9 +776,14 @@ export default function ChallengesPage() {
                     {ch.expiration_days ? `${ch.expiration_days}d` : '—'}
                   </TableCell>
                   <TableCell className="py-3">
-                    <Badge variant={ch.is_active ? 'default' : 'secondary'} className="text-xs">
-                      {ch.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Badge variant={ch.is_active ? 'default' : 'secondary'} className="text-xs">
+                        {ch.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                      {(ch as any).is_checkpoint && (
+                        <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600 dark:text-amber-400">Checkpoint</Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="py-3">
                     <DropdownMenu>
