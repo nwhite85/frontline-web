@@ -118,27 +118,47 @@ export async function POST(request: NextRequest) {
     // Find the card (may be on a different Stripe customer if added via mobile app)
     // and attach it to this customer first.
     let defaultPmId: string | null = null
+    let pmDiagnostic = ''
     try {
-      const directMethods = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card', limit: 1 })
-      if (directMethods.data.length > 0) {
-        defaultPmId = directMethods.data[0].id
-      } else {
-        const allCustomers = await stripe.customers.list({ email: profile.email, limit: 10 })
-        for (const c of allCustomers.data) {
-          if (c.id === stripeCustomerId) continue
-          const methods = await stripe.paymentMethods.list({ customer: c.id, type: 'card', limit: 1 })
-          if (methods.data.length > 0) {
-            const pm = methods.data[0]
-            try {
-              await stripe.paymentMethods.attach(pm.id, { customer: stripeCustomerId })
-            } catch (e: any) {
-              if (!e.message?.includes('already been attached')) throw e
+      // Verify the customer exists in this Stripe account
+      let customerExists = false
+      try {
+        const cus = await stripe.customers.retrieve(stripeCustomerId) as any
+        customerExists = !cus.deleted
+        logger.log(`Customer ${stripeCustomerId} exists=${customerExists}`)
+      } catch (e: any) {
+        pmDiagnostic = `Customer ${stripeCustomerId} not found in Stripe (${e.message})`
+        logger.error(pmDiagnostic)
+      }
+
+      if (customerExists) {
+        const directMethods = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card', limit: 1 })
+        logger.log(`Direct payment methods for ${stripeCustomerId}: ${directMethods.data.length}`)
+        if (directMethods.data.length > 0) {
+          defaultPmId = directMethods.data[0].id
+        } else {
+          pmDiagnostic = `Customer ${stripeCustomerId} exists but has no card payment methods attached`
+          // Search other Stripe customers with the same email
+          const allCustomers = await stripe.customers.list({ email: profile.email, limit: 10 })
+          logger.log(`Customers by email ${profile.email}: ${allCustomers.data.map(c => c.id).join(', ')}`)
+          for (const c of allCustomers.data) {
+            if (c.id === stripeCustomerId) continue
+            const methods = await stripe.paymentMethods.list({ customer: c.id, type: 'card', limit: 1 })
+            if (methods.data.length > 0) {
+              const pm = methods.data[0]
+              try {
+                await stripe.paymentMethods.attach(pm.id, { customer: stripeCustomerId })
+              } catch (e: any) {
+                if (!e.message?.includes('already been attached')) throw e
+              }
+              defaultPmId = pm.id
+              pmDiagnostic = ''
+              break
             }
-            defaultPmId = pm.id
-            break
           }
         }
       }
+
       if (defaultPmId) {
         await stripe.customers.update(stripeCustomerId, {
           invoice_settings: { default_payment_method: defaultPmId },
@@ -146,11 +166,13 @@ export async function POST(request: NextRequest) {
         logger.log(`Set default payment method ${defaultPmId} for customer ${stripeCustomerId}`)
       }
     } catch (pmErr: any) {
+      pmDiagnostic = pmDiagnostic || pmErr.message
       logger.error('Could not set default payment method:', pmErr.message)
     }
 
     if (!defaultPmId) {
-      return NextResponse.json({ error: 'This client has no payment method on file. Ask them to add a card in the app first.' }, { status: 400 })
+      const detail = pmDiagnostic ? ` (${pmDiagnostic})` : ''
+      return NextResponse.json({ error: `This client has no payment method on file. Ask them to add a card in the app first.${detail}` }, { status: 400 })
     }
 
     // ── Create Stripe subscription ────────────────────────────────────────────
