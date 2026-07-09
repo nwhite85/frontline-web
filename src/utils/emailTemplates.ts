@@ -231,8 +231,14 @@ export function welcomeEmail(data: WelcomeEmailData): { subject: string; html: s
           </td>
         </tr>
         <tr>
+          <td style="padding:12px 0;border-bottom:1px solid ${BRAND.border}">
+            <strong style="color:${BRAND.primary}">${data.passwordSetupUrl ? '4' : '3'}.</strong> <strong>Join the WhatsApp community</strong><br>
+            <span style="color:${BRAND.textMuted}">Stay in the loop with sessions, updates, and the Frontline community.</span>
+          </td>
+        </tr>
+        <tr>
           <td style="padding:12px 0">
-            <strong style="color:${BRAND.primary}">${data.passwordSetupUrl ? '4' : '3'}.</strong> <strong>Show up and crush it</strong><br>
+            <strong style="color:${BRAND.primary}">${data.passwordSetupUrl ? '5' : '4'}.</strong> <strong>Show up and crush it</strong><br>
             <span style="color:${BRAND.textMuted}">${data.trainerName ? `${data.trainerName} is` : 'Your trainer is'} ready to help you smash your goals.</span>
           </td>
         </tr>
@@ -260,12 +266,15 @@ export function welcomeEmail(data: WelcomeEmailData): { subject: string; html: s
         <a href="https://play.google.com/store/apps/details?id=com.frontline.client" style="color:${BRAND.primary};font-size:14px;font-weight:600;text-decoration:none">Get it on Android</a>
       </div>
       <p style="text-align:center;font-size:13px;color:${BRAND.textMuted}">Available on iOS and Android</p>`}
+      <div style="text-align:center;margin:20px 0 8px">
+        <a href="https://chat.whatsapp.com/BEE0lVrHMx5IFSkG14sotN" style="display:inline-block;background:#25D366;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px">Join the WhatsApp Group</a>
+      </div>
     </div>
   `, subject);
 
   const steps = data.passwordSetupUrl
-    ? `1. Set your password: ${data.passwordSetupUrl}\n2. Book your first session\n3. Download the app — iOS: https://apps.apple.com/gb/app/frontline-fitness-members/id6758299642 | Android: https://play.google.com/store/apps/details?id=com.frontline.client\n4. Show up and crush it!`
-    : `1. Book your first session\n2. Download the app — iOS: https://apps.apple.com/gb/app/frontline-fitness-members/id6758299642 | Android: https://play.google.com/store/apps/details?id=com.frontline.client\n3. Show up and crush it!`
+    ? `1. Set your password: ${data.passwordSetupUrl}\n2. Book your first session\n3. Download the app — iOS: https://apps.apple.com/gb/app/frontline-fitness-members/id6758299642 | Android: https://play.google.com/store/apps/details?id=com.frontline.client\n4. Join the WhatsApp group: https://chat.whatsapp.com/BEE0lVrHMx5IFSkG14sotN\n5. Show up and crush it!`
+    : `1. Book your first session\n2. Download the app — iOS: https://apps.apple.com/gb/app/frontline-fitness-members/id6758299642 | Android: https://play.google.com/store/apps/details?id=com.frontline.client\n3. Join the WhatsApp group: https://chat.whatsapp.com/BEE0lVrHMx5IFSkG14sotN\n4. Show up and crush it!`
   const text = `${subject}\n\nHi ${data.clientName},\n\nWelcome to Frontline Fitness! We're thrilled to have you.\n\nWhat's next:\n${steps}\n\n${data.trainerName ? `${data.trainerName} is` : 'Your trainer is'} ready to help you smash your goals.\n\n— Frontline Fitness`;
 
   return { subject, html, text };
