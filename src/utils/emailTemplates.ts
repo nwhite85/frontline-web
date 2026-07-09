@@ -280,6 +280,32 @@ export function welcomeEmail(data: WelcomeEmailData): { subject: string; html: s
   return { subject, html, text };
 }
 
+// ─── WhatsApp Nudge Email (sent 7 days after signup) ─────────────────────────
+
+export function whatsappNudgeEmail(data: { clientName: string }): { subject: string; html: string; text: string } {
+  const subject = 'Have you joined the Frontline community yet?';
+  const WA_URL = 'https://chat.whatsapp.com/BEE0lVrHMx5IFSkG14sotN';
+
+  const html = baseLayout(`
+    <div class="body" style="text-align:center">
+      <h2>Hi ${data.clientName} 👋</h2>
+      <p>You've been with us for a week now — great to have you on board.</p>
+    </div>
+    <div class="body" style="padding-top:0">
+      <p style="font-size:15px;line-height:1.6">One thing that makes a big difference: our members' WhatsApp group. It's where we share session reminders, updates, and general Frontline chat. Most of our members are already in there.</p>
+      <p style="font-size:15px;line-height:1.6">If you haven't joined yet, tap the button below — takes two seconds.</p>
+      <div style="text-align:center;margin:28px 0 16px">
+        <a href="${WA_URL}" style="display:inline-block;background:#25D366;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px">Join the WhatsApp Group</a>
+      </div>
+      <p style="text-align:center;font-size:13px;color:${BRAND.textMuted}">See you at the park,<br><strong>Nick &amp; the Frontline team</strong></p>
+    </div>
+  `, subject);
+
+  const text = `${subject}\n\nHi ${data.clientName},\n\nYou've been with us for a week now — great to have you on board.\n\nOne thing that makes a big difference: our members' WhatsApp group. It's where we share session reminders, updates, and general Frontline chat.\n\nJoin here: ${WA_URL}\n\nSee you at the park,\nNick & the Frontline team`;
+
+  return { subject, html, text };
+}
+
 // ─── Trialist Booking Confirmation ───────────────────────────────────────────
 
 export interface TrialistBookingData {
