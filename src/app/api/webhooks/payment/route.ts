@@ -205,7 +205,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       .single()
 
     if (plan) {
-      const isCreditPackage = (plan as any).plan_type === 'credit_package'
+      const isCreditPackage = (plan as any).plan_type === 'credit_package' || (plan as any).plan_type === 'drop_in'
 
       if (!isCreditPackage) {
         // Recurring subscription — cancel existing and insert fresh

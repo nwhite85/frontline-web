@@ -58,30 +58,29 @@ export async function POST(request: NextRequest) {
 
     logger.log('Create subscription checkout:', { email, planId, planName, planPrice });
 
-    // Check if we have a Stripe price ID for this plan and get plan type
-    const { data: planData } = await supabaseAdmin
+    // Get plan type — must never fail silently: a lookup error here previously
+    // defaulted drop-in/credit plans to 'recurring' and created subscriptions.
+    const { data: planData, error: planError } = await supabaseAdmin
       .from('membership_plans')
-      .select('stripe_price_id, plan_type, class_credits')
+      .select('plan_type, class_credits')
       .eq('id', planId)
       .single();
 
-    const planType = planData?.plan_type ?? 'recurring'
-    const isCreditPackage = planType === 'credit_package' || planType === 'drop_in'
-    let stripePriceId = planData?.stripe_price_id;
-
-    // If the saved price ID is the wrong type for this plan (e.g. a recurring price cached
-    // before the plan was changed to credit_package), discard it and create a fresh one.
-    if (stripePriceId && isCreditPackage) {
-      try {
-        const existingPrice = await stripe.prices.retrieve(stripePriceId)
-        if (existingPrice.recurring) {
-          logger.log('Discarding recurring price for credit_package plan, will create one-time price')
-          stripePriceId = undefined
-        }
-      } catch {
-        stripePriceId = undefined
-      }
+    if (planError || !planData) {
+      logger.error('Plan lookup failed for checkout:', planError);
+      return NextResponse.json({ error: 'Membership plan not found' }, { status: 404 });
     }
+
+    const planType = planData.plan_type ?? 'recurring'
+    const isCreditPackage = planType === 'credit_package' || planType === 'drop_in'
+
+    // Find an existing Stripe price for this plan of the right type and amount
+    const existingPrices = await stripe.prices.list({ limit: 100, active: true })
+    let stripePriceId = existingPrices.data.find(p =>
+      p.metadata?.plan_id === planId &&
+      (isCreditPackage ? !p.recurring : p.recurring?.interval === 'month') &&
+      p.unit_amount === Math.round(planPrice * 100)
+    )?.id;
 
     // If no Stripe price ID exists, create the product and price in Stripe
     if (!stripePriceId) {
@@ -115,17 +114,6 @@ export async function POST(request: NextRequest) {
       logger.log('Created Stripe price:', price.id);
 
       stripePriceId = price.id;
-
-      // Save price ID to database for future use
-      try {
-        await supabaseAdmin
-          .from('membership_plans')
-          .update({ stripe_price_id: stripePriceId })
-          .eq('id', planId);
-      } catch (error) {
-        logger.error('[Create Subscription Checkout] Failed to save stripe_price_id:', error);
-        // Don't fail the request, just log the error
-      }
     }
 
     // Create or retrieve Stripe customer

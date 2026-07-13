@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     const { data: plan } = await supabase
       .from('membership_plans')
-      .select('id, name, price, stripe_price_id')
+      .select('id, name, price')
       .eq('id', planId)
       .single()
 
@@ -87,7 +87,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Get or create a Stripe price for this plan ────────────────────────────
-    let stripePriceId = plan.stripe_price_id
+    const existingPrices = await stripe.prices.list({ limit: 100, active: true })
+    let stripePriceId = existingPrices.data.find(
+      (p) => p.metadata?.plan_id === plan.id && p.recurring?.interval === 'month'
+    )?.id ?? null
     if (!stripePriceId) {
       const products = await stripe.products.list({ limit: 100 })
       let product = products.data.find((p: any) => p.name === plan.name && p.active)
@@ -102,7 +105,6 @@ export async function POST(request: NextRequest) {
         metadata: { plan_id: plan.id },
       })
       stripePriceId = price.id
-      await supabase.from('membership_plans').update({ stripe_price_id: stripePriceId }).eq('id', plan.id)
     }
 
     // ── Set card as default on the card customer ──────────────────────────────
