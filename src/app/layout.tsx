@@ -7,13 +7,13 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { RecoveryRedirect } from '@/components/RecoveryRedirect'
 
 export const metadata: Metadata = {
-  title: 'Frontline Fitness | Forces-Led Outdoor Training in Swindon',
-  description: 'Outdoor fitness bootcamp in Swindon. Forces-led group training, personal training, and online booking. Sessions at Lydiard Park — all levels welcome, first session free.',
-  keywords: 'outdoor fitness Swindon, bootcamp Swindon, HIIT training, personal training Swindon, group fitness, military fitness, Lydiard Park fitness, outdoor bootcamp Wiltshire, fitness classes Swindon, forces fitness, forces-led training',
+  title: 'Outdoor Fitness & Bootcamp in Swindon | Lydiard Park | Frontline Fitness',
+  description: 'Outdoor fitness classes and bootcamp at Lydiard Park, Swindon. Forces-led group training, personal training, and online booking. All levels welcome — first session free.',
+  keywords: 'outdoor fitness Swindon, bootcamp Swindon, fitness Lydiard Park, bootcamp Lydiard Park, HIIT training, personal training Swindon, group fitness, military fitness, Lydiard Park fitness classes, outdoor bootcamp Wiltshire, fitness classes Swindon, forces fitness',
   authors: [{ name: 'Frontline Fitness' }],
   openGraph: {
-    title: 'Frontline Fitness | Forces-Led Outdoor Training in Swindon',
-    description: 'Outdoor fitness bootcamp in Swindon. Forces-led group training, personal training, and online booking. First session free.',
+    title: 'Outdoor Fitness & Bootcamp in Swindon | Lydiard Park | Frontline Fitness',
+    description: 'Outdoor fitness classes and bootcamp at Lydiard Park, Swindon. Forces-led group training, personal training, and online booking. First session free.',
     url: 'https://frontlinefitness.co.uk',
     siteName: 'Frontline Fitness',
     locale: 'en_GB',
@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Frontline Fitness | Forces-Led Outdoor Training in Swindon',
-    description: 'Outdoor fitness bootcamp in Swindon. Forces-led group training and personal training. First session free.',
+    title: 'Outdoor Fitness & Bootcamp in Swindon | Lydiard Park | Frontline Fitness',
+    description: 'Outdoor fitness classes and bootcamp at Lydiard Park, Swindon. Forces-led group training and personal training. First session free.',
     images: ['https://frontlinefitness.co.uk/photos/og-image.jpg'],
   },
   robots: {
