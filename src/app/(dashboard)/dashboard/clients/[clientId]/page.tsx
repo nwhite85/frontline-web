@@ -390,7 +390,9 @@ function ProfileHeader({ client, loading, refreshKey, onEdit, onAddMembership, o
           {memPlan ? (
             <>
               <p className="text-sm font-semibold mt-0.5 truncate">{memPlan.name}</p>
-              {memPlan.plan_type === 'credit_package' || memPlan.plan_type === 'pay_and_go' ? (
+              {stats?.membership?.end_date ? (
+                <p className="text-xs text-destructive">Ends {format(new Date(stats.membership.end_date), 'd MMM yyyy')}</p>
+              ) : memPlan.plan_type === 'credit_package' || memPlan.plan_type === 'pay_and_go' ? (
                 <p className="text-xs text-muted-foreground">
                   {stats?.membership?.class_credits_remaining ?? 0} credit{(stats?.membership?.class_credits_remaining ?? 0) !== 1 ? 's' : ''} left
                 </p>
@@ -2182,16 +2184,21 @@ export default function ClientDetailPage() {
 
   const handleRemoveMembership = async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from('client_memberships')
-        .update({ status: 'cancelled' })
-        .eq('client_id', clientId)
-        .eq('status', 'active')
-      toast.success('Membership removed')
+      const res = await fetch('/api/cancel-membership', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to remove membership')
+      if (data.stripe && data.endsAt) {
+        toast.success(`Membership cancelled — active until ${format(new Date(data.endsAt), 'd MMM yyyy')}`)
+      } else {
+        toast.success('Membership removed')
+      }
       refreshStats()
-    } catch {
-      toast.error('Failed to remove membership')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove membership')
     }
   }
 

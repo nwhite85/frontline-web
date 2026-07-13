@@ -420,6 +420,14 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.user_id;
   const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id ?? null;
 
+  // Close the membership tied to this subscription
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('client_memberships')
+    .update({ status: 'cancelled', end_date: new Date().toISOString().split('T')[0], next_billing_date: null })
+    .eq('stripe_subscription_id', subscription.id)
+    .eq('status', 'active')
+
   if (userId) {
     await supabase.from('user_profiles').update({ status: 'inactive', is_active: false }).eq('id', userId);
     logger.log(`Subscription cancelled for user ${userId}`);
