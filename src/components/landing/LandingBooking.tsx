@@ -30,6 +30,7 @@ export function LandingBooking({ initialOptions }: { initialOptions?: RawBooking
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [classScheduleId, setClassScheduleId] = useState('')
   const [options] = useState<ScheduleOption[]>(() => mapToOptions(initialOptions ?? []))
   const [submitting, setSubmitting] = useState(false)
@@ -43,7 +44,7 @@ export function LandingBooking({ initialOptions }: { initialOptions?: RawBooking
     setSuccess(false)
 
     try {
-      if (!firstName.trim() || !lastName.trim() || !email.trim() || !classScheduleId) {
+      if (!firstName.trim() || !lastName.trim() || !email.trim() || !phone.trim() || !classScheduleId) {
         throw new Error('Please fill in all fields')
       }
 
@@ -54,6 +55,7 @@ export function LandingBooking({ initialOptions }: { initialOptions?: RawBooking
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           email: email.trim(),
+          phone: phone.trim(),
           classScheduleId,
         }),
       })
@@ -68,6 +70,7 @@ export function LandingBooking({ initialOptions }: { initialOptions?: RawBooking
       setFirstName('')
       setLastName('')
       setEmail('')
+      setPhone('')
       setClassScheduleId('')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to book class. Please try again.'
@@ -176,6 +179,19 @@ export function LandingBooking({ initialOptions }: { initialOptions?: RawBooking
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-brand-blue/50"
+                    />
+                </div>
+
+                <div>
+                  <label htmlFor="booking-phone" className={labelClass}>Phone Number</label>
+                  <Input
+                    id="booking-phone"
+                    type="tel"
+                    placeholder="07123 456789"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     required
                     className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-brand-blue/50"
                     />

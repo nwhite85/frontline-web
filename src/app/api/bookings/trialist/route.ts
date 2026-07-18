@@ -10,6 +10,8 @@ const trialistSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
   lastName: z.string().min(1, 'Last name is required').max(50),
   email: z.string().email('Invalid email format'),
+  // Optional so older cached forms without the field still submit
+  phone: z.string().max(20).optional(),
   classScheduleId: z.string().uuid('Invalid class schedule ID'),
 });
 
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
     }
-    const { firstName, lastName, email, classScheduleId } = parsed.data;
+    const { firstName, lastName, email, phone, classScheduleId } = parsed.data;
 
     const supabase = createServerSupabaseClient();
 
@@ -74,12 +76,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert trialist booking
-    const bookingData = {
+    const bookingData: Record<string, unknown> = {
       class_schedule_id: classScheduleId,
       trainer_id: trainerId,
       first_name: firstName.trim(),
       last_name: lastName.trim(),
       email: email.toLowerCase().trim(),
+      ...(phone?.trim() ? { phone: phone.trim() } : {}),
       status: 'confirmed',
       created_at: new Date().toISOString(),
     };
@@ -88,11 +91,24 @@ export async function POST(request: NextRequest) {
 
     let data;
     try {
-      const result = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let result = await (supabase as any)
         .from('trialist_bookings')
         .insert(bookingData)
         .select()
         .single();
+
+      // Phone column may not exist yet — never lose the booking over it
+      if ((result.error?.code === 'PGRST204' || result.error?.code === '42703') && bookingData.phone) {
+        logger.error('[Trialist Booking] phone column missing, retrying without it');
+        delete bookingData.phone;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await (supabase as any)
+          .from('trialist_bookings')
+          .insert(bookingData)
+          .select()
+          .single();
+      }
 
       data = result.data;
       const error = result.error;
@@ -139,6 +155,7 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       email: email.toLowerCase(),
+      phone: phone?.trim() || undefined,
       date: formattedDate,
       time: formattedTime,
     });

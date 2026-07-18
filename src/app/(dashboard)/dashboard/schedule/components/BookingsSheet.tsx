@@ -107,7 +107,7 @@ export function BookingsSheet({ open, onClose, type, scheduleId, eventId, challe
             booking_status: 'confirmed',
             booking_date: t.created_at,
             client_name: `${t.first_name} ${t.last_name} (Trial)`,
-            client_email: t.email,
+            client_email: t.phone ? `${t.email} · ${t.phone}` : t.email,
             _is_trialist: true,
           })
         }

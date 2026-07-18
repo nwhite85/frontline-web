@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const supabase = createServerSupabaseClient()
     const { data, error } = await supabase
       .from('trialist_bookings')
-      .select('id, first_name, last_name, email, status, created_at')
+      .select('*')
       .eq('class_schedule_id', scheduleId)
       .eq('status', 'confirmed')
 

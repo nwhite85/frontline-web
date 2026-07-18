@@ -353,7 +353,7 @@ export function trialistBookingEmail(data: TrialistBookingData): { subject: stri
   return { subject, html, text };
 }
 
-export function trainerNewTrialistEmail(data: TrialistBookingData & { email: string }): { subject: string; html: string; text: string } {
+export function trainerNewTrialistEmail(data: TrialistBookingData & { email: string; phone?: string }): { subject: string; html: string; text: string } {
   const subject = `New Trial Booking: ${data.firstName} ${data.lastName}`;
 
   const html = baseLayout(`
@@ -364,6 +364,7 @@ export function trainerNewTrialistEmail(data: TrialistBookingData & { email: str
         <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
           <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600;width:120px">Name</td><td style="padding:6px 0;font-weight:500">${data.firstName} ${data.lastName}</td></tr>
           <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Email</td><td style="padding:6px 0;font-weight:500"><a href="mailto:${data.email}" style="color:${BRAND.primary}">${data.email}</a></td></tr>
+          ${data.phone ? `<tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Phone</td><td style="padding:6px 0;font-weight:500"><a href="tel:${data.phone}" style="color:${BRAND.primary}">${data.phone}</a></td></tr>` : ''}
           <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Class Date</td><td style="padding:6px 0;font-weight:500">${data.date}</td></tr>
           <tr><td style="padding:6px 0;color:${BRAND.textMuted};font-weight:600">Time</td><td style="padding:6px 0;font-weight:500">${data.time}</td></tr>
         </table>
@@ -371,7 +372,7 @@ export function trainerNewTrialistEmail(data: TrialistBookingData & { email: str
     </div>
   `, subject);
 
-  const text = `New Trial Booking\n\nName: ${data.firstName} ${data.lastName}\nEmail: ${data.email}\nClass Date: ${data.date}\nTime: ${data.time}`;
+  const text = `New Trial Booking\n\nName: ${data.firstName} ${data.lastName}\nEmail: ${data.email}${data.phone ? `\nPhone: ${data.phone}` : ''}\nClass Date: ${data.date}\nTime: ${data.time}`;
 
   return { subject, html, text };
 }
