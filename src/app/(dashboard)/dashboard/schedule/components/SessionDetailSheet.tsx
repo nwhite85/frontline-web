@@ -26,11 +26,20 @@ interface Appointment {
   duration?: number
   duration_minutes?: number
   type?: string
+  appointment_type?: string
+  price?: number | null
   location?: string
   notes?: string
   status?: string
   appointment_date?: string
   trainer_id?: string
+}
+
+interface AppointmentTemplate {
+  id: string
+  name: string
+  duration_minutes: number
+  price?: number | null
 }
 
 interface ClassSchedule {
@@ -94,6 +103,7 @@ interface SessionDetailSheetProps {
   session: SessionData | null
   type: SessionType | null
   onRefresh: () => void
+  appointmentTemplates?: AppointmentTemplate[]
 }
 
 const typeLabels: Record<SessionType, string> = {
@@ -125,6 +135,7 @@ export function SessionDetailSheet({
   session,
   type,
   onRefresh,
+  appointmentTemplates = [],
 }: SessionDetailSheetProps) {
   const { user } = useSimpleAuth()
   const [editing, setEditing] = useState(false)
@@ -358,6 +369,7 @@ export function SessionDetailSheet({
   const [editNotes, setEditNotes] = useState('')
   const [editEndTime, setEditEndTime] = useState('')
   const [editMaxCapacity, setEditMaxCapacity] = useState(20)
+  const [editAptType, setEditAptType] = useState('')
 
   if (!session || !type) return null
 
@@ -368,6 +380,7 @@ export function SessionDetailSheet({
       setEditDuration(apt.duration_minutes || apt.duration || 60)
       setEditLocation(apt.location || '')
       setEditNotes(apt.notes || '')
+      setEditAptType(apt.appointment_type || '')
     } else if (type === 'class') {
       const cls = session as ClassSchedule
       setEditTime(cls.start_time || '')
@@ -396,14 +409,21 @@ export function SessionDetailSheet({
     setSaving(true)
     try {
       if (type === 'appointment') {
+        // Changing the type also updates the price to match the chosen template
+        const matchedTemplate = appointmentTemplates.find(t => t.name === editAptType)
+        const aptUpdate: Record<string, unknown> = {
+          start_time: editTime,
+          duration_minutes: editDuration,
+          location: editLocation || null,
+          notes: editNotes || null,
+        }
+        if (editAptType) {
+          aptUpdate.appointment_type = editAptType
+          if (matchedTemplate) aptUpdate.price = matchedTemplate.price ?? null
+        }
         const { error } = await supabase
           .from('appointments')
-          .update({
-            start_time: editTime,
-            duration_minutes: editDuration,
-            location: editLocation || null,
-            notes: editNotes || null,
-          })
+          .update(aptUpdate)
           .eq('id', session.id)
         if (error) throw error
       } else if (type === 'class') {
@@ -856,6 +876,26 @@ export function SessionDetailSheet({
               <Separator />
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Edit Session</h4>
+                {type === 'appointment' && appointmentTemplates.length > 0 && (
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-apt-type" className="text-xs">Appointment Type</Label>
+                    <select
+                      id="edit-apt-type"
+                      value={editAptType}
+                      onChange={(e) => setEditAptType(e.target.value)}
+                      className="w-full h-8 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      {!appointmentTemplates.some(t => t.name === editAptType) && (
+                        <option value={editAptType}>{editAptType || 'Select type'}</option>
+                      )}
+                      {appointmentTemplates.map(t => (
+                        <option key={t.id} value={t.name}>
+                          {t.name}{typeof t.price === 'number' ? ` — £${t.price.toFixed(2)}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-1">
                   <Label htmlFor="edit-time" className="text-xs">Start Time</Label>
                   <Input

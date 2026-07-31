@@ -676,6 +676,7 @@ export default function SchedulePage() {
         session={detailSheet?.session ?? null}
         type={detailSheet?.type ?? null}
         onRefresh={refreshData}
+        appointmentTemplates={appointmentTemplates}
       />
 
       {/* Add session sheet */}
