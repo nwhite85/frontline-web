@@ -71,6 +71,7 @@ async function handleNewSignupAccount(
   const dateOfBirth = session.metadata!.signup_dob || undefined
   const gender = session.metadata!.signup_gender || undefined
   const acceptMarketing = session.metadata?.accept_marketing === 'true'
+  const photoConsent = session.metadata?.photo_consent === 'true'
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
 
   const nameParts = name.trim().split(/\s+/)
@@ -126,10 +127,18 @@ async function handleNewSignupAccount(
     join_date: new Date().toISOString().split('T')[0],
     weight_unit: 'lbs',
     accept_marketing: acceptMarketing,
+    photo_consent: photoConsent,
     ...(customerId ? { stripe_customer_id: customerId } : {}),
   }
 
-  const { error: profileError } = await supabase.from('user_profiles').insert(profileRow)
+  let { error: profileError } = await supabase.from('user_profiles').insert(profileRow)
+  // photo_consent column may not exist until its migration runs — never let that
+  // block account creation; retry without it.
+  if (profileError && (profileError.code === 'PGRST204' || profileError.code === '42703')) {
+    logger.error('[new-signup] photo_consent column missing, inserting without it')
+    delete profileRow.photo_consent
+    ;({ error: profileError } = await supabase.from('user_profiles').insert(profileRow))
+  }
   if (profileError) {
     logger.error('[new-signup] Failed to create profile:', profileError)
     return null

@@ -16,6 +16,7 @@ const subscriptionCheckoutSchema = z.object({
   planPrice: z.number().positive('Price must be positive'),
   userId: z.string().optional(),
   acceptMarketing: z.boolean().optional(),
+  photoConsent: z.boolean().optional(),
 });
 
 // Use service role for admin operations
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
     }
-    const { email, name, phone, dateOfBirth, gender, planId, planName, planPrice, userId, acceptMarketing } = parsed.data;
+    const { email, name, phone, dateOfBirth, gender, planId, planName, planPrice, userId, acceptMarketing, photoConsent } = parsed.data;
 
     // New website signups have no userId — they arrive unauthenticated.
     // Existing users (re-subscribing from dashboard) pass a userId and must be authenticated.
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest) {
         plan_type: planType,
         class_credits: String(planData?.class_credits ?? 0),
         accept_marketing: acceptMarketing ? 'true' : 'false',
+        photo_consent: photoConsent ? 'true' : 'false',
         // New website signups — account is created by the webhook after payment
         ...(userId ? {} : {
           signup_email: email,

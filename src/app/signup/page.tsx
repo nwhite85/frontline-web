@@ -27,7 +27,7 @@ function SignupContent() {
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     dateOfBirth: '', gender: '',
-    terms: false, marketing: false,
+    terms: false, marketing: false, photoConsent: false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -112,6 +112,7 @@ function SignupContent() {
           planName: selectedPlan.name,
           planPrice: selectedPlan.price,
           acceptMarketing: form.marketing,
+          photoConsent: form.photoConsent,
         }),
       })
       const checkoutData = await checkoutRes.json()
@@ -237,6 +238,12 @@ function SignupContent() {
                     <Checkbox id="marketing" checked={form.marketing} onCheckedChange={(v) => update('marketing', Boolean(v))} />
                     <label htmlFor="marketing" className="text-sm text-white/50 cursor-pointer">
                       I agree to receive marketing updates via email
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="photoConsent" checked={form.photoConsent} onCheckedChange={(v) => update('photoConsent', Boolean(v))} />
+                    <label htmlFor="photoConsent" className="text-sm text-white/50 cursor-pointer">
+                      I&apos;m happy for photos/videos of me to be used on Frontline&apos;s social media and marketing
                     </label>
                   </div>
                   {error && (
