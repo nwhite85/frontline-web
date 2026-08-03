@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import sharp from 'sharp'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { logger } from '@/utils/logger'
 
@@ -36,15 +37,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Image must be under 5MB' }, { status: 400 })
     }
 
-    const ext = (file.name.split('.').pop() || 'png').toLowerCase()
+    // Normalise to a sensible size: cap the longest edge and re-encode as WebP.
+    // If sharp can't process it (e.g. odd format), fall back to the raw bytes.
+    let bytes: Uint8Array = new Uint8Array(await file.arrayBuffer())
+    let contentType = file.type
+    let ext = (file.name.split('.').pop() || 'png').toLowerCase()
+    try {
+      bytes = await sharp(bytes, { failOn: 'none' })
+        .rotate() // respect EXIF orientation
+        .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer()
+      contentType = 'image/webp'
+      ext = 'webp'
+    } catch (procErr) {
+      logger.error('slide image processing failed, storing original:', procErr)
+    }
+
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`
     const filePath = `${user.id}/${fileName}`
 
     const supabase = createServerSupabaseClient()
-    const bytes = Buffer.from(await file.arrayBuffer())
     const { error } = await supabase.storage
       .from('app-slides')
-      .upload(filePath, bytes, { upsert: true, contentType: file.type })
+      .upload(filePath, bytes, { upsert: true, contentType })
     if (error) throw error
 
     const { data } = supabase.storage.from('app-slides').getPublicUrl(filePath)

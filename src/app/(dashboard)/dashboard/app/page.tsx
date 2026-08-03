@@ -106,6 +106,34 @@ const DEFAULT_SLIDE: Partial<NotificationBarSlide> = {
   is_active: true,
 }
 
+// Downscale + re-encode a background image in the browser before upload, so
+// large phone photos become a sensible size (keeps storage small and avoids
+// Vercel's request-body limit). Returns the original file if compression can't
+// help or isn't supported.
+async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions)
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
+    const w = Math.round(bitmap.width * scale)
+    const h = Math.round(bitmap.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return file
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    bitmap.close?.()
+    const blob: Blob | null = await new Promise(resolve =>
+      canvas.toBlob(b => resolve(b), 'image/webp', quality)
+    )
+    // Fall back to the original if encoding failed or didn't actually save space
+    if (!blob || blob.size >= file.size) return file
+    return blob
+  } catch {
+    return file
+  }
+}
+
 export default function AppPage() {
   const { user } = useSimpleAuth()
   const { setActions } = usePageActions()
@@ -243,8 +271,10 @@ export default function AppPage() {
     if (!file || !user) return
     setUploadingImage(true)
     try {
+      const compressed = await compressImage(file)
+      const uploadName = compressed === file ? file.name : 'slide.webp'
       const fd = new FormData()
-      fd.append('file', file)
+      fd.append('file', compressed, uploadName)
       const res = await fetch('/api/upload-slide-image', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload failed')
