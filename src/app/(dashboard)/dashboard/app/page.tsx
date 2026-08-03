@@ -243,17 +243,16 @@ export default function AppPage() {
     if (!file || !user) return
     setUploadingImage(true)
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`
-      const filePath = `${user.id}/${fileName}`
-      const { error } = await supabase.storage.from('app-slides').upload(filePath, file, { upsert: true })
-      if (error) throw error
-      const { data: publicUrlData } = supabase.storage.from('app-slides').getPublicUrl(filePath)
-      setSlideForm(p => ({ ...p, image: publicUrlData.publicUrl }))
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload-slide-image', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setSlideForm(p => ({ ...p, image: data.url }))
       toast.success('Background image uploaded')
     } catch (err) {
       logger.error('Slide image upload error:', err)
-      toast.error('Failed to upload image')
+      toast.error(err instanceof Error ? err.message : 'Failed to upload image')
     } finally {
       setUploadingImage(false)
     }
