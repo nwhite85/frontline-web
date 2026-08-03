@@ -51,7 +51,7 @@ interface NotificationBarSlide {
   overlay_alpha?: number
   text_bg_color?: string
   text_bg_alpha?: number
-  text_bg_blend?: string
+  text_bg_blend?: boolean
   text_bg_spread?: number
   image?: string
   image_scale?: number
@@ -78,14 +78,14 @@ const DEFAULT_SLIDE: Partial<NotificationBarSlide> = {
   main_text: '',
   label: '',
   label_position: 'top',
-  content_alignment: 'center',
+  content_alignment: 'top',
   color: '#FFFFFF',
   bg_color: '#1a1a2e',
   text_color: '#FFFFFF',
   overlay_alpha: 0.4,
   text_bg_color: '#000000',
   text_bg_alpha: 0,
-  text_bg_blend: 'normal',
+  text_bg_blend: false,
   text_bg_spread: 0,
   image: '',
   image_scale: 100,
@@ -597,18 +597,17 @@ export default function AppPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
-                  <Label className="text-xs">Content alignment</Label>
+                  <Label className="text-xs">Content position</Label>
                   <Select
-                    value={slideForm.content_alignment || 'center'}
+                    value={slideForm.content_alignment || 'top'}
                     onValueChange={val => setSlideForm(p => ({ ...p, content_alignment: val }))}
                   >
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="left">Left</SelectItem>
-                      <SelectItem value="center">Center</SelectItem>
-                      <SelectItem value="right">Right</SelectItem>
+                      <SelectItem value="top">Top</SelectItem>
+                      <SelectItem value="bottom">Bottom</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
