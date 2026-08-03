@@ -413,6 +413,80 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   } else {
     logger.log(`Invoice ${invoiceId} paid — appointments marked paid for client ${clientId}`)
   }
+
+  // Automated monthly receipt for recurring subscription payments (opt-in per client)
+  try {
+    await maybeSendMonthlyReceipt(invoice, supabase)
+  } catch (receiptErr) {
+    // Never let a receipt failure break webhook processing
+    logger.error('Error sending monthly receipt:', receiptErr)
+  }
+}
+
+async function maybeSendMonthlyReceipt(
+  invoice: Stripe.Invoice,
+  supabase: ReturnType<typeof getAdminClient>
+) {
+  // Only recurring subscription invoices, actually paid, non-zero
+  const reason = invoice.billing_reason
+  if (reason !== 'subscription_cycle' && reason !== 'subscription_create') return
+  if (invoice.amount_paid <= 0) return
+
+  const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
+  const email = invoice.customer_email
+
+  // Resolve the client by Stripe customer id, falling back to email
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let client: any = null
+  if (customerId) {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('id, first_name, name, email, monthly_receipts_enabled')
+      .eq('stripe_customer_id', customerId)
+      .maybeSingle()
+    client = data
+  }
+  if (!client && email) {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('id, first_name, name, email, monthly_receipts_enabled')
+      .eq('email', email)
+      .maybeSingle()
+    client = data
+  }
+
+  if (!client) {
+    logger.log(`Monthly receipt: no client found for invoice ${invoice.id}`)
+    return
+  }
+  if (!client.monthly_receipts_enabled) return // opt-in, off by default
+
+  const to = client.email || email
+  if (!to) return
+
+  const firstName = client.first_name || (client.name ? String(client.name).split(' ')[0] : '') || 'there'
+  const amount = `£${(invoice.amount_paid / 100).toFixed(2)}`
+  const lineDesc = invoice.lines?.data?.[0]?.description || 'Monthly membership'
+  const paidDate = new Date((invoice.status_transitions?.paid_at ?? invoice.created) * 1000)
+    .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  const { paymentReceiptEmail } = await import('@/utils/emailTemplates')
+  const { sendTransactionalEmail } = await import('@/utils/sendTransactionalEmail')
+  const receipt = paymentReceiptEmail({
+    clientName: firstName,
+    amount,
+    description: lineDesc,
+    date: paidDate,
+    referenceId: invoice.number || invoice.id,
+  })
+  await sendTransactionalEmail({
+    to,
+    subject: receipt.subject,
+    html: receipt.html,
+    text: receipt.text,
+    replyTo: 'nick@frontlinefitness.co.uk',
+  })
+  logger.log(`Monthly receipt sent to ${to} for invoice ${invoice.id} (${amount})`)
 }
 
 async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {

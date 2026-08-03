@@ -1588,6 +1588,8 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
   const [newBillingDate, setNewBillingDate] = useState('')
   const [savingBillingDate, setSavingBillingDate] = useState(false)
   const [prorateChange, setProrateChange] = useState(false)
+  const [receiptsEnabled, setReceiptsEnabled] = useState(false)
+  const [receiptsSaving, setReceiptsSaving] = useState(false)
 
   const detectCardType = (n: string) => {
     const v = n.replace(/\s/g, '')
@@ -1636,6 +1638,11 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
     if (results[1].status === 'fulfilled') setPackages(results[1].value.data || [])
     if (results[2].status === 'fulfilled') setActiveMembership(results[2].value.data || null)
     if (results[3].status === 'fulfilled') setUnbilledApts((results[3] as any).value.data || [])
+    // Monthly-receipts opt-in flag (column may not exist until migration runs)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(supabase as any).from('user_profiles').select('monthly_receipts_enabled').eq('id', clientId).maybeSingle()
+      .then(({ data }: any) => setReceiptsEnabled(!!data?.monthly_receipts_enabled))
+      .catch(() => {})
     // Fetch next billing date from Stripe if the membership has a subscription
     const membership = results[2].status === 'fulfilled' ? results[2].value.data : null
     if ((membership as any)?.stripe_subscription_id) {
@@ -1656,6 +1663,29 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
         .then(({ data }) => setMembershipPlans(data || []))
     }
   }, [clientId, trainerId, loadBilling])
+
+  const toggleReceipts = async (enabled: boolean) => {
+    setReceiptsEnabled(enabled) // optimistic
+    setReceiptsSaving(true)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('user_profiles')
+        .update({ monthly_receipts_enabled: enabled })
+        .eq('id', clientId)
+      if (error) throw error
+      toast.success(enabled ? 'Monthly receipts enabled' : 'Monthly receipts disabled')
+    } catch (err: any) {
+      setReceiptsEnabled(!enabled) // revert
+      if (err?.code === 'PGRST204' || err?.code === '42703') {
+        toast.error('Run the monthly_receipts database migration first')
+      } else {
+        toast.error('Failed to update receipts setting')
+      }
+    } finally {
+      setReceiptsSaving(false)
+    }
+  }
 
   const confirmAddMembership = async () => {
     if (!selectedPlan) return
@@ -1792,6 +1822,15 @@ function BillingTab({ clientId, trainerId, showAddMembership, setShowAddMembersh
                   Change date
                 </button>
               )}
+            </div>
+          )}
+          {activeMembership?.stripe_subscription_id && (
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 mt-3">
+              <div>
+                <p className="text-sm font-medium">Monthly email receipts</p>
+                <p className="text-xs text-muted-foreground">Email this client a receipt each time they&apos;re billed</p>
+              </div>
+              <Switch checked={receiptsEnabled} disabled={receiptsSaving} onCheckedChange={toggleReceipts} />
             </div>
           )}
         </div>
