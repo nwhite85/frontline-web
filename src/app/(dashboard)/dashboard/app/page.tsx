@@ -28,7 +28,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { EmptyState } from '@/components/ui/empty-state'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
-import { Plus, MoreHorizontal, Smartphone, Layers, GripVertical } from 'lucide-react'
+import { Plus, MoreHorizontal, Smartphone, Layers, GripVertical, ImageIcon, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface NotificationBarSettings {
@@ -69,7 +69,7 @@ interface NotificationBarSlide {
   link_type?: string
   link_url?: string
   link_screen?: string
-  active?: boolean
+  is_active?: boolean
   created_at?: string
 }
 
@@ -103,7 +103,7 @@ const DEFAULT_SLIDE: Partial<NotificationBarSlide> = {
   link_type: 'none',
   link_url: '',
   link_screen: '',
-  active: true,
+  is_active: true,
 }
 
 export default function AppPage() {
@@ -124,6 +124,7 @@ export default function AppPage() {
   const [editingSlide, setEditingSlide] = useState<NotificationBarSlide | null>(null)
   const [slideForm, setSlideForm] = useState<Partial<NotificationBarSlide>>({ ...DEFAULT_SLIDE })
   const [slideSaving, setSlideSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
@@ -238,6 +239,26 @@ export default function AppPage() {
     setSheetOpen(true)
   }
 
+  const handleSlideImageUpload = async (file: File) => {
+    if (!file || !user) return
+    setUploadingImage(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`
+      const filePath = `${user.id}/${fileName}`
+      const { error } = await supabase.storage.from('app-slides').upload(filePath, file, { upsert: true })
+      if (error) throw error
+      const { data: publicUrlData } = supabase.storage.from('app-slides').getPublicUrl(filePath)
+      setSlideForm(p => ({ ...p, image: publicUrlData.publicUrl }))
+      toast.success('Background image uploaded')
+    } catch (err) {
+      logger.error('Slide image upload error:', err)
+      toast.error('Failed to upload image')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const handleEditSlide = (slide: NotificationBarSlide) => {
     setEditingSlide(slide)
     setSlideForm({ ...slide })
@@ -283,7 +304,7 @@ export default function AppPage() {
   }
 
   const handleToggleSlideActive = (id: string) => {
-    setSlides(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s))
+    setSlides(prev => prev.map(s => s.id === id ? { ...s, is_active: !s.is_active } : s))
   }
 
   const moveSlide = (id: string, dir: 'up' | 'down') => {
@@ -424,7 +445,7 @@ export default function AppPage() {
                     </TableCell>
                     <TableCell className="py-2">
                       <Switch
-                        checked={slide.active !== false}
+                        checked={slide.is_active !== false}
                         onCheckedChange={() => handleToggleSlideActive(slide.id)}
                         className="scale-75"
                       />
@@ -467,8 +488,11 @@ export default function AppPage() {
           <SheetBody>
             {/* Preview swatch */}
             <div
-              className="w-full h-16 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: slideForm.bg_color || '#1a1a2e' }}
+              className="w-full h-16 rounded-lg flex items-center justify-center bg-cover bg-center"
+              style={{
+                backgroundColor: slideForm.bg_color || '#1a1a2e',
+                backgroundImage: slideForm.image ? `url(${slideForm.image})` : undefined,
+              }}
             >
               <span className="text-sm font-medium" style={{ color: slideForm.text_color || '#FFFFFF' }}>
                 {slideForm.title || slideForm.main_text || 'Preview'}
@@ -540,6 +564,34 @@ export default function AppPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              <Separator />
+
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Background image</Label>
+                {slideForm.image ? (
+                  <div className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={slideForm.image} alt="Slide background" className="h-12 w-20 rounded object-cover border border-border" />
+                    <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setSlideForm(p => ({ ...p, image: '' }))}>
+                      <X className="h-3 w-3 mr-1" /> Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 h-16 rounded-lg border border-dashed border-input cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition-colors">
+                    <ImageIcon className="h-4 w-4" />
+                    {uploadingImage ? 'Uploading…' : 'Upload background image'}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      className="hidden"
+                      disabled={uploadingImage}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleSlideImageUpload(f); e.target.value = '' }}
+                    />
+                  </label>
+                )}
+                <p className="text-[0.7rem] text-muted-foreground">Sits behind the text. The background colour shows if no image is set.</p>
               </div>
 
               <Separator />
@@ -623,8 +675,8 @@ export default function AppPage() {
               <div className="flex items-center gap-2">
                 <Switch
                   id="slide-active"
-                  checked={slideForm.active !== false}
-                  onCheckedChange={val => setSlideForm(p => ({ ...p, active: val }))}
+                  checked={slideForm.is_active !== false}
+                  onCheckedChange={val => setSlideForm(p => ({ ...p, is_active: val }))}
                 />
                 <Label htmlFor="slide-active" className="text-sm">Active</Label>
               </div>
