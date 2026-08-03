@@ -79,7 +79,7 @@ const DEFAULT_SLIDE: Partial<NotificationBarSlide> = {
   label: '',
   label_position: 'top',
   content_alignment: 'top',
-  color: '#FFFFFF',
+  color: '#000000', // overlay tint — black darkens the background photo behind the text
   bg_color: '#1a1a2e',
   text_color: '#FFFFFF',
   overlay_alpha: 0.4,
