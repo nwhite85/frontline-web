@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/whatsapp-nudge",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/program-rollover",
+      "schedule": "0 1 * * *"
     }
   ]
 }

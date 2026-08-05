@@ -14,6 +14,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/send-password-reset',
   '/api/auth/',
   '/api/webhooks/',
+  '/api/cron/', // cron routes authenticate with CRON_SECRET, not a user session
   '/api/bookings/trialist',
   '/api/calendar/',
   '/api/merch-order',

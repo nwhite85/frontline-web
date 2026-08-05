@@ -666,7 +666,7 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
 
   const loadAssigned = useCallback(() => {
     return Promise.allSettled([
-      supabase.from('client_programs').select('id, status, created_at, program:programs(id, title, subtitle, duration_weeks)').eq('client_id', clientId).order('created_at', { ascending: false }),
+      supabase.from('client_programs').select('id, status, created_at, start_date, end_date, assigned_at, program:programs(id, title, subtitle, duration_weeks)').eq('client_id', clientId).in('status', ['active', 'paused']).order('start_date', { ascending: true, nullsFirst: true }),
       supabase.from('client_workouts').select('id, status, created_at, workout:workouts(id, name)').eq('client_id', clientId).order('created_at', { ascending: false }),
     ]).then(([p, w]) => {
       if (p.status === 'fulfilled') setPrograms(p.value.data || [])
@@ -690,73 +690,24 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
   const assignProgram = async (program: any) => {
     setAssigning(true)
     try {
-      // Clean up any existing workout_instances for this client+program before re-assigning
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('workout_instances').delete()
-        .eq('program_id', program.id)
-        .eq('client_id', clientId)
-
-      // 1. Insert client_programs row
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('client_programs').insert({
-        client_id: clientId,
-        program_id: program.id,
-        trainer_id: trainerId,
-        status: 'active',
-        assigned_at: new Date().toISOString(),
+      const res = await fetch('/api/assign-program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, programId: program.id }),
       })
-
-      // 2. Copy program_workouts → workout_instances + workout_instance_exercises
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: programWorkouts } = await (supabase as any)
-        .from('program_workouts')
-        .select('id, workout_id, week_number, day_number, workout_type')
-        .eq('program_id', program.id)
-
-      if (programWorkouts && programWorkouts.length > 0) {
-        for (const pw of programWorkouts) {
-          // Create workout instance
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: instance } = await (supabase as any)
-            .from('workout_instances')
-            .insert({
-              program_id: program.id,
-              client_id: clientId,
-              week_number: pw.week_number,
-              day_number: pw.day_number,
-              workout_type: pw.workout_type ?? 'strength',
-            })
-            .select('id')
-            .single()
-
-          if (!instance?.id) continue
-
-          // Fetch exercises from the source workout
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: exercises } = await (supabase as any)
-            .from('workout_exercises')
-            .select('exercise_id, position, set_count, reps, weight, rest_seconds, notes, time, distance, calories, superset_id, is_dropset, dropset_weights, dropset_application, dropset_reps, dropset_notes, dropset_time, dropset_distance, dropset_calories, measurement_type')
-            .eq('workout_id', pw.workout_id)
-
-          if (exercises && exercises.length > 0) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (supabase as any).from('workout_instance_exercises').insert(
-              exercises.map((ex: any) => ({
-                ...ex,
-                workout_instance_id: instance.id,
-                set_count: String(ex.set_count ?? '3'),
-                dropset_weights: ex.dropset_weights ?? '[]',
-              }))
-            )
-          }
-        }
-      }
-
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to assign program')
       setShowAssignProgram(false)
       setProgramSearch('')
+      if (data.status === 'queued') {
+        toast.success(`Queued — starts ${format(new Date(data.startDate), 'd MMM yyyy')} when the current program finishes`)
+      } else {
+        toast.success('Program assigned')
+      }
       await loadAssigned()
     } catch (err) {
       logger.error('Error assigning program:', err)
+      toast.error(err instanceof Error ? err.message : 'Failed to assign program')
     } finally { setAssigning(false) }
   }
 
@@ -844,8 +795,14 @@ function ProgramsTab({ clientId, trainerId }: { clientId: string; trainerId: str
                     {cp.program?.subtitle && <p className="text-xs text-muted-foreground">{cp.program.subtitle}</p>}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">{cp.program?.duration_weeks ? `${cp.program.duration_weeks}w` : '—'}</TableCell>
-                  <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">{format(new Date(cp.created_at), 'dd MMM yyyy')}</TableCell>
-                  <TableCell className="py-3"><Badge variant={cp.status === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">{cp.status}</Badge></TableCell>
+                  <TableCell className="py-3 text-xs text-muted-foreground hidden sm:table-cell">
+                    {cp.status === 'paused' && cp.start_date
+                      ? `Starts ${format(new Date(cp.start_date), 'dd MMM yyyy')}`
+                      : cp.status === 'active' && cp.end_date
+                        ? `Ends ${format(new Date(cp.end_date), 'dd MMM yyyy')}`
+                        : format(new Date(cp.created_at), 'dd MMM yyyy')}
+                  </TableCell>
+                  <TableCell className="py-3"><Badge variant={cp.status === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">{cp.status === 'paused' ? 'Queued' : cp.status}</Badge></TableCell>
                   <TableCell className="py-3 pr-4 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
