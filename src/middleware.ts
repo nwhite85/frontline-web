@@ -30,6 +30,9 @@ const PUBLIC_API_PREFIXES = [
   '/api/create-shop-checkout',
   '/api/shop-order',
   '/api/trialist-bookings',
+  // Public event sign-up form. The GET on this route lists registrations and
+  // checks the session itself, so only the POST is genuinely open.
+  '/api/event-registrations',
   // Note: /api/shop-orders (GET) is dashboard-only, stays protected
 ]
 
