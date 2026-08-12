@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { CalendarDays, Clock, MapPin, Users, Flag, Droplets, Sandwich, Ticket } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Ticket } from 'lucide-react'
 import { EVENT } from './event'
 import { RegistrationForm } from './RegistrationForm'
 
@@ -9,13 +9,6 @@ export const metadata: Metadata = {
   // Shared by link rather than found on Google — keep it out of search results.
   robots: { index: false, follow: false },
 }
-
-const whatsOn = [
-  { icon: Flag, title: 'Mini Assault Course', desc: 'A scaled-down version of the real thing. Crawl, climb, carry — kids love it, adults are welcome to embarrass themselves too.' },
-  { icon: Users, title: 'Team Games', desc: 'Mixed teams, all ages, nothing too serious. Relays, tug of war, and a few where the kids have the clear advantage.' },
-  { icon: Droplets, title: 'Water Fight', desc: 'It finishes how you would expect. No one stays dry, so plan your outfit accordingly.' },
-  { icon: Sandwich, title: 'Picnic to Finish', desc: 'Bring a blanket and whatever you fancy eating and drinking — or something to share. We all sit down together once the chaos dies down.' },
-]
 
 export default function FamilyFunDayPage() {
   return (
@@ -77,23 +70,6 @@ export default function FamilyFunDayPage() {
               <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
             </a>
             <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> {EVENT.cost}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* What's on */}
-      <div className="border-t border-white/[0.08]">
-        <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-16">
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue mb-4">The day</p>
-          <h2 className="text-3xl font-bold uppercase tracking-tight text-white mb-8">What&apos;s On</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {whatsOn.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-6">
-                <Icon size={20} className="text-brand-blue opacity-70 mb-3" />
-                <h3 className="font-bold text-white mb-2">{title}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{desc}</p>
-              </div>
-            ))}
           </div>
         </div>
       </div>
