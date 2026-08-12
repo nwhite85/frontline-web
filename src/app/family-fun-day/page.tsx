@@ -10,6 +10,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+// Feathers every edge of the hero photo out into the page background so it
+// sits on the black rather than being a rectangle stuck on top of it.
+const HERO_FADE = [
+  'linear-gradient(to right, transparent 0%, #000 32%, #000 88%, transparent 100%)',
+  'linear-gradient(to bottom, transparent 0%, #000 24%, #000 76%, transparent 100%)',
+].join(', ')
+
 const whatsOn = [
   { icon: Flag, title: 'Mini Assault Course', desc: 'A scaled-down version of the real thing. Crawl, climb, carry — kids love it, adults are welcome to embarrass themselves too.' },
   { icon: Users, title: 'Team Games', desc: 'Mixed teams, all ages, nothing too serious. Relays, tug of war, and a few where the kids have the clear advantage.' },
@@ -32,29 +39,51 @@ export default function FamilyFunDayPage() {
 
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 pt-16 pb-12 w-full">
-        <div className="flex items-center gap-2 text-brand-blue text-xs font-semibold uppercase tracking-widest mb-3">
-          <CalendarDays size={12} />
-          {EVENT.date}
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-bold uppercase tracking-tight text-white mb-4 max-w-2xl">
-          Family Fun Day<br />&amp; Picnic
-        </h1>
-        <p className="text-white/50 text-lg max-w-xl mb-8">
-          Morning and afternoon, the whole family. Mini assault course, team games, a
-          water fight nobody wins, and a picnic to finish. Free to come along — we just
-          need to know how many of you are coming.
-        </p>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/60">
-          <span className="inline-flex items-center gap-2"><Clock size={13} className="text-brand-blue" /> {EVENT.time}</span>
-          <a
-            href={`https://maps.google.com/?q=${EVENT.mapsQuery}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 hover:text-white transition-colors"
-          >
-            <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
-          </a>
-          <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> {EVENT.cost}</span>
+        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-10 items-center">
+          <div>
+            <div className="flex items-center gap-2 text-brand-blue text-xs font-semibold uppercase tracking-widest mb-3">
+              <CalendarDays size={12} />
+              {EVENT.date}
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-bold uppercase tracking-tight text-white mb-4">
+              Family Fun Day<br />&amp; Picnic
+            </h1>
+            <p className="text-white/50 text-lg max-w-xl mb-8">
+              Morning and afternoon, the whole family. Mini assault course, team games, a
+              water fight nobody wins, and a picnic to finish. Free to come along — we just
+              need to know how many of you are coming.
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/60">
+              <span className="inline-flex items-center gap-2"><Clock size={13} className="text-brand-blue" /> {EVENT.time}</span>
+              <a
+                href={`https://maps.google.com/?q=${EVENT.mapsQuery}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 hover:text-white transition-colors"
+              >
+                <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
+              </a>
+              <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> {EVENT.cost}</span>
+            </div>
+          </div>
+
+          {/* Feathered into the black rather than sat in a box */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/family-fun-day.webp"
+            alt="A young girl soaking everyone in range with a water pistol"
+            width={1100}
+            height={619}
+            className="w-full h-auto"
+            style={{
+              maskImage: HERO_FADE,
+              WebkitMaskImage: HERO_FADE,
+              // Both gradients have to agree for a pixel to show, which feathers
+              // all four edges instead of just the two the last gradient covers.
+              maskComposite: 'intersect',
+              WebkitMaskComposite: 'source-in',
+            }}
+          />
         </div>
       </div>
 
