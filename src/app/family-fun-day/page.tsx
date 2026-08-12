@@ -20,6 +20,11 @@ const whatsOn = [
 export default function FamilyFunDayPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
+      {/* Container rails, same as the main site — they give the page its vertical edges */}
+      <div className="fixed inset-0 sm:top-16 pointer-events-none z-[60]">
+        <div className="max-w-6xl mx-auto h-full sm:border-x border-[rgba(255,255,255,0.10)]" />
+      </div>
+
       {/* Nav */}
       <div className="sticky top-0 z-30 h-16 border-b border-white/10 bg-black">
         <div className="max-w-6xl mx-auto pl-[13px] sm:pl-[21px] lg:pl-[29px] pr-4 sm:pr-6 lg:pr-8 h-full flex items-center">
@@ -30,20 +35,25 @@ export default function FamilyFunDayPage() {
         </div>
       </div>
 
-      {/* Hero — photo runs full width behind the title */}
-      <div className="relative isolate w-full overflow-hidden min-h-[560px] sm:min-h-[600px] lg:min-h-[660px] flex items-end">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/family-fun-day.webp"
-          alt="A young girl soaking everyone in range with a water pistol"
-          className="absolute inset-0 -z-10 w-full h-full object-cover object-[72%_center]"
-        />
+      {/* Hero — photo runs to the rails rather than the full viewport. It sits
+          behind the title on desktop, and stacks above it on narrow screens
+          where there isn't the width to keep both readable. */}
+      <div className="max-w-6xl mx-auto w-full relative isolate overflow-hidden lg:min-h-[660px] lg:flex lg:items-end">
+        <div className="relative lg:absolute lg:inset-0 lg:-z-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/family-fun-day.webp"
+            alt="A young girl soaking everyone in range with a water pistol"
+            className="w-full h-64 sm:h-80 lg:h-full object-cover object-[72%_center]"
+          />
+          <div className="lg:hidden absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black to-transparent" />
+        </div>
         {/* Darkened from the left and the bottom so the type stays readable and
             the photo runs out into the black of the section below it. */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/65 to-transparent" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/40" />
+        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/50 to-transparent" />
+        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/40" />
 
-        <div className="relative max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 w-full pb-14 pt-28">
+        <div className="relative px-6 sm:px-8 lg:px-12 w-full pt-8 pb-12 lg:pb-14 lg:pt-28">
           <div className="flex items-center gap-2 text-brand-blue text-xs font-semibold uppercase tracking-widest mb-3">
             <CalendarDays size={12} />
             {EVENT.date}
