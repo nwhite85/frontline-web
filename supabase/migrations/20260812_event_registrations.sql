@@ -23,8 +23,10 @@ ALTER TABLE event_registrations ENABLE ROW LEVEL SECURITY;
 
 -- Public sign-up form inserts via the anon key. Reads stay closed: the API
 -- route lists registrations with the service role after checking the session.
+-- The waiver only applies to people bringing children, so adults coming on
+-- their own can register without it.
 DROP POLICY IF EXISTS "Public can register for events" ON event_registrations;
 CREATE POLICY "Public can register for events"
   ON event_registrations FOR INSERT
   TO anon, authenticated
-  WITH CHECK (waiver_accepted = true);
+  WITH CHECK (children = 0 OR waiver_accepted = true);

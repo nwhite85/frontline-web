@@ -14,12 +14,16 @@ const registrationSchema = z.object({
   adults: z.number().int().min(1).max(20),
   children: z.number().int().min(0).max(20),
   childAges: z.string().trim().max(100).optional().or(z.literal('')),
-  waiverAccepted: z.literal(true, { message: 'The waiver must be accepted' }),
+  waiverAccepted: z.boolean(),
   notes: z.string().trim().max(500).optional().or(z.literal('')),
+}).refine(d => d.children === 0 || d.waiverAccepted, {
+  message: 'The waiver must be accepted when children are coming',
+  path: ['waiverAccepted'],
 })
 
 // POST — public registration form. Inserts with the anon key so the RLS policy
-// (which requires waiver_accepted) is the final gate, not just this validation.
+// (waiver required once children are coming) is the final gate, not just this
+// validation.
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown'
   const { success } = rateLimit(ip, { limit: 10, windowMs: 60_000 })
