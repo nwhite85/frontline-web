@@ -1,18 +1,18 @@
 import type { Metadata } from 'next'
-import { CalendarDays, Clock, MapPin, Waves, Flag, Droplets, Sandwich } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Users, Flag, Droplets, Sandwich, Ticket } from 'lucide-react'
 import { EVENT } from './event'
 import { RegistrationForm } from './RegistrationForm'
 
 export const metadata: Metadata = {
   title: `${EVENT.name} | Frontline Fitness`,
-  description: `Register for the Frontline Fitness ${EVENT.name} — ${EVENT.date}. Mini assault course, slip n slide, water fight and a picnic to finish. Free for members and their families.`,
+  description: `Register for the Frontline Fitness ${EVENT.name} — ${EVENT.date}. Mini assault course, team games, water fight and a picnic to finish. Free for members and their families.`,
   // Shared by link rather than found on Google — keep it out of search results.
   robots: { index: false, follow: false },
 }
 
 const whatsOn = [
   { icon: Flag, title: 'Mini Assault Course', desc: 'A scaled-down version of the real thing. Crawl, climb, carry — kids love it, adults are welcome to embarrass themselves too.' },
-  { icon: Waves, title: 'Slip N Slide', desc: 'Long, wet and fast. Bring a towel and a change of clothes, because everyone ends up on it eventually.' },
+  { icon: Users, title: 'Team Games', desc: 'Mixed teams, all ages, nothing too serious. Relays, tug of war, and a few where the kids have the clear advantage.' },
   { icon: Droplets, title: 'Water Fight', desc: 'It finishes how you would expect. No one stays dry, so plan your outfit accordingly.' },
   { icon: Sandwich, title: 'Picnic to Finish', desc: 'Bring a blanket and something to share. We all sit down together once the chaos dies down.' },
 ]
@@ -40,13 +40,21 @@ export default function FamilyFunDayPage() {
           Family Fun Day<br />&amp; Picnic
         </h1>
         <p className="text-white/50 text-lg max-w-xl mb-8">
-          One afternoon, the whole family. Mini assault course, slip n slide, a water
-          fight nobody wins, and a picnic to finish. Free to come along — we just need
-          to know how many of you are coming.
+          Morning and afternoon, the whole family. Mini assault course, team games, a
+          water fight nobody wins, and a picnic to finish. Free to come along — we just
+          need to know how many of you are coming.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/60">
           <span className="inline-flex items-center gap-2"><Clock size={13} className="text-brand-blue" /> {EVENT.time}</span>
-          <span className="inline-flex items-center gap-2"><MapPin size={13} className="text-brand-blue" /> {EVENT.location}</span>
+          <a
+            href={`https://maps.google.com/?q=${EVENT.mapsQuery}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 hover:text-white transition-colors"
+          >
+            <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
+          </a>
+          <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> {EVENT.cost}</span>
         </div>
       </div>
 
@@ -67,8 +75,8 @@ export default function FamilyFunDayPage() {
         </div>
       </div>
 
-      {/* Register */}
-      <div className="border-t border-white/[0.08]" id="register">
+      {/* Register — set on a blue band so it reads as its own thing */}
+      <div className="border-y border-brand-blue/20 bg-blue-950/40" id="register">
         <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-16">
           <div className="grid lg:grid-cols-[1fr_1.2fr] gap-10 lg:gap-16">
             <div>
@@ -99,29 +107,6 @@ export default function FamilyFunDayPage() {
             </div>
             <RegistrationForm />
           </div>
-        </div>
-      </div>
-
-      {/* Getting there */}
-      <div className="border-t border-white/[0.08]">
-        <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-16">
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue mb-4">Getting there</p>
-          <h2 className="text-3xl font-bold uppercase tracking-tight text-white mb-6">Where &amp; When</h2>
-          <div className="max-w-xl space-y-3 text-white/60 text-sm leading-relaxed mb-6">
-            <p><span className="text-white font-medium">Date:</span> {EVENT.date}</p>
-            <p><span className="text-white font-medium">Time:</span> {EVENT.time}</p>
-            <p><span className="text-white font-medium">Where:</span> {EVENT.location}</p>
-            <p><span className="text-white font-medium">Cost:</span> Free — just bring the family.</p>
-          </div>
-          <a
-            href={`https://maps.google.com/?q=${EVENT.mapsQuery}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-white/70 hover:text-white rounded-full px-5 py-2.5 text-sm font-medium transition-colors"
-          >
-            <MapPin size={13} />
-            Open in Google Maps
-          </a>
         </div>
       </div>
 
