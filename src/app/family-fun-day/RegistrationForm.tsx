@@ -53,7 +53,6 @@ function Counter({
 export function RegistrationForm() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
   const [adults, setAdults] = useState(1)
   const [children, setChildren] = useState(0)
   const [childAges, setChildAges] = useState('')
@@ -78,7 +77,6 @@ export function RegistrationForm() {
           eventSlug: EVENT.slug,
           name,
           email,
-          phone,
           adults,
           children,
           childAges,
@@ -130,32 +128,17 @@ export function RegistrationForm() {
             placeholder="First and last name"
           />
         </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-white/80">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="px-3.5 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white text-sm outline-none focus:border-brand-blue/60 transition-colors placeholder:text-white/25"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="phone" className="text-sm font-medium text-white/80">
-              Phone <span className="text-white/30 font-normal">(optional)</span>
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              className="px-3.5 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white text-sm outline-none focus:border-brand-blue/60 transition-colors placeholder:text-white/25"
-              placeholder="07…"
-            />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="email" className="text-sm font-medium text-white/80">Email</label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            className="px-3.5 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white text-sm outline-none focus:border-brand-blue/60 transition-colors placeholder:text-white/25"
+            placeholder="you@example.com"
+          />
         </div>
       </div>
 
