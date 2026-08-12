@@ -14,7 +14,7 @@ const whatsOn = [
   { icon: Flag, title: 'Mini Assault Course', desc: 'A scaled-down version of the real thing. Crawl, climb, carry — kids love it, adults are welcome to embarrass themselves too.' },
   { icon: Users, title: 'Team Games', desc: 'Mixed teams, all ages, nothing too serious. Relays, tug of war, and a few where the kids have the clear advantage.' },
   { icon: Droplets, title: 'Water Fight', desc: 'It finishes how you would expect. No one stays dry, so plan your outfit accordingly.' },
-  { icon: Sandwich, title: 'Picnic to Finish', desc: 'Bring a blanket and something to share. We all sit down together once the chaos dies down.' },
+  { icon: Sandwich, title: 'Picnic to Finish', desc: 'Bring a blanket and whatever you fancy eating and drinking — or something to share. We all sit down together once the chaos dies down.' },
 ]
 
 export default function FamilyFunDayPage() {
@@ -97,7 +97,7 @@ export default function FamilyFunDayPage() {
                   <ul className="text-white/50 text-sm space-y-1 list-disc list-inside">
                     <li>A towel and a change of clothes for the kids</li>
                     <li>Sun cream, and a picnic blanket if you have one</li>
-                    <li>Something to share for the picnic</li>
+                    <li>Whatever you want to eat and drink — or something to share</li>
                   </ul>
                 </div>
                 <p className="text-white/40 text-xs">
