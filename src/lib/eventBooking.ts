@@ -29,23 +29,26 @@ export async function recordPaidEventBooking(session: Stripe.Checkout.Session): 
     children: 0,
     notes: session.metadata?.customer_notes || null,
   }
-  const payment = {
+  // Everything from the migration that may not have been run yet.
+  const extras = {
     amount_paid: (session.amount_total ?? 0) / 100,
     payment_status: 'paid',
     stripe_session_id: session.id,
+    is_vegetarian: session.metadata?.is_vegetarian === 'true',
+    is_vegan: session.metadata?.is_vegan === 'true',
   }
 
   const { error } = await supabase
     .from('event_registrations')
-    .upsert({ ...booking, ...payment }, { onConflict: 'stripe_session_id' })
+    .upsert({ ...booking, ...extras }, { onConflict: 'stripe_session_id' })
 
   if (!error) return true
 
-  // Payment columns not added yet (PGRST204 unknown column / 42703 undefined
+  // Those columns not added yet (PGRST204 unknown column / 42703 undefined
   // column). Money has already changed hands, so keep the booking rather than
   // losing it — the Stripe dashboard still has the payment against the email.
   if (error.code === 'PGRST204' || error.code === '42703') {
-    logger.error('[event-booking] Payment columns missing — saving booking without them:', error.message)
+    logger.error('[event-booking] Payment/diet columns missing — saving booking without them:', error.message)
     const { error: retryError } = await supabase.from('event_registrations').insert(booking)
     if (retryError) {
       logger.error('[event-booking] Fallback insert failed:', retryError)

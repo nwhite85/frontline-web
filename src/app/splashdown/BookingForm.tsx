@@ -1,12 +1,31 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { Check, ChevronRight } from 'lucide-react'
 import { EVENT } from './event'
+
+function DietCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-3 cursor-pointer group">
+      <span className="relative flex items-center justify-center shrink-0">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={e => onChange(e.target.checked)}
+          className="peer appearance-none w-5 h-5 rounded border border-white/20 bg-white/5 checked:bg-brand-blue checked:border-brand-blue transition-colors cursor-pointer"
+        />
+        <Check size={13} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={3} />
+      </span>
+      <span className="text-sm text-white/60 group-hover:text-white/75 transition-colors">{label}</span>
+    </label>
+  )
+}
 
 export function BookingForm() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [isVegetarian, setIsVegetarian] = useState(false)
+  const [isVegan, setIsVegan] = useState(false)
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +41,7 @@ export function BookingForm() {
       const res = await fetch('/api/event-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventSlug: EVENT.slug, name, email, notes }),
+        body: JSON.stringify({ eventSlug: EVENT.slug, name, email, isVegetarian, isVegan, notes }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || !data.url) throw new Error(data.error || 'Failed')
@@ -66,9 +85,16 @@ export function BookingForm() {
           />
           <p className="text-xs text-white/35">Your receipt and the day&apos;s details go here.</p>
         </div>
+        {/* Food is laid on, so we need the numbers for the BBQ */}
+        <div className="flex flex-col gap-3 border-t border-white/[0.08] pt-5">
+          <p className="text-sm font-medium text-white/80">Food — tick if it applies</p>
+          <DietCheckbox label="Vegetarian" checked={isVegetarian} onChange={setIsVegetarian} />
+          <DietCheckbox label="Vegan" checked={isVegan} onChange={setIsVegan} />
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label htmlFor="notes" className="text-sm font-medium text-white/80">
-            Anything we should know? <span className="text-white/30 font-normal">(optional)</span>
+            Any allergies or anything else? <span className="text-white/30 font-normal">(optional)</span>
           </label>
           <textarea
             id="notes"
@@ -77,7 +103,7 @@ export function BookingForm() {
             rows={2}
             maxLength={500}
             className="px-3.5 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white text-sm outline-none focus:border-brand-blue/60 transition-colors placeholder:text-white/25 resize-none"
-            placeholder="Dietary requirements, arriving late…"
+            placeholder="Allergies, arriving late…"
           />
         </div>
       </div>

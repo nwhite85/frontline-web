@@ -38,8 +38,9 @@ export default function SplashdownPage() {
           Summer<br />Splashdown
         </h1>
         <p className="text-white/60 text-lg max-w-xl mb-8">
-          A day at the lake. Swimming, games on the grass, a BBQ on the go and
-          good company — the sociable end of what we do, with none of the burpees.
+          A day at the lake. Swimming, games on the grass, food on the BBQ and good
+          company — the sociable end of what we do, with none of the burpees. Food&apos;s
+          included, just bring what you want to drink.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
           <span className="inline-flex items-center gap-2"><Clock size={13} className="text-brand-blue" /> {EVENT.time}</span>
@@ -64,13 +65,14 @@ export default function SplashdownPage() {
               <h2 className="text-3xl font-bold uppercase tracking-tight text-white mb-4">Grab Your Place</h2>
               <div className="space-y-4 text-white/60 text-sm leading-relaxed max-w-md">
                 <p>
-                  £{EVENT.price} covers your place for the day. Everyone books and pays
-                  for themselves, so if you&apos;re bringing someone, just run through it
-                  again for them.
+                  £{EVENT.price} covers your place for the day and your food. Everyone
+                  books and pays for themselves, so if you&apos;re bringing someone, just
+                  run through it again for them.
                 </p>
                 <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-4 space-y-2">
                   <p className="text-white font-medium text-sm">Bring with you</p>
                   <ul className="text-white/50 text-sm space-y-1 list-disc list-inside">
+                    <li>Whatever you want to drink — food is provided</li>
                     <li>Swim kit, a towel and a change of clothes</li>
                     <li>Sun cream and something to sit on</li>
                     <li>A chair if you like your comfort</li>

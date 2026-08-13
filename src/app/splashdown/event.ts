@@ -4,7 +4,7 @@ export const EVENT = {
   slug: 'splashdown',
   name: 'Summer Splashdown',
   date: 'Saturday 5 September 2026',
-  time: '11:00 – 16:00',
+  time: '10:30 – 17:00',
   location: 'Cotswold Water Park',
   mapsQuery: 'Cotswold+Water+Park',
   // Priced per person, in pounds. Everyone books and pays for themselves.

@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 const PAID_EVENTS: Record<string, { name: string; description: string; price: number; successPath: string; cancelPath: string }> = {
   splashdown: {
     name: 'Summer Splashdown',
-    description: 'Saturday 5 September 2026 — a day at the lake',
+    description: 'Saturday 5 September 2026 — a day at the lake, food included',
     price: 29,
     successPath: '/splashdown/success',
     cancelPath: '/splashdown',
@@ -23,6 +23,8 @@ const checkoutSchema = z.object({
   eventSlug: z.string().min(1).max(60),
   name: z.string().trim().min(2, 'Name is required').max(100),
   email: z.string().trim().email('Invalid email format').max(150),
+  isVegetarian: z.boolean().optional(),
+  isVegan: z.boolean().optional(),
   notes: z.string().trim().max(500).optional().or(z.literal('')),
 })
 
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 })
     }
-    const { eventSlug, name, email, notes } = parsed.data
+    const { eventSlug, name, email, isVegetarian, isVegan, notes } = parsed.data
 
     const event = PAID_EVENTS[eventSlug]
     if (!event) return NextResponse.json({ error: 'Unknown event' }, { status: 400 })
@@ -62,6 +64,8 @@ export async function POST(req: NextRequest) {
         event_slug: eventSlug,
         customer_name: name,
         customer_notes: notes || '',
+        is_vegetarian: String(Boolean(isVegetarian)),
+        is_vegan: String(Boolean(isVegan)),
       },
       success_url: `${origin}${event.successPath}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${event.cancelPath}`,
