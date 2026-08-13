@@ -169,6 +169,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return
   }
 
+  // Paid event booking — identified by event_slug in metadata
+  if (session.metadata?.event_slug) {
+    const { recordPaidEventBooking } = await import('@/lib/eventBooking')
+    await recordPaidEventBooking(session)
+    return
+  }
+
   const supabase = getAdminClient()
   let userId = session.metadata?.user_id;
   const planId = session.metadata?.plan_id;
