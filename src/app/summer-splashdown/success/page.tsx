@@ -62,7 +62,7 @@ function SuccessContent() {
                 We couldn&apos;t confirm this payment. If money has left your account
                 you are booked on — drop Nick a message and he&apos;ll check.
               </p>
-              <a href="/splashdown" className="text-sm text-brand-blue hover:opacity-80 transition-opacity">
+              <a href="/summer-splashdown" className="text-sm text-brand-blue hover:opacity-80 transition-opacity">
                 Back to the Splashdown
               </a>
             </>

@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   },
   skipMiddlewareUrlNormalize: true,
   skipTrailingSlashRedirect: true,
+  async redirects() {
+    return [
+      // The Splashdown page was briefly at /splashdown before it moved.
+      { source: '/splashdown', destination: '/summer-splashdown', permanent: true },
+      { source: '/splashdown/success', destination: '/summer-splashdown/success', permanent: true },
+    ]
+  },
   async headers() {
     return [
       {

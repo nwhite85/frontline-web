@@ -1,7 +1,7 @@
 // Single source of truth for the Splashdown page, the checkout and the
 // confirmation. Edit here to change what the page says.
 export const EVENT = {
-  slug: 'splashdown',
+  slug: 'summer-splashdown',
   name: 'Summer Splashdown',
   date: 'Saturday 5 September 2026',
   time: '10:30 – 17:00',

@@ -10,12 +10,12 @@ export const dynamic = 'force-dynamic'
 // Priced here rather than taken from the browser, so the amount charged can't
 // be edited by whoever is filling the form in.
 const PAID_EVENTS: Record<string, { name: string; description: string; price: number; successPath: string; cancelPath: string }> = {
-  splashdown: {
+  'summer-splashdown': {
     name: 'Summer Splashdown',
     description: 'Saturday 5 September 2026 — a day at the lake, food included',
     price: 29,
-    successPath: '/splashdown/success',
-    cancelPath: '/splashdown',
+    successPath: '/summer-splashdown/success',
+    cancelPath: '/summer-splashdown',
   },
 }
 
