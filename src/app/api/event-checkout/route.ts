@@ -9,13 +9,30 @@ export const dynamic = 'force-dynamic'
 
 // Priced here rather than taken from the browser, so the amount charged can't
 // be edited by whoever is filling the form in.
-const PAID_EVENTS: Record<string, { name: string; description: string; price: number; successPath: string; cancelPath: string }> = {
+const PAID_EVENTS: Record<string, {
+  name: string
+  description: string
+  price: number
+  // A deposit holds the place with a balance to follow, so it's recorded
+  // differently from an event that's paid for in full.
+  isDeposit?: boolean
+  successPath: string
+  cancelPath: string
+}> = {
   'summer-splashdown': {
     name: 'Summer Splashdown',
     description: 'Saturday 5 September 2026 — a day at the lake, food included',
     price: 29,
     successPath: '/summer-splashdown/success',
     cancelPath: '/summer-splashdown',
+  },
+  'christmas-do': {
+    name: 'Christmas Do — deposit',
+    description: 'Saturday 5 December 2026 at Bassett Down Golf Club. Balance to follow.',
+    price: 25,
+    isDeposit: true,
+    successPath: '/christmas-do/success',
+    cancelPath: '/christmas-do',
   },
 }
 
@@ -66,6 +83,7 @@ export async function POST(req: NextRequest) {
         customer_notes: notes || '',
         is_vegetarian: String(Boolean(isVegetarian)),
         is_vegan: String(Boolean(isVegan)),
+        payment_kind: event.isDeposit ? 'deposit' : 'full',
       },
       success_url: `${origin}${event.successPath}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${event.cancelPath}`,

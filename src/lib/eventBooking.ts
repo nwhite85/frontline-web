@@ -32,7 +32,7 @@ export async function recordPaidEventBooking(session: Stripe.Checkout.Session): 
   // Everything from the migration that may not have been run yet.
   const extras = {
     amount_paid: (session.amount_total ?? 0) / 100,
-    payment_status: 'paid',
+    payment_status: session.metadata?.payment_kind === 'deposit' ? 'deposit_paid' : 'paid',
     stripe_session_id: session.id,
     is_vegetarian: session.metadata?.is_vegetarian === 'true',
     is_vegan: session.metadata?.is_vegan === 'true',
