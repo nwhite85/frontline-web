@@ -28,31 +28,48 @@ export default function ChristmasDoPage() {
         </div>
       </div>
 
-      {/* Hero */}
-      <div className="max-w-6xl mx-auto w-full px-6 sm:px-8 lg:px-12 pt-20 pb-14">
-        <div className="flex items-center gap-2 text-brand-blue text-xs font-semibold uppercase tracking-widest mb-3">
-          <CalendarDays size={12} />
-          {EVENT.date}
+      {/* Hero — photo runs to the rails behind the title on desktop, and stacks
+          above it on narrow screens where there isn't the width for both. */}
+      <div className="max-w-6xl mx-auto w-full relative isolate overflow-hidden lg:min-h-[660px] lg:flex lg:items-end">
+        <div className="relative lg:absolute lg:inset-0 lg:-z-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/christmas-do.webp"
+            alt="Tables laid for Christmas dinner at Bassett Down, candles lit and the tree up"
+            className="w-full h-64 sm:h-80 lg:h-full object-cover object-[60%_center]"
+          />
+          <div className="lg:hidden absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black to-transparent" />
         </div>
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold uppercase tracking-tight text-white mb-5">
-          Christmas<br />Do
-        </h1>
-        <p className="text-white/60 text-lg max-w-xl mb-8">
-          The whole Frontline crew, out of kit and in one room. A proper night at
-          Bassett Down to finish the year off — put your deposit down and we&apos;ll
-          hold your place.
-        </p>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
-          <span className="inline-flex items-center gap-2"><Clock size={13} className="text-brand-blue" /> {EVENT.time}</span>
-          <a
-            href={`https://maps.google.com/?q=${EVENT.mapsQuery}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 hover:text-white transition-colors"
-          >
-            <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
-          </a>
-          <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> £{EVENT.deposit} deposit</span>
+        {/* Darkened from the left and the bottom so the type stays readable and
+            the photo runs out into the black of the section below it. */}
+        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/50 to-transparent" />
+        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/40" />
+
+        <div className="relative px-6 sm:px-8 lg:px-12 w-full pt-8 pb-12 lg:pb-14 lg:pt-28">
+          <div className="flex items-center gap-2 text-brand-blue text-xs font-semibold uppercase tracking-widest mb-3">
+            <CalendarDays size={12} />
+            {EVENT.date}
+          </div>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold uppercase tracking-tight text-white mb-5 drop-shadow-[0_2px_20px_rgba(0,0,0,0.8)]">
+            Christmas<br />Do
+          </h1>
+          <p className="text-white/70 text-lg max-w-xl mb-8">
+            The whole Frontline crew, out of kit and in one room. A proper night at
+            Bassett Down to finish the year off — put your deposit down and we&apos;ll
+            hold your place.
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
+            <span className="inline-flex items-center gap-2"><Clock size={13} className="text-brand-blue" /> {EVENT.time}</span>
+            <a
+              href={`https://maps.google.com/?q=${EVENT.mapsQuery}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 hover:text-white transition-colors"
+            >
+              <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
+            </a>
+            <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> £{EVENT.deposit} deposit</span>
+          </div>
         </div>
       </div>
 
