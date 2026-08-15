@@ -28,31 +28,48 @@ export default function SplashdownPage() {
         </div>
       </div>
 
-      {/* Hero */}
-      <div className="max-w-6xl mx-auto w-full px-6 sm:px-8 lg:px-12 pt-20 pb-14">
-        <div className="flex items-center gap-2 text-brand-blue text-xs font-semibold uppercase tracking-widest mb-3">
-          <CalendarDays size={12} />
-          {EVENT.date}
+      {/* Hero — photo runs to the rails behind the title on desktop, and stacks
+          above it on narrow screens where there isn't the width for both. */}
+      <div className="max-w-6xl mx-auto w-full relative isolate overflow-hidden lg:min-h-[660px] lg:flex lg:items-end">
+        <div className="relative lg:absolute lg:inset-0 lg:-z-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/summer-splashdown.webp"
+            alt="Someone launching off the jetty into the lake while another swims below"
+            className="w-full h-64 sm:h-80 lg:h-full object-cover object-[55%_center]"
+          />
+          <div className="lg:hidden absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black to-transparent" />
         </div>
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold uppercase tracking-tight text-white mb-5">
-          Summer<br />Splashdown
-        </h1>
-        <p className="text-white/60 text-lg max-w-xl mb-8">
-          A day at the lake. Swimming, games on the grass, food on the BBQ and good
-          company — the sociable end of what we do, with none of the burpees. Food&apos;s
-          included, just bring what you want to drink.
-        </p>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
-          <span className="inline-flex items-center gap-2"><Clock size={13} className="text-brand-blue" /> {EVENT.time}</span>
-          <a
-            href={`https://maps.google.com/?q=${EVENT.mapsQuery}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 hover:text-white transition-colors"
-          >
-            <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
-          </a>
-          <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> £{EVENT.price} per person</span>
+        {/* Darkened from the left and the bottom so the type stays readable and
+            the photo runs out into the black of the section below it. */}
+        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/60 to-transparent" />
+        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/40" />
+
+        <div className="relative px-6 sm:px-8 lg:px-12 w-full pt-8 pb-12 lg:pb-14 lg:pt-28">
+          <div className="flex items-center gap-2 text-brand-blue text-xs font-semibold uppercase tracking-widest mb-3">
+            <CalendarDays size={12} />
+            {EVENT.date}
+          </div>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold uppercase tracking-tight text-white mb-5 drop-shadow-[0_2px_20px_rgba(0,0,0,0.8)]">
+            Summer<br />Splashdown
+          </h1>
+          <p className="text-white/70 text-lg max-w-xl mb-8">
+            A day at the lake. Swimming, games on the grass, food on the BBQ and good
+            company — the sociable end of what we do, with none of the burpees. Food&apos;s
+            included, just bring what you want to drink.
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
+            <span className="inline-flex items-center gap-2"><Clock size={13} className="text-brand-blue" /> {EVENT.time}</span>
+            <a
+              href={`https://maps.google.com/?q=${EVENT.mapsQuery}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 hover:text-white transition-colors"
+            >
+              <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
+            </a>
+            <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> £{EVENT.price} per person</span>
+          </div>
         </div>
       </div>
 
