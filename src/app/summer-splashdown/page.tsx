@@ -42,8 +42,8 @@ export default function SplashdownPage() {
         </div>
         {/* Darkened from the left and the bottom so the type stays readable and
             the photo runs out into the black of the section below it. */}
-        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/60 to-transparent" />
-        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/40" />
+        <div className="hidden lg:block absolute inset-0 -z-10 bg-[linear-gradient(to_right,#000_0%,rgba(0,0,0,0.72)_26%,rgba(0,0,0,0.32)_48%,transparent_70%)]" />
+        <div className="hidden lg:block absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/25" />
 
         <div className="relative px-6 sm:px-8 lg:px-12 w-full pt-8 pb-12 lg:pb-14 lg:pt-28">
           <div className="flex items-center gap-2 text-brand-blue text-xs font-semibold uppercase tracking-widest mb-3">
