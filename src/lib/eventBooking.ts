@@ -2,10 +2,18 @@ import type Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '@/utils/logger'
 
-// A paid booking can be recorded twice — once by the Stripe webhook and once by
-// the confirmation page, whichever gets there first. Both go through here so
-// they write the same row, and the unique index on stripe_session_id turns the
-// second write into a no-op update.
+// Columns added by 20260813_event_registrations_payment.sql. If that migration
+// hasn't run, the booking still gets saved without them — money has already
+// changed hands, so losing the record is the worst possible outcome.
+const MISSING_COLUMN_CODES = ['PGRST204', '42703']
+
+/**
+ * A paid booking can be recorded twice — once by the Stripe webhook and once by
+ * the confirmation page, whichever gets there first. Deliberately does its own
+ * "is it already there?" check rather than an upsert: an upsert needs a unique
+ * index on stripe_session_id, and if that index is missing the whole write
+ * fails with 42P10 and the booking is lost after the customer has paid.
+ */
 export async function recordPaidEventBooking(session: Stripe.Checkout.Session): Promise<boolean> {
   const eventSlug = session.metadata?.event_slug
   const email = session.customer_email ?? session.customer_details?.email ?? ''
@@ -21,6 +29,18 @@ export async function recordPaidEventBooking(session: Stripe.Checkout.Session): 
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
+  // Already recorded by whichever path got here first.
+  const { data: existing, error: lookupError } = await supabase
+    .from('event_registrations')
+    .select('id')
+    .eq('stripe_session_id', session.id)
+    .maybeSingle()
+
+  if (existing) return true
+  if (lookupError && !MISSING_COLUMN_CODES.includes(lookupError.code ?? '')) {
+    logger.error('[event-booking] Lookup failed, writing anyway:', lookupError)
+  }
+
   const booking = {
     event_slug: eventSlug,
     name: session.metadata?.customer_name ?? '',
@@ -29,7 +49,6 @@ export async function recordPaidEventBooking(session: Stripe.Checkout.Session): 
     children: 0,
     notes: session.metadata?.customer_notes || null,
   }
-  // Everything from the migration that may not have been run yet.
   const extras = {
     amount_paid: (session.amount_total ?? 0) / 100,
     payment_status: session.metadata?.payment_kind === 'deposit' ? 'deposit_paid' : 'paid',
@@ -38,17 +57,11 @@ export async function recordPaidEventBooking(session: Stripe.Checkout.Session): 
     is_vegan: session.metadata?.is_vegan === 'true',
   }
 
-  const { error } = await supabase
-    .from('event_registrations')
-    .upsert({ ...booking, ...extras }, { onConflict: 'stripe_session_id' })
-
+  const { error } = await supabase.from('event_registrations').insert({ ...booking, ...extras })
   if (!error) return true
 
-  // Those columns not added yet (PGRST204 unknown column / 42703 undefined
-  // column). Money has already changed hands, so keep the booking rather than
-  // losing it — the Stripe dashboard still has the payment against the email.
-  if (error.code === 'PGRST204' || error.code === '42703') {
-    logger.error('[event-booking] Payment/diet columns missing — saving booking without them:', error.message)
+  if (MISSING_COLUMN_CODES.includes(error.code ?? '')) {
+    logger.error('[event-booking] Payment columns missing — saving booking without them:', error.message)
     const { error: retryError } = await supabase.from('event_registrations').insert(booking)
     if (retryError) {
       logger.error('[event-booking] Fallback insert failed:', retryError)
