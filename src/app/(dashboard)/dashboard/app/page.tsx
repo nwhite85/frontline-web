@@ -32,8 +32,9 @@ import { Plus, MoreHorizontal, Smartphone, Layers, GripVertical, ImageIcon, X, C
 import { toast } from 'sonner'
 import { listEventPages, type EventPageSummary } from '@/app/events/registry'
 
+// Whether the bar shows is worked out from the slides on save, so it isn't
+// held here — only the things that are a genuine choice.
 interface NotificationBarSettings {
-  notification_bar_enabled: boolean
   notification_bar_size: 'small' | 'medium' | 'large' | 'xl'
 }
 
@@ -126,8 +127,8 @@ function slideFromEvent(event: EventPageSummary, trainerId: string, position: nu
     position,
     title: event.name,
     main_text: event.date,
-    label: 'See More',
-    label_position: 'bottom',
+    label: 'Book Now',
+    label_position: 'top',
     content_alignment: 'bottom',
     image: event.image,
     overlay_alpha: 0.45,
@@ -173,7 +174,6 @@ export default function AppPage() {
   const [saving, setSaving] = useState(false)
 
   const [settings, setSettings] = useState<NotificationBarSettings>({
-    notification_bar_enabled: false,
     notification_bar_size: 'medium',
   })
   const [slides, setSlides] = useState<NotificationBarSlide[]>([])
@@ -213,13 +213,12 @@ export default function AppPage() {
         // Load global settings
         const { data: appData } = await supabase
           .from('client_app_settings')
-          .select('notification_bar_enabled, notification_bar_size')
+          .select('notification_bar_size')
           .eq('trainer_id', user.id)
           .single()
 
         if (appData) {
           setSettings({
-            notification_bar_enabled: appData.notification_bar_enabled || false,
             notification_bar_size: appData.notification_bar_size || 'medium',
           })
         }
@@ -253,7 +252,10 @@ export default function AppPage() {
         .from('client_app_settings')
         .upsert({
           trainer_id: user.id,
-          notification_bar_enabled: settings.notification_bar_enabled,
+          // The bar exists if there's anything to put in it. Asking separately
+          // only creates a state where something is switched on and nothing
+          // shows, which looks like a bug from the trainer's side.
+          notification_bar_enabled: slides.some(s => s.is_active !== false),
           notification_bar_size: settings.notification_bar_size,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'trainer_id' })
@@ -412,21 +414,11 @@ export default function AppPage() {
               <CardTitle className="text-sm font-semibold">Notification Bar</CardTitle>
             </div>
             <CardDescription className="text-xs">
-              Display a scrolling announcement bar at the top of your clients&apos; home screen.
+              How the announcement bar looks at the top of your clients&apos; home screen. It
+              appears on its own once something below is switched on, and goes when nothing is.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium">Enable notification bar</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Show the bar on the client app home screen</p>
-              </div>
-              <Switch
-                checked={settings.notification_bar_enabled}
-                onCheckedChange={(val) => setSettings(prev => ({ ...prev, notification_bar_enabled: val }))}
-              />
-            </div>
-            <Separator />
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm font-medium">Bar size</Label>
