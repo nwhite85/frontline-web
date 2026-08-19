@@ -4,6 +4,7 @@ export const EVENT = {
   slug: 'family-fun-day',
   name: 'Family Fun Day & Picnic',
   date: 'Saturday 22 August 2026',
+  isoDate: '2026-08-22',
   time: '11:00 – 14:00',
   location: 'Lydiard Park, Swindon',
   mapsQuery: 'Lydiard+Park+Swindon+SN5+3PA',

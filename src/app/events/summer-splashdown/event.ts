@@ -4,6 +4,7 @@ export const EVENT = {
   slug: 'summer-splashdown',
   name: 'Summer Splashdown',
   date: 'Saturday 5 September 2026',
+  isoDate: '2026-09-05',
   time: '10:30 – 17:00',
   location: 'Cotswold Water Park',
   mapsQuery: 'Cotswold+Water+Park',

@@ -28,8 +28,9 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { EmptyState } from '@/components/ui/empty-state'
 import { DeleteConfirmDialog } from '@/components/shared/DeleteConfirmDialog'
-import { Plus, MoreHorizontal, Smartphone, Layers, GripVertical, ImageIcon, X } from 'lucide-react'
+import { Plus, MoreHorizontal, Smartphone, Layers, GripVertical, ImageIcon, X, CalendarDays } from 'lucide-react'
 import { toast } from 'sonner'
+import { listEventPages, type EventPageSummary } from '@/app/events/registry'
 
 interface NotificationBarSettings {
   notification_bar_enabled: boolean
@@ -104,6 +105,36 @@ const DEFAULT_SLIDE: Partial<NotificationBarSlide> = {
   link_url: '',
   link_screen: '',
   is_active: true,
+}
+
+// An event slide is recognised by where it points, so there's no extra column
+// to keep in step — the link is the thing that makes it that event's slide.
+function slideIsForEvent(slide: Partial<NotificationBarSlide>, event: EventPageSummary) {
+  if (slide.link_type !== 'url' || !slide.link_url) return false
+  const tidy = (url: string) => url.trim().replace(/\/$/, '').toLowerCase()
+  return tidy(slide.link_url).endsWith(tidy(event.path))
+}
+
+// A slide built from an event page: its hero photo, its name, the date under
+// it, and a tap through to the page itself. Everything here is an ordinary
+// slide field, so it can be opened in the editor afterwards and changed.
+function slideFromEvent(event: EventPageSummary, trainerId: string, position: number): NotificationBarSlide {
+  return {
+    ...DEFAULT_SLIDE,
+    id: crypto.randomUUID(),
+    trainer_id: trainerId,
+    position,
+    title: event.name,
+    main_text: event.date,
+    label: 'See More',
+    label_position: 'bottom',
+    content_alignment: 'bottom',
+    image: event.image,
+    overlay_alpha: 0.45,
+    link_type: 'url',
+    link_url: event.url,
+    is_active: true,
+  } as NotificationBarSlide
 }
 
 // Downscale + re-encode a background image in the browser before upload, so
@@ -336,6 +367,26 @@ export default function AppPage() {
     setSlides(prev => prev.map(s => s.id === id ? { ...s, is_active: !s.is_active } : s))
   }
 
+  // Switching an event on builds its slide the first time and then just wakes
+  // the same one up again, so any crop or wording changes made to it survive
+  // being switched off over the quiet months and back on again.
+  const handleToggleEvent = (event: EventPageSummary, on: boolean) => {
+    if (!user) return
+    setSlides(prev => {
+      const existing = prev.find(s => slideIsForEvent(s, event))
+      if (existing) {
+        return prev.map(s => s.id === existing.id ? { ...s, is_active: on } : s)
+      }
+      if (!on) return prev
+      return [...prev, slideFromEvent(event, user.id, prev.length)]
+    })
+    toast.success(`${event.name} ${on ? 'added to' : 'hidden from'} the app — remember to save settings`)
+  }
+
+  // Every event page on the site, soonest first. Past events still list so a
+  // slide left switched on after the day is easy to spot and turn off.
+  const eventPages = listEventPages()
+
   const moveSlide = (id: string, dir: 'up' | 'down') => {
     setSlides(prev => {
       const idx = prev.findIndex(s => s.id === id)
@@ -396,6 +447,56 @@ export default function AppPage() {
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Events — the quick way in. Each event page on the site gets a switch;
+          flicking it on builds the slide from the page itself. */}
+      {!loading && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-semibold">Events</CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              Switch an event on to show it on the app home screen. The photo, name and date
+              come straight from its page on the website, and tapping it opens that page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {eventPages.map((event, idx) => {
+              const slide = slides.find(sl => slideIsForEvent(sl, event))
+              const on = !!slide && slide.is_active !== false
+              return (
+                <div key={event.slug}>
+                  {idx > 0 && <Separator className="mb-3" />}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-10 w-16 rounded bg-muted bg-cover bg-center flex-shrink-0"
+                      style={{ backgroundImage: `url(${event.image})` }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium truncate">{event.name}</Label>
+                        {event.isPast && (
+                          <Badge variant="outline" className="bg-card text-[10px] px-1.5 py-0">Been and gone</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {event.date} · {event.location}
+                      </p>
+                    </div>
+                    <Switch checked={on} onCheckedChange={val => handleToggleEvent(event, val)} />
+                  </div>
+                </div>
+              )
+            })}
+            <p className="text-xs text-muted-foreground">
+              Anything switched on here shows up in the slides below, where the wording and the
+              crop can still be changed by hand.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -464,7 +565,12 @@ export default function AppPage() {
                       />
                     </TableCell>
                     <TableCell className="py-2">
-                      <p className="text-sm font-medium line-clamp-1">{slide.title || slide.main_text || <span className="text-muted-foreground italic">No text</span>}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium line-clamp-1">{slide.title || slide.main_text || <span className="text-muted-foreground italic">No text</span>}</p>
+                        {eventPages.some(ev => slideIsForEvent(slide, ev)) && (
+                          <Badge variant="outline" className="bg-card text-[10px] px-1.5 py-0 flex-shrink-0">Event</Badge>
+                        )}
+                      </div>
                       {slide.main_text && slide.title && (
                         <p className="text-xs text-muted-foreground line-clamp-1">{slide.main_text}</p>
                       )}

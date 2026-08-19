@@ -45,12 +45,12 @@ function SuccessContent() {
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-blue/15 mb-5">
                 <Check size={22} className="text-brand-blue" />
               </div>
-              <h1 className="text-3xl font-bold uppercase tracking-tight text-white mb-3">Place held</h1>
+              <h1 className="text-3xl font-bold uppercase tracking-tight text-white mb-3">You&apos;re booked on</h1>
               <p className="text-white/60 leading-relaxed">
-                {firstName ? `Thanks ${firstName} — your` : 'Your'} deposit for the {EVENT.name} on{' '}
-                <span className="text-white font-medium">{EVENT.date}</span> is in.
-                Your receipt is on its way by email, and we&apos;ll be in touch about
-                the balance and the running order nearer the time.
+                {firstName ? `Thanks ${firstName} — your` : 'Your'} place at the {EVENT.name} on{' '}
+                <span className="text-white font-medium">{EVENT.date}</span> is paid for.
+                Your receipt is on its way by email, and we&apos;ll send the final
+                details nearer the time.
               </p>
             </>
           )}
@@ -60,10 +60,10 @@ function SuccessContent() {
               <h1 className="text-3xl font-bold uppercase tracking-tight text-white mb-3">Payment not confirmed</h1>
               <p className="text-white/60 leading-relaxed mb-6">
                 We couldn&apos;t confirm this payment. If money has left your account
-                your place is held — drop Nick a message and he&apos;ll check.
+                you are booked on — drop Nick a message and he&apos;ll check.
               </p>
-              <a href="/christmas-do" className="text-sm text-brand-blue hover:opacity-80 transition-opacity">
-                Back to the Christmas Do
+              <a href="/events/summer-splashdown" className="text-sm text-brand-blue hover:opacity-80 transition-opacity">
+                Back to the Splashdown
               </a>
             </>
           )}
@@ -80,7 +80,7 @@ function SuccessContent() {
   )
 }
 
-export default function ChristmasDoSuccessPage() {
+export default function SplashdownSuccessPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-black flex items-center justify-center">

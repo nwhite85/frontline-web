@@ -23,16 +23,16 @@ const PAID_EVENTS: Record<string, {
     name: 'Summer Splashdown',
     description: 'Saturday 5 September 2026 — a day at the lake, food included',
     price: 29,
-    successPath: '/summer-splashdown/success',
-    cancelPath: '/summer-splashdown',
+    successPath: '/events/summer-splashdown/success',
+    cancelPath: '/events/summer-splashdown',
   },
   'christmas-do': {
     name: 'Christmas Do — deposit',
     description: 'Saturday 5 December 2026 at Bassett Down Golf Club. Balance to follow.',
     price: 25,
     isDeposit: true,
-    successPath: '/christmas-do/success',
-    cancelPath: '/christmas-do',
+    successPath: '/events/christmas-do/success',
+    cancelPath: '/events/christmas-do',
   },
 }
 

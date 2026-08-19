@@ -39,7 +39,9 @@ export function BookingForm() {
       <div className="flex items-baseline justify-between gap-4 border-b border-white/[0.08] pb-5">
         <div>
           <p className="text-sm font-medium text-white/80">Deposit</p>
-          <p className="text-xs text-white/40 mt-0.5">Balance nearer the time</p>
+          <p className="text-xs text-white/40 mt-0.5">
+            £{EVENT.total.toFixed(2)} a head — balance of £{(EVENT.total - EVENT.deposit).toFixed(2)} nearer the time
+          </p>
         </div>
         <span className="text-3xl font-bold text-white tabular-nums">£{EVENT.deposit}</span>
       </div>

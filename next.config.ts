@@ -13,10 +13,17 @@ const nextConfig: NextConfig = {
   skipMiddlewareUrlNormalize: true,
   skipTrailingSlashRedirect: true,
   async redirects() {
+    // Event pages now live under /events/<slug>. The old addresses have been
+    // shared on WhatsApp, so they redirect rather than 404 — keep them.
+    const movedEvents = ['christmas-do', 'family-fun-day', 'summer-splashdown']
     return [
+      ...movedEvents.flatMap(slug => [
+        { source: `/${slug}`, destination: `/events/${slug}`, permanent: true },
+        { source: `/${slug}/:path*`, destination: `/events/${slug}/:path*`, permanent: true },
+      ]),
       // The Splashdown page was briefly at /splashdown before it moved.
-      { source: '/splashdown', destination: '/summer-splashdown', permanent: true },
-      { source: '/splashdown/success', destination: '/summer-splashdown/success', permanent: true },
+      { source: '/splashdown', destination: '/events/summer-splashdown', permanent: true },
+      { source: '/splashdown/success', destination: '/events/summer-splashdown/success', permanent: true },
     ]
   },
   async headers() {

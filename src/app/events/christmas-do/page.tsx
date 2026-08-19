@@ -5,7 +5,7 @@ import { BookingForm } from './BookingForm'
 
 export const metadata: Metadata = {
   title: `${EVENT.name} | Frontline Fitness`,
-  description: `Secure your place at the Frontline Fitness ${EVENT.name} — ${EVENT.date} at ${EVENT.location}. £${EVENT.deposit} deposit, balance to follow.`,
+  description: `Secure your place at the Frontline Fitness ${EVENT.name} — ${EVENT.date} at ${EVENT.location}. £${EVENT.total.toFixed(2)} a head, £${EVENT.deposit} deposit to book.`,
   // Shared by link rather than found on Google — keep it out of search results.
   robots: { index: false, follow: false },
 }
@@ -68,7 +68,7 @@ export default function ChristmasDoPage() {
             >
               <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
             </a>
-            <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> £{EVENT.deposit} deposit</span>
+            <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> £{EVENT.total.toFixed(2)} a head — £{EVENT.deposit} deposit to book</span>
           </div>
         </div>
       </div>
@@ -82,9 +82,10 @@ export default function ChristmasDoPage() {
               <h2 className="text-3xl font-bold uppercase tracking-tight text-white mb-4">Get Your Name Down</h2>
               <div className="space-y-4 text-white/60 text-sm leading-relaxed max-w-md">
                 <p>
-                  £{EVENT.deposit} now holds your place. The balance is settled nearer
-                  the time, once numbers are in and the venue has confirmed the final
-                  details.
+                  The night is £{EVENT.total.toFixed(2)} a head. £{EVENT.deposit} now holds
+                  your place, and the remaining £{(EVENT.total - EVENT.deposit).toFixed(2)} is
+                  settled nearer the time, once numbers are in and the venue has confirmed
+                  the final details.
                 </p>
                 <p>
                   Everyone books and pays for themselves, so if you&apos;re bringing a
