@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '@/utils/logger'
+import { isCreditPlan, isRecurringClassPlan } from '@/lib/membership'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://alvqlnqecjhemrgjmgqa.supabase.co'
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdnFsbnFlY2poZW1yZ2ptZ3FhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODU3ODM0MSwiZXhwIjoyMDg0MTU0MzQxfQ.tL0a6fsVtmmCOqAD1__yeUnFslhLlMWrTDObej7HL6g'
@@ -211,20 +212,18 @@ export async function POST(request: NextRequest) {
       .eq('client_id', clientId)
       .eq('status', 'active')
 
-    const recurringMembership = (memberships || []).find((m: any) => {
-      const plan = m.membership_plans
-      return plan?.plan_type !== 'credit_package' && plan?.includes_classes
-    }) as any | undefined
+    const recurringMembership = (memberships || []).find((m: any) =>
+      isRecurringClassPlan(m.membership_plans)
+    ) as any | undefined
 
     const creditMembership = !recurringMembership
-      ? (memberships || []).find((m: any) => {
-          const plan = m.membership_plans
-          return plan?.plan_type === 'credit_package' && (m.class_credits_remaining ?? 0) > 0
-        }) as any | undefined
+      ? (memberships || []).find((m: any) =>
+          isCreditPlan(m.membership_plans) && (m.class_credits_remaining ?? 0) > 0
+        ) as any | undefined
       : undefined
 
     if (!recurringMembership && !creditMembership) {
-      const hasExpiredCredits = (memberships || []).some((m: any) => m.membership_plans?.plan_type === 'credit_package')
+      const hasExpiredCredits = (memberships || []).some((m: any) => isCreditPlan(m.membership_plans))
       return NextResponse.json({
         error: hasExpiredCredits
           ? 'You have no credits remaining. Please purchase a new credit pack.'

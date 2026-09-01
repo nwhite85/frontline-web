@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '@/utils/logger'
+import { isCreditPlan, isRecurringClassPlan } from '@/lib/membership'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://alvqlnqecjhemrgjmgqa.supabase.co'
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdnFsbnFlY2poZW1yZ2ptZ3FhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODU3ODM0MSwiZXhwIjoyMDg0MTU0MzQxfQ.tL0a6fsVtmmCOqAD1__yeUnFslhLlMWrTDObej7HL6g'
@@ -138,10 +139,10 @@ export async function POST(request: NextRequest) {
           .eq('status', 'active')
 
         const hasRecurring = (memberships || []).some(
-          (m: any) => m.membership_plans?.plan_type !== 'credit_package' && m.membership_plans?.includes_classes
+          (m: any) => isRecurringClassPlan(m.membership_plans)
         )
         const creditMembership = !hasRecurring
-          ? (memberships || []).find((m: any) => m.membership_plans?.plan_type === 'credit_package') as any | undefined
+          ? (memberships || []).find((m: any) => isCreditPlan(m.membership_plans)) as any | undefined
           : undefined
 
         if (creditMembership) {

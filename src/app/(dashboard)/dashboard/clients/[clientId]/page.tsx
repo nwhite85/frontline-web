@@ -8,6 +8,7 @@ import { usePageActions } from '@/contexts/PageActionsContext'
 import { logger } from '@/utils/logger'
 import { getErrorMessage } from '@/utils/errorHandling'
 import { cn } from '@/lib/utils'
+import { isCreditPlan } from '@/lib/membership'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -390,12 +391,20 @@ function ProfileHeader({ client, loading, refreshKey, onEdit, onAddMembership, o
           {memPlan ? (
             <>
               <p className="text-sm font-semibold mt-0.5 truncate">{memPlan.name}</p>
-              {stats?.membership?.end_date ? (
+              {/* Credit plans (packs and drop-ins) always carry an expiry, so the
+                  credits line has to come first — testing end_date before the
+                  plan type hid the balance behind "Ends …" for every one of them. */}
+              {isCreditPlan(memPlan) || memPlan.plan_type === 'pay_and_go' ? (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    {stats?.membership?.class_credits_remaining ?? 0} credit{(stats?.membership?.class_credits_remaining ?? 0) !== 1 ? 's' : ''} left
+                  </p>
+                  {stats?.membership?.end_date && (
+                    <p className="text-xs text-destructive">Expires {format(new Date(stats.membership.end_date), 'd MMM yyyy')}</p>
+                  )}
+                </>
+              ) : stats?.membership?.end_date ? (
                 <p className="text-xs text-destructive">Ends {format(new Date(stats.membership.end_date), 'd MMM yyyy')}</p>
-              ) : memPlan.plan_type === 'credit_package' || memPlan.plan_type === 'pay_and_go' ? (
-                <p className="text-xs text-muted-foreground">
-                  {stats?.membership?.class_credits_remaining ?? 0} credit{(stats?.membership?.class_credits_remaining ?? 0) !== 1 ? 's' : ''} left
-                </p>
               ) : (
                 memPlan.price && <p className="text-xs text-muted-foreground">£{memPlan.price.toFixed(2)}/{memPlan.billing_period ?? 'mo'}</p>
               )}
