@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { CalendarDays, Clock, MapPin, Ticket } from 'lucide-react'
+import { CalendarDays, Clock, MapPin } from 'lucide-react'
 import { EVENT } from './event'
 import { BookingForm } from './BookingForm'
 
@@ -68,7 +68,6 @@ export default function SplashdownPage() {
             >
               <MapPin size={13} className="text-brand-blue" /> {EVENT.location}
             </a>
-            <span className="inline-flex items-center gap-2"><Ticket size={13} className="text-brand-blue" /> £{EVENT.price} per person</span>
           </div>
         </div>
       </div>
